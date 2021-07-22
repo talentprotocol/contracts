@@ -16,4 +16,8 @@ contract TalentProtocol is ERC20Detailed, ERC20 {
         _mint(msg.sender, _initialSupply);
     }
     
+    function sendTokensForTesting(address _address) public returns (bool) {
+        return transfer(_address, 10000);
+    }
+
 }

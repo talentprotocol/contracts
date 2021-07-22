@@ -104,15 +104,41 @@ class App extends Component {
     }
   }
 
+  onSubmit = async event => {
+    event.preventDefault();
+    const web3 = window.web3
+
+    console.log ("On submit")
+    const accounts = await web3.eth.getAccounts()
+
+    let result =  await this.state.talentProtocol.methods.sendTokensForTesting(accounts[1]);
+       
+    console.log (result)
+    console.log ("On submit done")
+  }
+
   render() {
     return (
       <div>
         <Navbar account={this.state.account} />
         <div className="container-fluid mt-5 ml-5">
+        <div className="row">
+            
+            <p><b>Connected wallet:</b> {this.state.account } </p>
+
+
+          </div>
+
           <div className="row">
             
             <p><b>BALANCE:</b> {window.web3.utils.fromWei(this.state.talentProtocolBalance, 'Ether')} TAL</p>
 
+
+          </div>
+          <div className="row">
+            <form onSubmit={this.onSubmit}>
+                <button>Send $TAL tokens to my Wallet for testing proposals</button>
+            </form>
           </div>
 
           <div className="row">

@@ -7,23 +7,20 @@ contract CareerCoin is BancorBondingCurve{
 
     string public symbol;
     string public name;
-    uint8 public decimals;
+    uint8 internal decimals = 18;
     uint public initialSupply;
     uint256 private totalSupply;
 
     address public talentAddress;
     uint256 public talentFee;
     
-  
-    constructor(string _symbol, string _name, uint8 _decimals, uint _initialSupply, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee) public BancorBondingCurve(_reserveRatio) {
+    constructor(string _symbol, string _name, uint _initialSupply, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee) public BancorBondingCurve(_reserveRatio) {
         symbol = _symbol;
         name = _name;
-        decimals = _decimals;
         initialSupply = _initialSupply;
         talentAddress = _talentAddress;
         talentFee = _talentFee;
     }
-
 
     function mint() public payable {
         uint purchaseAmount = msg.value;

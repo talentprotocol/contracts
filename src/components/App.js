@@ -131,7 +131,7 @@ class App extends Component {
 
           <div className="row">
             
-            <p><b>BALANCE:</b> {window.web3.utils.fromWei(this.state.talentProtocolBalance, 'Ether')} TAL</p>
+            <p><b>BALANCE:</b> {this.state.talentProtocolBalance} TAL</p>
 
 
           </div>

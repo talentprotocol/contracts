@@ -2,7 +2,7 @@ require('babel-register');
 require('babel-polyfill');
 
 var HDWalletProvider = require("truffle-hdwallet-provider");
-const MNEMONIC = 'enough barrel diet search auto cherry churn original sock tongue sniff garbage';
+const MNEMONIC = 'enough 123';
 
 module.exports = {
   networks: {

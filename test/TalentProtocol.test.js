@@ -1,3 +1,5 @@
+const { assert } = require('chai');
+
 const TalentProtocol = artifacts.require("TalentProtocol");
 const TalentProtocolFactory = artifacts.require("TalentProtocolFactory");
 const CareerCoin = artifacts.require("CareerCoin");
@@ -7,6 +9,8 @@ require('chai').use(require('chai-as-promised')).should()
 function tokens(n) {
     return web3.utils.toWei(n, 'ether');
 }
+
+const DEFAULT_RESERVE_RATIO = 1000000;
 
 contract ('TalentProtocol', (accounts) => {
 
@@ -19,20 +23,15 @@ contract ('TalentProtocol', (accounts) => {
     let careerCoin
     let talentList
 
-
     before(async () => {
         // Load contracts
         talentProcotol =  await TalentProtocol.new("Talent Protocol", "TAL", 18, 100000000)
         talentProtocolFactory =  await TalentProtocolFactory.new(talentProcotol.address)
         
-        //await talentProcotol.transfer(investor, tokens('1000'), {from: creator, gas: 51382 })
-
+        await talentProcotol.transfer(investor, 100000)
     })
 
     describe('Talent Protocol Deployment', async => {
-
-        
-
         it ('Has a name', async () => {
             const name = await talentProcotol.name();
             assert.equal(name, 'Talent Protocol')
@@ -49,7 +48,7 @@ contract ('TalentProtocol', (accounts) => {
         it ('Add new talent (Force test fail Symbol between 3 - 8 chars)', async () => {
 
             try {
-                await talentProtocolFactory.instanceNewTalent('J', 'John Doe', 1, talent1, 7);
+                await talentProtocolFactory.instanceNewTalent('J', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 7);
             } 
             catch (error) 
             {
@@ -62,7 +61,7 @@ contract ('TalentProtocol', (accounts) => {
         it ('Add new talent (Force test fail for Name)', async () => {
             
             try {
-                await talentProtocolFactory.instanceNewTalent('JDOE', '', 1, talent1, 5);
+                await talentProtocolFactory.instanceNewTalent('JDOE', '', DEFAULT_RESERVE_RATIO, talent1, 5);
             } 
             catch (error) 
             {
@@ -75,7 +74,7 @@ contract ('TalentProtocol', (accounts) => {
         it ('Add new talent (Force test fail for Talent address empty)', async () => {
             
             try {
-                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', 1, "", 3);
+                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, "", 3);
             } 
             catch (error) 
             {
@@ -88,7 +87,7 @@ contract ('TalentProtocol', (accounts) => {
         it ('Add new talent (Force test fail for Talent fee zero or negative)', async () => {
             
             try {
-                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', 1, talent1, 0);
+                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 0);
             } 
             catch (error) 
             {
@@ -99,14 +98,17 @@ contract ('TalentProtocol', (accounts) => {
         })
 
         it ('Add new talent #1', async () => {
-            await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', '100000', 200000, talent1, 5);
+            talentList = await talentProtocolFactory.getTalentList();
+            assert.equal(talentList.length, 0)
+
+            await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 5);
 
             talentList = await talentProtocolFactory.getTalentList();
             assert.equal(talentList.length, 1)
         })
 
         it ('Add new talent #2', async () => {
-            await talentProtocolFactory.instanceNewTalent('MDOE', 'Mary Doe', '100000', 200000, talent2, 5);
+            await talentProtocolFactory.instanceNewTalent('MDOE', 'Mary Doe', DEFAULT_RESERVE_RATIO, talent2, 5);
 
             talentList = await talentProtocolFactory.getTalentList();
             assert.equal(talentList.length, 2)
@@ -146,16 +148,82 @@ contract ('TalentProtocol', (accounts) => {
             expect(totalSupply.toString()).to.equal(web3.utils.toWei('0', 'ether'));
         })
 
-        
-        it("Can mint tokens with ether", async function() {
+        it("Can mint tokens with ether following the bounding curve", async function() {
+            let allCoins = await talentProtocolFactory.getTalentList()
 
-            const depositAmount = web3.utils.toWei('1', 'ether');
-            const rewardAmount = await careerCoin.getContinuousMintReward(depositAmount);
-            console.log(rewardAmount);
-        
-        
-          })
-        
+            // generate JDOE token coin if necessary
+            if (allCoins.length < 1) {
+                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 5);
+                allCoins = await talentProtocolFactory.getTalentList();
+            }
 
+            const coin = await CareerCoin.at(allCoins[0])
+
+            // Add reserve if empty
+            if(web3.utils.fromWei(await coin.reserveBalance()) == "0") {
+                await coin.initialMint(web3.utils.toWei("10", 'ether'));
+            }
+
+            // first investor buys 10 more ether
+            const depositAmount = web3.utils.toWei((10).toString(), 'ether');
+            await coin.mint({ from: investor, value: depositAmount});
+
+            const amount = web3.utils.fromWei(await coin.balanceOf(investor))
+            assert.equal(amount, "10")
+
+            const reserve = web3.utils.fromWei(await coin.reserveBalance())
+            assert.equal(reserve, "20")
+
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+            await coin.mint({ from: investor, value: depositAmount});
+
+            const reserveAfterMultipleTransactions = web3.utils.fromWei(await coin.reserveBalance())
+            assert.equal(reserveAfterMultipleTransactions, "100")
+
+            const balanceOfInvestorAfterMultipleTransactions = web3.utils.fromWei(await coin.balanceOf(investor))
+            assert.equal(balanceOfInvestorAfterMultipleTransactions, "90")
+        })
+
+        it("Can burn minted tokens for ether", async function() {
+            let allCoins = await talentProtocolFactory.getTalentList()
+
+            // generate JDOE token coin if necessary
+            if (allCoins.length < 1) {
+                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 5);
+                allCoins = await talentProtocolFactory.getTalentList();
+            }
+
+            const coin = await CareerCoin.at(allCoins[0])
+
+            // Add reserve if empty
+            if(web3.utils.fromWei(await coin.reserveBalance()) == "0") {
+                await coin.initialMint(web3.utils.toWei("10", 'ether'));
+            }
+
+            // Add funds to investor if needed
+            if(web3.utils.fromWei(await coin.balanceOf(investor)) == "0") {
+                const depositAmount = web3.utils.toWei("10", 'ether');
+                await coin.mint({ from: investor, value: depositAmount});
+            }
+
+            const allInvestorBalance = await coin.balanceOf(investor)
+
+            const beforeBurnReserve = await coin.reserveBalance()
+
+            await coin.burn(allInvestorBalance, { from: investor });
+
+            const reserveAfterBurn = web3.utils.fromWei(await coin.reserveBalance())
+            const expectedReserveAfterBurn = web3.utils.fromWei(web3.utils.toBN(beforeBurnReserve).sub(web3.utils.toBN(allInvestorBalance)).toString())
+            assert.equal(reserveAfterBurn, expectedReserveAfterBurn)
+
+            const balanceOfInvestorAfterBurn = web3.utils.fromWei(await coin.balanceOf(investor))
+            assert.equal(balanceOfInvestorAfterBurn, "0")
+        })
     })
 })

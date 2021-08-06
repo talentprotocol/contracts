@@ -28,7 +28,7 @@ contract TalentProtocolFactory is Ownable {
     // INSTANTIATE NEW TALENT ON FACTORY
     function instanceNewTalent(string _symbol, string _name, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee) onlyOwner onlyValidInputData(_symbol, _name, _talentAddress, _talentFee) public returns (bool) {
         
-        CareerCoin tCareerCoin = new CareerCoin(_symbol, _name, _reserveRatio, _talentAddress, _talentFee);
+        CareerCoin tCareerCoin = new CareerCoin(_symbol, _name, _reserveRatio, _talentAddress, _talentFee, owner());
         talentList.push(tCareerCoin);
 
         // emit event when talent contract is created 

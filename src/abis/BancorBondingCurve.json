@@ -175,38 +175,38 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "pragma solidity 0.4.25;\n\nimport \"../math/BancorFormula.sol\";\n\ninterface IBondingCurve {\n\n    function getContinuousMintReward(uint _reserveTokenAmount) external view returns (uint);\n    function getContinuousBurnRefund(uint _continuousTokenAmount) external view returns (uint);\n}\n\ncontract BancorBondingCurve is IBondingCurve, BancorFormula {\n    /*\n        reserve ratio, represented in ppm, 1-1000000\n        1/3 corresponds to y= multiple * x^2\n        1/2 corresponds to y= multiple * x ---> Using now this reserve ratio for Talent Protocol\n        2/3 corresponds to y= multiple * x^1/2\n    */\n    uint32 public reserveRatio;\n\n    constructor(uint32 _reserveRatio) public {\n        reserveRatio = _reserveRatio;\n    }\n\n    function getContinuousMintReward(uint _reserveTokenAmount) public view returns (uint) {\n        return calculatePurchaseReturn(continuousSupply(), reserveBalance(), reserveRatio, _reserveTokenAmount);\n    }\n\n    function getContinuousBurnRefund(uint _continuousTokenAmount) public view returns (uint) {\n        return calculateSaleReturn(continuousSupply(), reserveBalance(), reserveRatio, _continuousTokenAmount);\n    }\n\n    function continuousSupply() public view returns (uint);\n\n    function reserveBalance() public view returns (uint);\n}",
-  "sourcePath": "C:/laragon-route/TalentProtocol/test-developments/src/contracts/curves/BancorBondingCurve.sol",
+  "sourcePath": "/Users/franciscoleal/Documents/workspace/talentprotocol/test-developments/src/contracts/curves/BancorBondingCurve.sol",
   "ast": {
-    "absolutePath": "/C/laragon-route/TalentProtocol/test-developments/src/contracts/curves/BancorBondingCurve.sol",
+    "absolutePath": "project:/src/contracts/curves/BancorBondingCurve.sol",
     "exportedSymbols": {
       "BancorBondingCurve": [
-        305
+        505
       ],
       "IBondingCurve": [
-        244
+        444
       ]
     },
-    "id": 306,
+    "id": 506,
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 228,
+        "id": 428,
         "literals": [
           "solidity",
           "0.4",
           ".25"
         ],
         "nodeType": "PragmaDirective",
-        "src": "0:23:2"
+        "src": "0:23:4"
       },
       {
-        "absolutePath": "/C/laragon-route/TalentProtocol/test-developments/src/contracts/math/BancorFormula.sol",
+        "absolutePath": "project:/src/contracts/math/BancorFormula.sol",
         "file": "../math/BancorFormula.sol",
-        "id": 229,
+        "id": 429,
         "nodeType": "ImportDirective",
-        "scope": 306,
-        "sourceUnit": 519,
-        "src": "25:35:2",
+        "scope": 506,
+        "sourceUnit": 719,
+        "src": "25:35:4",
         "symbolAliases": [],
         "unitAlias": ""
       },
@@ -216,9 +216,9 @@
         "contractKind": "interface",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 244,
+        "id": 444,
         "linearizedBaseContracts": [
-          244
+          444
         ],
         "name": "IBondingCurve",
         "nodeType": "ContractDefinition",
@@ -226,7 +226,7 @@
           {
             "body": null,
             "documentation": null,
-            "id": 236,
+            "id": 436,
             "implemented": false,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -234,16 +234,16 @@
             "name": "getContinuousMintReward",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 232,
+              "id": 432,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 231,
+                  "id": 431,
                   "name": "_reserveTokenAmount",
                   "nodeType": "VariableDeclaration",
-                  "scope": 236,
-                  "src": "126:24:2",
+                  "scope": 436,
+                  "src": "126:24:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -251,10 +251,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 230,
+                    "id": 430,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "126:4:2",
+                    "src": "126:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -264,20 +264,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "125:26:2"
+              "src": "125:26:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 235,
+              "id": 435,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 234,
+                  "id": 434,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 236,
-                  "src": "175:4:2",
+                  "scope": 436,
+                  "src": "175:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -285,10 +285,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 233,
+                    "id": 433,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "175:4:2",
+                    "src": "175:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -298,10 +298,10 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "174:6:2"
+              "src": "174:6:4"
             },
-            "scope": 244,
-            "src": "93:88:2",
+            "scope": 444,
+            "src": "93:88:4",
             "stateMutability": "view",
             "superFunction": null,
             "visibility": "external"
@@ -309,7 +309,7 @@
           {
             "body": null,
             "documentation": null,
-            "id": 243,
+            "id": 443,
             "implemented": false,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -317,16 +317,16 @@
             "name": "getContinuousBurnRefund",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 239,
+              "id": 439,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 238,
+                  "id": 438,
                   "name": "_continuousTokenAmount",
                   "nodeType": "VariableDeclaration",
-                  "scope": 243,
-                  "src": "219:27:2",
+                  "scope": 443,
+                  "src": "219:27:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -334,10 +334,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 237,
+                    "id": 437,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "219:4:2",
+                    "src": "219:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -347,20 +347,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "218:29:2"
+              "src": "218:29:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 242,
+              "id": 442,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 241,
+                  "id": 441,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 243,
-                  "src": "271:4:2",
+                  "scope": 443,
+                  "src": "271:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -368,10 +368,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 240,
+                    "id": 440,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "271:4:2",
+                    "src": "271:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -381,17 +381,17 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "270:6:2"
+              "src": "270:6:4"
             },
-            "scope": 244,
-            "src": "186:91:2",
+            "scope": 444,
+            "src": "186:91:4",
             "stateMutability": "view",
             "superFunction": null,
             "visibility": "external"
           }
         ],
-        "scope": 306,
-        "src": "62:217:2"
+        "scope": 506,
+        "src": "62:217:4"
       },
       {
         "baseContracts": [
@@ -399,64 +399,64 @@
             "arguments": null,
             "baseName": {
               "contractScope": null,
-              "id": 245,
+              "id": 445,
               "name": "IBondingCurve",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 244,
-              "src": "312:13:2",
+              "referencedDeclaration": 444,
+              "src": "312:13:4",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_IBondingCurve_$244",
+                "typeIdentifier": "t_contract$_IBondingCurve_$444",
                 "typeString": "contract IBondingCurve"
               }
             },
-            "id": 246,
+            "id": 446,
             "nodeType": "InheritanceSpecifier",
-            "src": "312:13:2"
+            "src": "312:13:4"
           },
           {
             "arguments": null,
             "baseName": {
               "contractScope": null,
-              "id": 247,
+              "id": 447,
               "name": "BancorFormula",
               "nodeType": "UserDefinedTypeName",
-              "referencedDeclaration": 518,
-              "src": "327:13:2",
+              "referencedDeclaration": 718,
+              "src": "327:13:4",
               "typeDescriptions": {
-                "typeIdentifier": "t_contract$_BancorFormula_$518",
+                "typeIdentifier": "t_contract$_BancorFormula_$718",
                 "typeString": "contract BancorFormula"
               }
             },
-            "id": 248,
+            "id": 448,
             "nodeType": "InheritanceSpecifier",
-            "src": "327:13:2"
+            "src": "327:13:4"
           }
         ],
         "contractDependencies": [
-          244,
-          518,
-          2698
+          444,
+          718,
+          2898
         ],
         "contractKind": "contract",
         "documentation": null,
         "fullyImplemented": false,
-        "id": 305,
+        "id": 505,
         "linearizedBaseContracts": [
-          305,
-          518,
-          2698,
-          244
+          505,
+          718,
+          2898,
+          444
         ],
         "name": "BancorBondingCurve",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "constant": false,
-            "id": 250,
+            "id": 450,
             "name": "reserveRatio",
             "nodeType": "VariableDeclaration",
-            "scope": 305,
-            "src": "603:26:2",
+            "scope": 505,
+            "src": "603:26:4",
             "stateVariable": true,
             "storageLocation": "default",
             "typeDescriptions": {
@@ -464,10 +464,10 @@
               "typeString": "uint32"
             },
             "typeName": {
-              "id": 249,
+              "id": 449,
               "name": "uint32",
               "nodeType": "ElementaryTypeName",
-              "src": "603:6:2",
+              "src": "603:6:4",
               "typeDescriptions": {
                 "typeIdentifier": "t_uint32",
                 "typeString": "uint32"
@@ -478,26 +478,26 @@
           },
           {
             "body": {
-              "id": 259,
+              "id": 459,
               "nodeType": "Block",
-              "src": "677:45:2",
+              "src": "677:45:4",
               "statements": [
                 {
                   "expression": {
                     "argumentTypes": null,
-                    "id": 257,
+                    "id": 457,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
                     "lValueRequested": false,
                     "leftHandSide": {
                       "argumentTypes": null,
-                      "id": 255,
+                      "id": 455,
                       "name": "reserveRatio",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 250,
-                      "src": "687:12:2",
+                      "referencedDeclaration": 450,
+                      "src": "687:12:4",
                       "typeDescriptions": {
                         "typeIdentifier": "t_uint32",
                         "typeString": "uint32"
@@ -507,31 +507,31 @@
                     "operator": "=",
                     "rightHandSide": {
                       "argumentTypes": null,
-                      "id": 256,
+                      "id": 456,
                       "name": "_reserveRatio",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 252,
-                      "src": "702:13:2",
+                      "referencedDeclaration": 452,
+                      "src": "702:13:4",
                       "typeDescriptions": {
                         "typeIdentifier": "t_uint32",
                         "typeString": "uint32"
                       }
                     },
-                    "src": "687:28:2",
+                    "src": "687:28:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint32",
                       "typeString": "uint32"
                     }
                   },
-                  "id": 258,
+                  "id": 458,
                   "nodeType": "ExpressionStatement",
-                  "src": "687:28:2"
+                  "src": "687:28:4"
                 }
               ]
             },
             "documentation": null,
-            "id": 260,
+            "id": 460,
             "implemented": true,
             "isConstructor": true,
             "isDeclaredConst": false,
@@ -539,16 +539,16 @@
             "name": "",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 253,
+              "id": 453,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 252,
+                  "id": 452,
                   "name": "_reserveRatio",
                   "nodeType": "VariableDeclaration",
-                  "scope": 260,
-                  "src": "648:20:2",
+                  "scope": 460,
+                  "src": "648:20:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -556,10 +556,10 @@
                     "typeString": "uint32"
                   },
                   "typeName": {
-                    "id": 251,
+                    "id": 451,
                     "name": "uint32",
                     "nodeType": "ElementaryTypeName",
-                    "src": "648:6:2",
+                    "src": "648:6:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint32",
                       "typeString": "uint32"
@@ -569,26 +569,26 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "647:22:2"
+              "src": "647:22:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 254,
+              "id": 454,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "677:0:2"
+              "src": "677:0:4"
             },
-            "scope": 305,
-            "src": "636:86:2",
+            "scope": 505,
+            "src": "636:86:4",
             "stateMutability": "nonpayable",
             "superFunction": null,
             "visibility": "public"
           },
           {
             "body": {
-              "id": 276,
+              "id": 476,
               "nodeType": "Block",
-              "src": "814:120:2",
+              "src": "814:120:4",
               "statements": [
                 {
                   "expression": {
@@ -599,18 +599,18 @@
                         "arguments": [],
                         "expression": {
                           "argumentTypes": [],
-                          "id": 268,
+                          "id": 468,
                           "name": "continuousSupply",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 299,
-                          "src": "855:16:2",
+                          "referencedDeclaration": 499,
+                          "src": "855:16:4",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_view$__$returns$_t_uint256_$",
                             "typeString": "function () view returns (uint256)"
                           }
                         },
-                        "id": 269,
+                        "id": 469,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -618,7 +618,7 @@
                         "lValueRequested": false,
                         "names": [],
                         "nodeType": "FunctionCall",
-                        "src": "855:18:2",
+                        "src": "855:18:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -629,18 +629,18 @@
                         "arguments": [],
                         "expression": {
                           "argumentTypes": [],
-                          "id": 270,
+                          "id": 470,
                           "name": "reserveBalance",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 304,
-                          "src": "875:14:2",
+                          "referencedDeclaration": 504,
+                          "src": "875:14:4",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_view$__$returns$_t_uint256_$",
                             "typeString": "function () view returns (uint256)"
                           }
                         },
-                        "id": 271,
+                        "id": 471,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -648,7 +648,7 @@
                         "lValueRequested": false,
                         "names": [],
                         "nodeType": "FunctionCall",
-                        "src": "875:16:2",
+                        "src": "875:16:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -656,12 +656,12 @@
                       },
                       {
                         "argumentTypes": null,
-                        "id": 272,
+                        "id": 472,
                         "name": "reserveRatio",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 250,
-                        "src": "893:12:2",
+                        "referencedDeclaration": 450,
+                        "src": "893:12:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint32",
                           "typeString": "uint32"
@@ -669,12 +669,12 @@
                       },
                       {
                         "argumentTypes": null,
-                        "id": 273,
+                        "id": 473,
                         "name": "_reserveTokenAmount",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 262,
-                        "src": "907:19:2",
+                        "referencedDeclaration": 462,
+                        "src": "907:19:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -700,18 +700,18 @@
                           "typeString": "uint256"
                         }
                       ],
-                      "id": 267,
+                      "id": 467,
                       "name": "calculatePurchaseReturn",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 408,
-                      "src": "831:23:2",
+                      "referencedDeclaration": 608,
+                      "src": "831:23:4",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_view$_t_uint256_$_t_uint256_$_t_uint32_$_t_uint256_$returns$_t_uint256_$",
                         "typeString": "function (uint256,uint256,uint32,uint256) view returns (uint256)"
                       }
                     },
-                    "id": 274,
+                    "id": 474,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
@@ -719,21 +719,21 @@
                     "lValueRequested": false,
                     "names": [],
                     "nodeType": "FunctionCall",
-                    "src": "831:96:2",
+                    "src": "831:96:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
                     }
                   },
-                  "functionReturnParameters": 266,
-                  "id": 275,
+                  "functionReturnParameters": 466,
+                  "id": 475,
                   "nodeType": "Return",
-                  "src": "824:103:2"
+                  "src": "824:103:4"
                 }
               ]
             },
             "documentation": null,
-            "id": 277,
+            "id": 477,
             "implemented": true,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -741,16 +741,16 @@
             "name": "getContinuousMintReward",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 263,
+              "id": 463,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 262,
+                  "id": 462,
                   "name": "_reserveTokenAmount",
                   "nodeType": "VariableDeclaration",
-                  "scope": 277,
-                  "src": "761:24:2",
+                  "scope": 477,
+                  "src": "761:24:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -758,10 +758,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 261,
+                    "id": 461,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "761:4:2",
+                    "src": "761:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -771,20 +771,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "760:26:2"
+              "src": "760:26:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 266,
+              "id": 466,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 265,
+                  "id": 465,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 277,
-                  "src": "808:4:2",
+                  "scope": 477,
+                  "src": "808:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -792,10 +792,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 264,
+                    "id": 464,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "808:4:2",
+                    "src": "808:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -805,19 +805,19 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "807:6:2"
+              "src": "807:6:4"
             },
-            "scope": 305,
-            "src": "728:206:2",
+            "scope": 505,
+            "src": "728:206:4",
             "stateMutability": "view",
-            "superFunction": 236,
+            "superFunction": 436,
             "visibility": "public"
           },
           {
             "body": {
-              "id": 293,
+              "id": 493,
               "nodeType": "Block",
-              "src": "1029:119:2",
+              "src": "1029:119:4",
               "statements": [
                 {
                   "expression": {
@@ -828,18 +828,18 @@
                         "arguments": [],
                         "expression": {
                           "argumentTypes": [],
-                          "id": 285,
+                          "id": 485,
                           "name": "continuousSupply",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 299,
-                          "src": "1066:16:2",
+                          "referencedDeclaration": 499,
+                          "src": "1066:16:4",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_view$__$returns$_t_uint256_$",
                             "typeString": "function () view returns (uint256)"
                           }
                         },
-                        "id": 286,
+                        "id": 486,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -847,7 +847,7 @@
                         "lValueRequested": false,
                         "names": [],
                         "nodeType": "FunctionCall",
-                        "src": "1066:18:2",
+                        "src": "1066:18:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -858,18 +858,18 @@
                         "arguments": [],
                         "expression": {
                           "argumentTypes": [],
-                          "id": 287,
+                          "id": 487,
                           "name": "reserveBalance",
                           "nodeType": "Identifier",
                           "overloadedDeclarations": [],
-                          "referencedDeclaration": 304,
-                          "src": "1086:14:2",
+                          "referencedDeclaration": 504,
+                          "src": "1086:14:4",
                           "typeDescriptions": {
                             "typeIdentifier": "t_function_internal_view$__$returns$_t_uint256_$",
                             "typeString": "function () view returns (uint256)"
                           }
                         },
-                        "id": 288,
+                        "id": 488,
                         "isConstant": false,
                         "isLValue": false,
                         "isPure": false,
@@ -877,7 +877,7 @@
                         "lValueRequested": false,
                         "names": [],
                         "nodeType": "FunctionCall",
-                        "src": "1086:16:2",
+                        "src": "1086:16:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -885,12 +885,12 @@
                       },
                       {
                         "argumentTypes": null,
-                        "id": 289,
+                        "id": 489,
                         "name": "reserveRatio",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 250,
-                        "src": "1104:12:2",
+                        "referencedDeclaration": 450,
+                        "src": "1104:12:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint32",
                           "typeString": "uint32"
@@ -898,12 +898,12 @@
                       },
                       {
                         "argumentTypes": null,
-                        "id": 290,
+                        "id": 490,
                         "name": "_continuousTokenAmount",
                         "nodeType": "Identifier",
                         "overloadedDeclarations": [],
-                        "referencedDeclaration": 279,
-                        "src": "1118:22:2",
+                        "referencedDeclaration": 479,
+                        "src": "1118:22:4",
                         "typeDescriptions": {
                           "typeIdentifier": "t_uint256",
                           "typeString": "uint256"
@@ -929,18 +929,18 @@
                           "typeString": "uint256"
                         }
                       ],
-                      "id": 284,
+                      "id": 484,
                       "name": "calculateSaleReturn",
                       "nodeType": "Identifier",
                       "overloadedDeclarations": [],
-                      "referencedDeclaration": 517,
-                      "src": "1046:19:2",
+                      "referencedDeclaration": 717,
+                      "src": "1046:19:4",
                       "typeDescriptions": {
                         "typeIdentifier": "t_function_internal_view$_t_uint256_$_t_uint256_$_t_uint32_$_t_uint256_$returns$_t_uint256_$",
                         "typeString": "function (uint256,uint256,uint32,uint256) view returns (uint256)"
                       }
                     },
-                    "id": 291,
+                    "id": 491,
                     "isConstant": false,
                     "isLValue": false,
                     "isPure": false,
@@ -948,21 +948,21 @@
                     "lValueRequested": false,
                     "names": [],
                     "nodeType": "FunctionCall",
-                    "src": "1046:95:2",
+                    "src": "1046:95:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
                     }
                   },
-                  "functionReturnParameters": 283,
-                  "id": 292,
+                  "functionReturnParameters": 483,
+                  "id": 492,
                   "nodeType": "Return",
-                  "src": "1039:102:2"
+                  "src": "1039:102:4"
                 }
               ]
             },
             "documentation": null,
-            "id": 294,
+            "id": 494,
             "implemented": true,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -970,16 +970,16 @@
             "name": "getContinuousBurnRefund",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 280,
+              "id": 480,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 279,
+                  "id": 479,
                   "name": "_continuousTokenAmount",
                   "nodeType": "VariableDeclaration",
-                  "scope": 294,
-                  "src": "973:27:2",
+                  "scope": 494,
+                  "src": "973:27:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -987,10 +987,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 278,
+                    "id": 478,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "973:4:2",
+                    "src": "973:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1000,20 +1000,20 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "972:29:2"
+              "src": "972:29:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 283,
+              "id": 483,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 282,
+                  "id": 482,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 294,
-                  "src": "1023:4:2",
+                  "scope": 494,
+                  "src": "1023:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1021,10 +1021,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 281,
+                    "id": 481,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1023:4:2",
+                    "src": "1023:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1034,18 +1034,18 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "1022:6:2"
+              "src": "1022:6:4"
             },
-            "scope": 305,
-            "src": "940:208:2",
+            "scope": 505,
+            "src": "940:208:4",
             "stateMutability": "view",
-            "superFunction": 243,
+            "superFunction": 443,
             "visibility": "public"
           },
           {
             "body": null,
             "documentation": null,
-            "id": 299,
+            "id": 499,
             "implemented": false,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -1053,23 +1053,23 @@
             "name": "continuousSupply",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 295,
+              "id": 495,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "1179:2:2"
+              "src": "1179:2:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 298,
+              "id": 498,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 297,
+                  "id": 497,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 299,
-                  "src": "1203:4:2",
+                  "scope": 499,
+                  "src": "1203:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1077,10 +1077,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 296,
+                    "id": 496,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1203:4:2",
+                    "src": "1203:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1090,10 +1090,10 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "1202:6:2"
+              "src": "1202:6:4"
             },
-            "scope": 305,
-            "src": "1154:55:2",
+            "scope": 505,
+            "src": "1154:55:4",
             "stateMutability": "view",
             "superFunction": null,
             "visibility": "public"
@@ -1101,7 +1101,7 @@
           {
             "body": null,
             "documentation": null,
-            "id": 304,
+            "id": 504,
             "implemented": false,
             "isConstructor": false,
             "isDeclaredConst": true,
@@ -1109,23 +1109,23 @@
             "name": "reserveBalance",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 300,
+              "id": 500,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "1238:2:2"
+              "src": "1238:2:4"
             },
             "payable": false,
             "returnParameters": {
-              "id": 303,
+              "id": 503,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 302,
+                  "id": 502,
                   "name": "",
                   "nodeType": "VariableDeclaration",
-                  "scope": 304,
-                  "src": "1262:4:2",
+                  "scope": 504,
+                  "src": "1262:4:4",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -1133,10 +1133,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 301,
+                    "id": 501,
                     "name": "uint",
                     "nodeType": "ElementaryTypeName",
-                    "src": "1262:4:2",
+                    "src": "1262:4:4",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -1146,30 +1146,30 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "1261:6:2"
+              "src": "1261:6:4"
             },
-            "scope": 305,
-            "src": "1215:53:2",
+            "scope": 505,
+            "src": "1215:53:4",
             "stateMutability": "view",
             "superFunction": null,
             "visibility": "public"
           }
         ],
-        "scope": 306,
-        "src": "281:989:2"
+        "scope": 506,
+        "src": "281:989:4"
       }
     ],
-    "src": "0:1270:2"
+    "src": "0:1270:4"
   },
   "legacyAST": {
     "attributes": {
-      "absolutePath": "/C/laragon-route/TalentProtocol/test-developments/src/contracts/curves/BancorBondingCurve.sol",
+      "absolutePath": "project:/src/contracts/curves/BancorBondingCurve.sol",
       "exportedSymbols": {
         "BancorBondingCurve": [
-          305
+          505
         ],
         "IBondingCurve": [
-          244
+          444
         ]
       }
     },
@@ -1182,24 +1182,24 @@
             ".25"
           ]
         },
-        "id": 228,
+        "id": 428,
         "name": "PragmaDirective",
-        "src": "0:23:2"
+        "src": "0:23:4"
       },
       {
         "attributes": {
-          "SourceUnit": 519,
-          "absolutePath": "/C/laragon-route/TalentProtocol/test-developments/src/contracts/math/BancorFormula.sol",
+          "SourceUnit": 719,
+          "absolutePath": "project:/src/contracts/math/BancorFormula.sol",
           "file": "../math/BancorFormula.sol",
-          "scope": 306,
+          "scope": 506,
           "symbolAliases": [
             null
           ],
           "unitAlias": ""
         },
-        "id": 229,
+        "id": 429,
         "name": "ImportDirective",
-        "src": "25:35:2"
+        "src": "25:35:4"
       },
       {
         "attributes": {
@@ -1213,10 +1213,10 @@
           "documentation": null,
           "fullyImplemented": false,
           "linearizedBaseContracts": [
-            244
+            444
           ],
           "name": "IBondingCurve",
-          "scope": 306
+          "scope": 506
         },
         "children": [
           {
@@ -1231,7 +1231,7 @@
               ],
               "name": "getContinuousMintReward",
               "payable": false,
-              "scope": 244,
+              "scope": 444,
               "stateMutability": "view",
               "superFunction": null,
               "visibility": "external"
@@ -1243,7 +1243,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "_reserveTokenAmount",
-                      "scope": 236,
+                      "scope": 436,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1256,19 +1256,19 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 230,
+                        "id": 430,
                         "name": "ElementaryTypeName",
-                        "src": "126:4:2"
+                        "src": "126:4:4"
                       }
                     ],
-                    "id": 231,
+                    "id": 431,
                     "name": "VariableDeclaration",
-                    "src": "126:24:2"
+                    "src": "126:24:4"
                   }
                 ],
-                "id": 232,
+                "id": 432,
                 "name": "ParameterList",
-                "src": "125:26:2"
+                "src": "125:26:4"
               },
               {
                 "children": [
@@ -1276,7 +1276,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 236,
+                      "scope": 436,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1289,24 +1289,24 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 233,
+                        "id": 433,
                         "name": "ElementaryTypeName",
-                        "src": "175:4:2"
+                        "src": "175:4:4"
                       }
                     ],
-                    "id": 234,
+                    "id": 434,
                     "name": "VariableDeclaration",
-                    "src": "175:4:2"
+                    "src": "175:4:4"
                   }
                 ],
-                "id": 235,
+                "id": 435,
                 "name": "ParameterList",
-                "src": "174:6:2"
+                "src": "174:6:4"
               }
             ],
-            "id": 236,
+            "id": 436,
             "name": "FunctionDefinition",
-            "src": "93:88:2"
+            "src": "93:88:4"
           },
           {
             "attributes": {
@@ -1320,7 +1320,7 @@
               ],
               "name": "getContinuousBurnRefund",
               "payable": false,
-              "scope": 244,
+              "scope": 444,
               "stateMutability": "view",
               "superFunction": null,
               "visibility": "external"
@@ -1332,7 +1332,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "_continuousTokenAmount",
-                      "scope": 243,
+                      "scope": 443,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1345,19 +1345,19 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 237,
+                        "id": 437,
                         "name": "ElementaryTypeName",
-                        "src": "219:4:2"
+                        "src": "219:4:4"
                       }
                     ],
-                    "id": 238,
+                    "id": 438,
                     "name": "VariableDeclaration",
-                    "src": "219:27:2"
+                    "src": "219:27:4"
                   }
                 ],
-                "id": 239,
+                "id": 439,
                 "name": "ParameterList",
-                "src": "218:29:2"
+                "src": "218:29:4"
               },
               {
                 "children": [
@@ -1365,7 +1365,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 243,
+                      "scope": 443,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1378,48 +1378,48 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 240,
+                        "id": 440,
                         "name": "ElementaryTypeName",
-                        "src": "271:4:2"
+                        "src": "271:4:4"
                       }
                     ],
-                    "id": 241,
+                    "id": 441,
                     "name": "VariableDeclaration",
-                    "src": "271:4:2"
+                    "src": "271:4:4"
                   }
                 ],
-                "id": 242,
+                "id": 442,
                 "name": "ParameterList",
-                "src": "270:6:2"
+                "src": "270:6:4"
               }
             ],
-            "id": 243,
+            "id": 443,
             "name": "FunctionDefinition",
-            "src": "186:91:2"
+            "src": "186:91:4"
           }
         ],
-        "id": 244,
+        "id": 444,
         "name": "ContractDefinition",
-        "src": "62:217:2"
+        "src": "62:217:4"
       },
       {
         "attributes": {
           "contractDependencies": [
-            244,
-            518,
-            2698
+            444,
+            718,
+            2898
           ],
           "contractKind": "contract",
           "documentation": null,
           "fullyImplemented": false,
           "linearizedBaseContracts": [
-            305,
-            518,
-            2698,
-            244
+            505,
+            718,
+            2898,
+            444
           ],
           "name": "BancorBondingCurve",
-          "scope": 306
+          "scope": 506
         },
         "children": [
           {
@@ -1431,17 +1431,17 @@
                 "attributes": {
                   "contractScope": null,
                   "name": "IBondingCurve",
-                  "referencedDeclaration": 244,
+                  "referencedDeclaration": 444,
                   "type": "contract IBondingCurve"
                 },
-                "id": 245,
+                "id": 445,
                 "name": "UserDefinedTypeName",
-                "src": "312:13:2"
+                "src": "312:13:4"
               }
             ],
-            "id": 246,
+            "id": 446,
             "name": "InheritanceSpecifier",
-            "src": "312:13:2"
+            "src": "312:13:4"
           },
           {
             "attributes": {
@@ -1452,23 +1452,23 @@
                 "attributes": {
                   "contractScope": null,
                   "name": "BancorFormula",
-                  "referencedDeclaration": 518,
+                  "referencedDeclaration": 718,
                   "type": "contract BancorFormula"
                 },
-                "id": 247,
+                "id": 447,
                 "name": "UserDefinedTypeName",
-                "src": "327:13:2"
+                "src": "327:13:4"
               }
             ],
-            "id": 248,
+            "id": 448,
             "name": "InheritanceSpecifier",
-            "src": "327:13:2"
+            "src": "327:13:4"
           },
           {
             "attributes": {
               "constant": false,
               "name": "reserveRatio",
-              "scope": 305,
+              "scope": 505,
               "stateVariable": true,
               "storageLocation": "default",
               "type": "uint32",
@@ -1481,14 +1481,14 @@
                   "name": "uint32",
                   "type": "uint32"
                 },
-                "id": 249,
+                "id": 449,
                 "name": "ElementaryTypeName",
-                "src": "603:6:2"
+                "src": "603:6:4"
               }
             ],
-            "id": 250,
+            "id": 450,
             "name": "VariableDeclaration",
-            "src": "603:26:2"
+            "src": "603:26:4"
           },
           {
             "attributes": {
@@ -1501,7 +1501,7 @@
               ],
               "name": "",
               "payable": false,
-              "scope": 305,
+              "scope": 505,
               "stateMutability": "nonpayable",
               "superFunction": null,
               "visibility": "public"
@@ -1513,7 +1513,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "_reserveRatio",
-                      "scope": 260,
+                      "scope": 460,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint32",
@@ -1526,19 +1526,19 @@
                           "name": "uint32",
                           "type": "uint32"
                         },
-                        "id": 251,
+                        "id": 451,
                         "name": "ElementaryTypeName",
-                        "src": "648:6:2"
+                        "src": "648:6:4"
                       }
                     ],
-                    "id": 252,
+                    "id": 452,
                     "name": "VariableDeclaration",
-                    "src": "648:20:2"
+                    "src": "648:20:4"
                   }
                 ],
-                "id": 253,
+                "id": 453,
                 "name": "ParameterList",
-                "src": "647:22:2"
+                "src": "647:22:4"
               },
               {
                 "attributes": {
@@ -1547,9 +1547,9 @@
                   ]
                 },
                 "children": [],
-                "id": 254,
+                "id": 454,
                 "name": "ParameterList",
-                "src": "677:0:2"
+                "src": "677:0:4"
               },
               {
                 "children": [
@@ -1572,13 +1572,13 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 250,
+                              "referencedDeclaration": 450,
                               "type": "uint32",
                               "value": "reserveRatio"
                             },
-                            "id": 255,
+                            "id": 455,
                             "name": "Identifier",
-                            "src": "687:12:2"
+                            "src": "687:12:4"
                           },
                           {
                             "attributes": {
@@ -1586,33 +1586,33 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 252,
+                              "referencedDeclaration": 452,
                               "type": "uint32",
                               "value": "_reserveRatio"
                             },
-                            "id": 256,
+                            "id": 456,
                             "name": "Identifier",
-                            "src": "702:13:2"
+                            "src": "702:13:4"
                           }
                         ],
-                        "id": 257,
+                        "id": 457,
                         "name": "Assignment",
-                        "src": "687:28:2"
+                        "src": "687:28:4"
                       }
                     ],
-                    "id": 258,
+                    "id": 458,
                     "name": "ExpressionStatement",
-                    "src": "687:28:2"
+                    "src": "687:28:4"
                   }
                 ],
-                "id": 259,
+                "id": 459,
                 "name": "Block",
-                "src": "677:45:2"
+                "src": "677:45:4"
               }
             ],
-            "id": 260,
+            "id": 460,
             "name": "FunctionDefinition",
-            "src": "636:86:2"
+            "src": "636:86:4"
           },
           {
             "attributes": {
@@ -1625,9 +1625,9 @@
               ],
               "name": "getContinuousMintReward",
               "payable": false,
-              "scope": 305,
+              "scope": 505,
               "stateMutability": "view",
-              "superFunction": 236,
+              "superFunction": 436,
               "visibility": "public"
             },
             "children": [
@@ -1637,7 +1637,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "_reserveTokenAmount",
-                      "scope": 277,
+                      "scope": 477,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1650,19 +1650,19 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 261,
+                        "id": 461,
                         "name": "ElementaryTypeName",
-                        "src": "761:4:2"
+                        "src": "761:4:4"
                       }
                     ],
-                    "id": 262,
+                    "id": 462,
                     "name": "VariableDeclaration",
-                    "src": "761:24:2"
+                    "src": "761:24:4"
                   }
                 ],
-                "id": 263,
+                "id": 463,
                 "name": "ParameterList",
-                "src": "760:26:2"
+                "src": "760:26:4"
               },
               {
                 "children": [
@@ -1670,7 +1670,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 277,
+                      "scope": 477,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1683,25 +1683,25 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 264,
+                        "id": 464,
                         "name": "ElementaryTypeName",
-                        "src": "808:4:2"
+                        "src": "808:4:4"
                       }
                     ],
-                    "id": 265,
+                    "id": 465,
                     "name": "VariableDeclaration",
-                    "src": "808:4:2"
+                    "src": "808:4:4"
                   }
                 ],
-                "id": 266,
+                "id": 466,
                 "name": "ParameterList",
-                "src": "807:6:2"
+                "src": "807:6:4"
               },
               {
                 "children": [
                   {
                     "attributes": {
-                      "functionReturnParameters": 266
+                      "functionReturnParameters": 466
                     },
                     "children": [
                       {
@@ -1742,13 +1742,13 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 408,
+                              "referencedDeclaration": 608,
                               "type": "function (uint256,uint256,uint32,uint256) view returns (uint256)",
                               "value": "calculatePurchaseReturn"
                             },
-                            "id": 267,
+                            "id": 467,
                             "name": "Identifier",
-                            "src": "831:23:2"
+                            "src": "831:23:4"
                           },
                           {
                             "attributes": {
@@ -1776,18 +1776,18 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 299,
+                                  "referencedDeclaration": 499,
                                   "type": "function () view returns (uint256)",
                                   "value": "continuousSupply"
                                 },
-                                "id": 268,
+                                "id": 468,
                                 "name": "Identifier",
-                                "src": "855:16:2"
+                                "src": "855:16:4"
                               }
                             ],
-                            "id": 269,
+                            "id": 469,
                             "name": "FunctionCall",
-                            "src": "855:18:2"
+                            "src": "855:18:4"
                           },
                           {
                             "attributes": {
@@ -1815,18 +1815,18 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 304,
+                                  "referencedDeclaration": 504,
                                   "type": "function () view returns (uint256)",
                                   "value": "reserveBalance"
                                 },
-                                "id": 270,
+                                "id": 470,
                                 "name": "Identifier",
-                                "src": "875:14:2"
+                                "src": "875:14:4"
                               }
                             ],
-                            "id": 271,
+                            "id": 471,
                             "name": "FunctionCall",
-                            "src": "875:16:2"
+                            "src": "875:16:4"
                           },
                           {
                             "attributes": {
@@ -1834,13 +1834,13 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 250,
+                              "referencedDeclaration": 450,
                               "type": "uint32",
                               "value": "reserveRatio"
                             },
-                            "id": 272,
+                            "id": 472,
                             "name": "Identifier",
-                            "src": "893:12:2"
+                            "src": "893:12:4"
                           },
                           {
                             "attributes": {
@@ -1848,33 +1848,33 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 262,
+                              "referencedDeclaration": 462,
                               "type": "uint256",
                               "value": "_reserveTokenAmount"
                             },
-                            "id": 273,
+                            "id": 473,
                             "name": "Identifier",
-                            "src": "907:19:2"
+                            "src": "907:19:4"
                           }
                         ],
-                        "id": 274,
+                        "id": 474,
                         "name": "FunctionCall",
-                        "src": "831:96:2"
+                        "src": "831:96:4"
                       }
                     ],
-                    "id": 275,
+                    "id": 475,
                     "name": "Return",
-                    "src": "824:103:2"
+                    "src": "824:103:4"
                   }
                 ],
-                "id": 276,
+                "id": 476,
                 "name": "Block",
-                "src": "814:120:2"
+                "src": "814:120:4"
               }
             ],
-            "id": 277,
+            "id": 477,
             "name": "FunctionDefinition",
-            "src": "728:206:2"
+            "src": "728:206:4"
           },
           {
             "attributes": {
@@ -1887,9 +1887,9 @@
               ],
               "name": "getContinuousBurnRefund",
               "payable": false,
-              "scope": 305,
+              "scope": 505,
               "stateMutability": "view",
-              "superFunction": 243,
+              "superFunction": 443,
               "visibility": "public"
             },
             "children": [
@@ -1899,7 +1899,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "_continuousTokenAmount",
-                      "scope": 294,
+                      "scope": 494,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1912,19 +1912,19 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 278,
+                        "id": 478,
                         "name": "ElementaryTypeName",
-                        "src": "973:4:2"
+                        "src": "973:4:4"
                       }
                     ],
-                    "id": 279,
+                    "id": 479,
                     "name": "VariableDeclaration",
-                    "src": "973:27:2"
+                    "src": "973:27:4"
                   }
                 ],
-                "id": 280,
+                "id": 480,
                 "name": "ParameterList",
-                "src": "972:29:2"
+                "src": "972:29:4"
               },
               {
                 "children": [
@@ -1932,7 +1932,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 294,
+                      "scope": 494,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -1945,25 +1945,25 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 281,
+                        "id": 481,
                         "name": "ElementaryTypeName",
-                        "src": "1023:4:2"
+                        "src": "1023:4:4"
                       }
                     ],
-                    "id": 282,
+                    "id": 482,
                     "name": "VariableDeclaration",
-                    "src": "1023:4:2"
+                    "src": "1023:4:4"
                   }
                 ],
-                "id": 283,
+                "id": 483,
                 "name": "ParameterList",
-                "src": "1022:6:2"
+                "src": "1022:6:4"
               },
               {
                 "children": [
                   {
                     "attributes": {
-                      "functionReturnParameters": 283
+                      "functionReturnParameters": 483
                     },
                     "children": [
                       {
@@ -2004,13 +2004,13 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 517,
+                              "referencedDeclaration": 717,
                               "type": "function (uint256,uint256,uint32,uint256) view returns (uint256)",
                               "value": "calculateSaleReturn"
                             },
-                            "id": 284,
+                            "id": 484,
                             "name": "Identifier",
-                            "src": "1046:19:2"
+                            "src": "1046:19:4"
                           },
                           {
                             "attributes": {
@@ -2038,18 +2038,18 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 299,
+                                  "referencedDeclaration": 499,
                                   "type": "function () view returns (uint256)",
                                   "value": "continuousSupply"
                                 },
-                                "id": 285,
+                                "id": 485,
                                 "name": "Identifier",
-                                "src": "1066:16:2"
+                                "src": "1066:16:4"
                               }
                             ],
-                            "id": 286,
+                            "id": 486,
                             "name": "FunctionCall",
-                            "src": "1066:18:2"
+                            "src": "1066:18:4"
                           },
                           {
                             "attributes": {
@@ -2077,18 +2077,18 @@
                                   "overloadedDeclarations": [
                                     null
                                   ],
-                                  "referencedDeclaration": 304,
+                                  "referencedDeclaration": 504,
                                   "type": "function () view returns (uint256)",
                                   "value": "reserveBalance"
                                 },
-                                "id": 287,
+                                "id": 487,
                                 "name": "Identifier",
-                                "src": "1086:14:2"
+                                "src": "1086:14:4"
                               }
                             ],
-                            "id": 288,
+                            "id": 488,
                             "name": "FunctionCall",
-                            "src": "1086:16:2"
+                            "src": "1086:16:4"
                           },
                           {
                             "attributes": {
@@ -2096,13 +2096,13 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 250,
+                              "referencedDeclaration": 450,
                               "type": "uint32",
                               "value": "reserveRatio"
                             },
-                            "id": 289,
+                            "id": 489,
                             "name": "Identifier",
-                            "src": "1104:12:2"
+                            "src": "1104:12:4"
                           },
                           {
                             "attributes": {
@@ -2110,33 +2110,33 @@
                               "overloadedDeclarations": [
                                 null
                               ],
-                              "referencedDeclaration": 279,
+                              "referencedDeclaration": 479,
                               "type": "uint256",
                               "value": "_continuousTokenAmount"
                             },
-                            "id": 290,
+                            "id": 490,
                             "name": "Identifier",
-                            "src": "1118:22:2"
+                            "src": "1118:22:4"
                           }
                         ],
-                        "id": 291,
+                        "id": 491,
                         "name": "FunctionCall",
-                        "src": "1046:95:2"
+                        "src": "1046:95:4"
                       }
                     ],
-                    "id": 292,
+                    "id": 492,
                     "name": "Return",
-                    "src": "1039:102:2"
+                    "src": "1039:102:4"
                   }
                 ],
-                "id": 293,
+                "id": 493,
                 "name": "Block",
-                "src": "1029:119:2"
+                "src": "1029:119:4"
               }
             ],
-            "id": 294,
+            "id": 494,
             "name": "FunctionDefinition",
-            "src": "940:208:2"
+            "src": "940:208:4"
           },
           {
             "attributes": {
@@ -2150,7 +2150,7 @@
               ],
               "name": "continuousSupply",
               "payable": false,
-              "scope": 305,
+              "scope": 505,
               "stateMutability": "view",
               "superFunction": null,
               "visibility": "public"
@@ -2163,9 +2163,9 @@
                   ]
                 },
                 "children": [],
-                "id": 295,
+                "id": 495,
                 "name": "ParameterList",
-                "src": "1179:2:2"
+                "src": "1179:2:4"
               },
               {
                 "children": [
@@ -2173,7 +2173,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 299,
+                      "scope": 499,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -2186,24 +2186,24 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 296,
+                        "id": 496,
                         "name": "ElementaryTypeName",
-                        "src": "1203:4:2"
+                        "src": "1203:4:4"
                       }
                     ],
-                    "id": 297,
+                    "id": 497,
                     "name": "VariableDeclaration",
-                    "src": "1203:4:2"
+                    "src": "1203:4:4"
                   }
                 ],
-                "id": 298,
+                "id": 498,
                 "name": "ParameterList",
-                "src": "1202:6:2"
+                "src": "1202:6:4"
               }
             ],
-            "id": 299,
+            "id": 499,
             "name": "FunctionDefinition",
-            "src": "1154:55:2"
+            "src": "1154:55:4"
           },
           {
             "attributes": {
@@ -2217,7 +2217,7 @@
               ],
               "name": "reserveBalance",
               "payable": false,
-              "scope": 305,
+              "scope": 505,
               "stateMutability": "view",
               "superFunction": null,
               "visibility": "public"
@@ -2230,9 +2230,9 @@
                   ]
                 },
                 "children": [],
-                "id": 300,
+                "id": 500,
                 "name": "ParameterList",
-                "src": "1238:2:2"
+                "src": "1238:2:4"
               },
               {
                 "children": [
@@ -2240,7 +2240,7 @@
                     "attributes": {
                       "constant": false,
                       "name": "",
-                      "scope": 304,
+                      "scope": 504,
                       "stateVariable": false,
                       "storageLocation": "default",
                       "type": "uint256",
@@ -2253,34 +2253,34 @@
                           "name": "uint",
                           "type": "uint256"
                         },
-                        "id": 301,
+                        "id": 501,
                         "name": "ElementaryTypeName",
-                        "src": "1262:4:2"
+                        "src": "1262:4:4"
                       }
                     ],
-                    "id": 302,
+                    "id": 502,
                     "name": "VariableDeclaration",
-                    "src": "1262:4:2"
+                    "src": "1262:4:4"
                   }
                 ],
-                "id": 303,
+                "id": 503,
                 "name": "ParameterList",
-                "src": "1261:6:2"
+                "src": "1261:6:4"
               }
             ],
-            "id": 304,
+            "id": 504,
             "name": "FunctionDefinition",
-            "src": "1215:53:2"
+            "src": "1215:53:4"
           }
         ],
-        "id": 305,
+        "id": 505,
         "name": "ContractDefinition",
-        "src": "281:989:2"
+        "src": "281:989:4"
       }
     ],
-    "id": 306,
+    "id": 506,
     "name": "SourceUnit",
-    "src": "0:1270:2"
+    "src": "0:1270:4"
   },
   "compiler": {
     "name": "solc",
@@ -2288,7 +2288,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.1",
-  "updatedAt": "2021-08-03T06:44:35.926Z",
+  "updatedAt": "2021-08-03T17:24:10.128Z",
   "devdoc": {
     "methods": {
       "calculatePurchaseReturn(uint256,uint256,uint32,uint256)": {

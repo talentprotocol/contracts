@@ -4,6 +4,19 @@ require('babel-polyfill');
 var HDWalletProvider = require("truffle-hdwallet-provider");
 const MNEMONIC = 'enough 123';
 
+
+const ContractKit = require('@celo/contractkit');
+const Web3 =  require('web3');
+
+const web3 = new Web3("https://celo-alfajores--rpc.datahub.figment.io/apikey/12ea3bba4594c05c72bbf59ca58d9223/");
+
+const client = ContractKit.newKitFromWeb3(web3);
+
+const account = web3.eth.accounts.privateKeyToAccount("b9cd47d4af2e6d12db1d4d5e6ddf95bc604d3d86b70ab6d0c4eb6d22c4b16304");
+
+client.addAccount(account.privateKey);
+
+
 module.exports = {
   networks: {
     development: {
@@ -12,6 +25,10 @@ module.exports = {
       gas: 6721975,
       gasPrice: 20000000000,
       network_id: "*" // Match any network id
+    },
+    alfajores: {
+      provider: client.connection.web3.currentProvider, // CeloProvider
+      network_id: 44787  // latest Alfajores network id
     },
     ropsten: {
       networkCheckTimeout: 1000000,

@@ -242,7 +242,7 @@
   "sourceMap": "",
   "deployedSourceMap": "",
   "source": "pragma solidity ^0.4.24;\n\nimport \"./IERC20.sol\";\n\n/**\n * @title ERC20Detailed token\n * @dev The decimals are only for visualization purposes.\n * All the operations are done using the smallest and indivisible token unit,\n * just as on Ethereum all the operations are done in wei.\n */\ncontract ERC20Detailed is IERC20 {\n  string private _name;\n  string private _symbol;\n  uint8 private _decimals;\n\n  constructor(string name, string symbol, uint8 decimals) public {\n    _name = name;\n    _symbol = symbol;\n    _decimals = decimals;\n  }\n\n  /**\n   * @return the name of the token.\n   */\n  function name() public view returns(string) {\n    return _name;\n  }\n\n  /**\n   * @return the symbol of the token.\n   */\n  function symbol() public view returns(string) {\n    return _symbol;\n  }\n\n  /**\n   * @return the number of decimals of the token.\n   */\n  function decimals() public view returns(uint8) {\n    return _decimals;\n  }\n}\n",
-  "sourcePath": "/Users/mac/Documents/projects-2021/test-developments/src/contracts/token/ERC20Detailed.sol",
+  "sourcePath": "/Users/franciscoleal/Documents/workspace/talentprotocol/test-developments/src/contracts/token/ERC20Detailed.sol",
   "ast": {
     "absolutePath": "project:/src/contracts/token/ERC20Detailed.sol",
     "exportedSymbols": {
@@ -1628,7 +1628,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.1",
-  "updatedAt": "2021-08-06T11:34:48.244Z",
+  "updatedAt": "2021-08-06T15:35:44.652Z",
   "devdoc": {
     "methods": {
       "decimals()": {

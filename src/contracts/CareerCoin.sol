@@ -2,6 +2,7 @@ pragma solidity 0.4.25;
 
 import "./curves/BancorBondingCurve.sol";
 import "./token/ERC20.sol";
+import "./TalentProtocol.sol";
 
 contract CareerCoin is BancorBondingCurve, ERC20 {
     uint256 internal reserve;
@@ -29,10 +30,34 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
         reserve += amount;
         return _mint(owner, amount);
     }
+
+    function tMint(address tokenAddress) public payable {
+        require(msg.value > 0, "Must send ether to buy token.");
+
+        ERC20 token = ERC20(tokenAddress);
+
+        uint tokenAllowance = token.allowance(msg.sender, this);
+
+        require(tokenAllowance >= msg.value);
+
+        token.transferFrom(msg.sender, this, msg.value);
+
+        _continuousMint(msg.value);
+    }
     
     function mint() public payable {
         require(msg.value > 0, "Must send ether to buy tokens.");
         _continuousMint(msg.value);
+    }
+
+    function tBurn(address tokenAddress) public payable {
+        require(msg.value > 0, "Must send ether to buy token.");
+
+        uint256 returnAmount = _continuousBurn(msg.value);
+
+        ERC20 token = ERC20(tokenAddress);
+
+        token.transfer(msg.sender, returnAmount);
     }
 
     function burn(uint256 _amount) public {
@@ -40,8 +65,24 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
         msg.sender.transfer(returnAmount);
     }
 
+    function approveTal(address tokenAddress, address targetAddress) payable public {
+        require(msg.sender == owner);
+
+        ERC20 token = ERC20(tokenAddress);
+
+        token.approve(targetAddress, msg.value);
+    }
+
     function reserveBalance() public view returns (uint) {
         return reserve;
+    }
+
+    function calculateReward(uint256 _amount) public view returns (uint256) {
+        return getContinuousMintReward(_amount);
+    }
+
+    function calculateRefund(uint256 _amount) public view returns (uint256) {
+        return getContinuousBurnRefund(_amount);
     }
 
     function _continuousMint(uint256 _deposit) internal returns (uint256) {

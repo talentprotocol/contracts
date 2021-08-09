@@ -19,21 +19,22 @@ contract ('TalentProtocol', (accounts) => {
     let talent1 = accounts[2];
     let talent2 = accounts[3];
     
-    let talentProcotol, talentProtocolFactory
+    let talentProtocol, talentProtocolFactory
     let careerCoin
     let talentList
 
     before(async () => {
         // Load contracts
-        talentProcotol =  await TalentProtocol.new("Talent Protocol", "TAL", 18, 100000000)
-        talentProtocolFactory =  await TalentProtocolFactory.new(talentProcotol.address)
+        talentProtocol =  await TalentProtocol.new("Talent Protocol", "TAL", 18, web3.utils.toWei("1000"))
         
-        await talentProcotol.transfer(investor, 100000)
+        talentProtocolFactory =  await TalentProtocolFactory.new(talentProtocol.address)
+
+        await talentProtocol.transfer(investor, web3.utils.toWei("10", "ether"))
     })
 
     describe('Talent Protocol Deployment', async => {
         it ('Has a name', async () => {
-            const name = await talentProcotol.name();
+            const name = await talentProtocol.name();
             assert.equal(name, 'Talent Protocol')
         })
 
@@ -224,6 +225,56 @@ contract ('TalentProtocol', (accounts) => {
 
             const balanceOfInvestorAfterBurn = web3.utils.fromWei(await coin.balanceOf(investor))
             assert.equal(balanceOfInvestorAfterBurn, "0")
+        })
+
+        it("Mint & Burn Career coins with TAL", async function() {
+
+            let allCoins = await talentProtocolFactory.getTalentList()
+
+            // generate JDOE token coin if necessary
+            if (allCoins.length < 1) {
+                await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', DEFAULT_RESERVE_RATIO, talent1, 5);
+                allCoins = await talentProtocolFactory.getTalentList();
+            }
+
+            const coin = await CareerCoin.at(allCoins[0])
+            
+            // Add reserve if empty
+            if(web3.utils.fromWei(await coin.reserveBalance()) == "0") {
+                await coin.initialMint(web3.utils.toWei("10", 'ether'));
+            }
+
+            let balanceOfTal = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether')
+            if (balanceOfTal < 5) {
+                await talentProtocol.transfer(investor, web3.utils.toWei("10", "ether"))
+                balanceOfTal = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether')
+            }
+
+            const amount = web3.utils.toWei("5", "ether");
+
+            await talentProtocol.approve(coin.address, amount, { from: investor });
+
+            await coin.tMint(talentProtocol.address, { from: investor, value: amount});
+
+            const balanceOfTalAfterMint = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether');
+            assert.equal(balanceOfTalAfterMint, balanceOfTal - 5);
+
+            const balanceAfterMint = web3.utils.fromWei(await coin.balanceOf(investor))
+            assert.equal(balanceAfterMint, 5)
+
+            const talBalanceOfCoin = web3.utils.fromWei(await talentProtocol.balanceOf(coin.address))
+            assert.equal(talBalanceOfCoin, 5)
+
+            await coin.tBurn(talentProtocol.address, { from: investor, value: amount});
+
+            const balanceOfTalAfterBurn = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether');
+            assert.equal(balanceOfTalAfterBurn, balanceOfTal);
+
+            const balanceAfterBurn = web3.utils.fromWei(await coin.balanceOf(investor))
+            assert.equal(balanceAfterBurn, 0)
+
+            const talBalanceOfCoinAfterBurn = web3.utils.fromWei(await talentProtocol.balanceOf(coin.address))
+            assert.equal(talBalanceOfCoinAfterBurn, 0)
         })
     })
 })

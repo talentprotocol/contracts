@@ -3,10 +3,6 @@ const { assert } = require("chai");
 const { ethers, waffle } = require("hardhat");
 const { solidity } = require("ethereum-waffle");
 
-const TalentProtocol = require("../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json");
-const TalentProtocolFactory = require("../artifacts/contracts/TalentProtocolFactory.sol/TalentProtocolFactory.json");
-const CareerCoin = require("../artifacts/contracts/CareerCoin.sol/CareerCoin.json");
-
 chai.use(solidity);
 
 const { expect } = chai;
@@ -19,6 +15,9 @@ function tokens(n) {
 const DEFAULT_RESERVE_RATIO = 1000000;
 
 describe("TalentProtocol", (accounts) => {
+  let TalentProtocol;
+  let TalentProtocolFactory;
+  let CareerCoin;
   let creator;
   let investor;
   let talent1;
@@ -34,22 +33,27 @@ describe("TalentProtocol", (accounts) => {
     investor = signers[1];
     talent1 = signers[2];
     talent2 = signers[3];
-  });
 
-  beforeEach(async () => {
+    TalentProtocol = await ethers.getContractFactory("TalentProtocol");
+    TalentProtocolFactory = await ethers.getContractFactory(
+      "TalentProtocolFactory"
+    );
+    CareerCoin = await ethers.getContractFactory("CareerCoin");
+
     // Load contracts
-    talentProtocol = await waffle.deployContract(creator, TalentProtocol, [
+    talentProtocol = await TalentProtocol.deploy(
       "Talent Protocol",
       "TAL",
       18,
-      parseUnits("1000"),
-    ]);
-
-    talentProtocolFactory = await waffle.deployContract(
-      creator,
-      TalentProtocolFactory,
-      [talentProtocol.address]
+      parseUnits("1000")
     );
+
+    talentProtocolFactory = await TalentProtocolFactory.deploy(
+      talentProtocol.address
+    );
+
+    await talentProtocol.deployed();
+    await talentProtocolFactory.deployed();
 
     await talentProtocol.transfer(investor.address, parseEther("10"));
   });
@@ -141,7 +145,7 @@ describe("TalentProtocol", (accounts) => {
         "John Doe",
         DEFAULT_RESERVE_RATIO,
         talent1.address,
-        5
+        parseEther("5")
       );
 
       talentList = await talentProtocolFactory.getTalentList();
@@ -154,28 +158,11 @@ describe("TalentProtocol", (accounts) => {
         "Mary Doe",
         DEFAULT_RESERVE_RATIO,
         talent2.address,
-        5
+        parseEther("5")
       );
 
       talentList = await talentProtocolFactory.getTalentList();
       expect(talentList.length).to.equal(1);
-    });
-
-    it("List talent data", async () => {
-      talentList = await talentProtocolFactory.getTalentList();
-
-      for (var i = 0; i < talentList.length; i++) {
-        console.log(talentList[i]);
-      }
-    });
-
-    it("Validade first element #1", async () => {
-      console.log(
-        "---- VALIDATING TALENT #1 - Garantee all functions work properly ----"
-      );
-
-      // get first talent
-      careerCoin = await CareerCoin.at(talentList[0]);
     });
 
     describe("#1 talent", () => {
@@ -185,9 +172,10 @@ describe("TalentProtocol", (accounts) => {
           "John Doe",
           DEFAULT_RESERVE_RATIO,
           talent1.address,
-          5
+          parseEther("5")
         );
-        careerCoin = await CareerCoin.at(talentList[0]);
+        talentList = await talentProtocolFactory.getTalentList();
+        careerCoin = await CareerCoin.attach(talentList[0]);
       });
 
       it("Has correct talent #1 name", async () => {
@@ -221,22 +209,19 @@ describe("TalentProtocol", (accounts) => {
         allCoins = await talentProtocolFactory.getTalentList();
       }
 
-      const coin = await CareerCoin.at(allCoins[0]);
+      const coin = await CareerCoin.attach(allCoins[0]);
 
-      // Add reserve if empty
-      if (parseUnits(await coin.reserveBalance()) == "0") {
-        await coin.initialMint(parseEther("10"));
-      }
+      await coin.initialMint(parseEther("10"));
 
       // first investor buys 10 more ether
       const depositAmount = parseEther("10");
-      await coin.mint({ from: investor, value: depositAmount });
+      await coin.connect(investor).mint({ value: depositAmount });
 
-      const amount = await coin.balanceOf(investor);
-      expect(amount).to.equal("10");
+      const amount = await coin.balanceOf(investor.address);
+      expect(amount).to.equal(parseEther("10"));
 
       const reserve = await coin.reserveBalance();
-      expect(reserve).to.equal("10");
+      expect(reserve).to.equal(parseEther("20"));
 
       await coin.connect(investor).mint({ value: depositAmount });
       await coin.connect(investor).mint({ value: depositAmount });
@@ -246,13 +231,9 @@ describe("TalentProtocol", (accounts) => {
       await coin.connect(investor).mint({ value: depositAmount });
       await coin.connect(investor).mint({ value: depositAmount });
 
-      const reserveAfterMultipleTransactions = await coin.reserveBalance();
-      expect(reserveAfterMultipleTransactions).to.equal("100");
+      expect(await coin.reserveBalance()).to.equal(parseEther("90"));
 
-      const balanceOfInvestorAfterMultipleTransactions = await coin.balanceOf(
-        investor.address
-      );
-      expect(balanceOfInvestorAfterMultipleTransactions).to.equal("90");
+      expect(await coin.balanceOf(investor.address)).to.equal(parseEther("80"));
     });
 
     it("Can burn minted tokens for ether", async function() {
@@ -270,18 +251,10 @@ describe("TalentProtocol", (accounts) => {
         allCoins = await talentProtocolFactory.getTalentList();
       }
 
-      const coin = await CareerCoin.at(allCoins[0]);
+      const coin = await CareerCoin.attach(allCoins[0]);
 
-      // Add reserve if empty
-      if ((await coin.reserveBalance()) == "0") {
-        await coin.initialMint(parseEther("10"));
-      }
-
-      // Add funds to investor if needed
-      if ((await coin.balanceOf(investor)) == "0") {
-        const depositAmount = parseEther("10", "ether");
-        await coin.connect(investor).mint({ value: depositAmount });
-      }
+      await coin.initialMint(parseEther("10"));
+      await coin.connect(investor).mint({ value: parseEther("10") });
 
       const allInvestorBalance = await coin.balanceOf(investor.address);
 
@@ -302,66 +275,51 @@ describe("TalentProtocol", (accounts) => {
     it("Mint & Burn Career coins with TAL", async function() {
       let allCoins = await talentProtocolFactory.getTalentList();
 
-      // generate JDOE token coin if necessary
-      if (allCoins.length < 1) {
-        await talentProtocolFactory.instanceNewTalent(
-          "JDOE",
-          "John Doe",
-          DEFAULT_RESERVE_RATIO,
-          talent1.address,
-          5
-        );
-        allCoins = await talentProtocolFactory.getTalentList();
-      }
+      await talentProtocolFactory.instanceNewTalent(
+        "JDOE",
+        "John Doe",
+        DEFAULT_RESERVE_RATIO,
+        talent1.address,
+        parseEther("5")
+      );
+      allCoins = await talentProtocolFactory.getTalentList();
 
-      const coin = await CareerCoin.at(allCoins[0]);
+      const coin = await CareerCoin.attach(allCoins[0]);
 
-      // Add reserve if empty
-      if ((await coin.reserveBalance()) == "0") {
-        await coin.initialMint(parseEther("10"));
-      }
+      await coin.initialMint(parseEther("10"));
 
-      let balanceOfTal = await talentProtocol.balanceOf(investor.address);
-      if (balanceOfTal < 5) {
-        await talentProtocol.transfer(
-          investor.address,
-          parseEther("10", "ether")
-        );
-        balanceOfTal = await talentProtocol.balanceOf(investor.address);
-      }
+      await talentProtocol.transfer(investor.address, parseEther("10"));
+      const balanceOfTal = await talentProtocol.balanceOf(investor.address);
 
       const amount = parseEther("5");
 
       await talentProtocol.connect(investor).approve(coin.address, amount);
 
-      await coin.tMint(talentProtocol.address, {
-        from: investor.address,
+      await coin.connect(investor).tMint(talentProtocol.address, {
         value: amount,
       });
 
       const balanceOfTalAfterMint = await talentProtocol.balanceOf(
         investor.address
       );
-      expect(balanceOfTalAfterMint).to.equal(balanceOfTal - 5);
+      expect(balanceOfTalAfterMint).to.equal(balanceOfTal.sub(amount));
 
       const balanceAfterMint = await coin.balanceOf(investor.address);
-      expect(balanceAfterMint).to.equal(5);
+      expect(balanceAfterMint).to.equal(parseEther("5"));
 
       const talBalanceOfCoin = await talentProtocol.balanceOf(coin.address);
-      expect(talBalanceOfCoin).to.equal(5);
+      expect(talBalanceOfCoin).to.equal(parseEther("5"));
 
-      await coin.tBurn(talentProtocol.address, {
-        from: investor,
+      await coin.connect(investor).tBurn(talentProtocol.address, {
         value: amount,
       });
 
       const balanceOfTalAfterBurn = await talentProtocol.balanceOf(
         investor.address
       );
-      expect(balanceOfTalAfterBurn, balanceOfTal).to.equal();
+      expect(balanceOfTalAfterBurn).to.equal(balanceOfTal);
 
-      const balanceAfterBurn = await coin.balanceOf(investor.address);
-      expect(balanceAfterBurn).to.equal(0);
+      expect(await coin.balanceOf(investor.address)).to.equal(0);
 
       const talBalanceOfCoinAfterBurn = await talentProtocol.balanceOf(
         coin.address

@@ -1,7 +1,6 @@
 // import "@typechain/hardhat";
 import { task } from "hardhat/config";
 import "@nomiclabs/hardhat-waffle";
-import "@nomiclabs/hardhat-web3";
 
 import { HardhatUserConfig } from "hardhat/config";
 

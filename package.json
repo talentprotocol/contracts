@@ -1,5 +1,5 @@
 {
-  "name": "talentprotocol-test",
+  "name": "talentprotocol-contracts",
   "version": "0.1.0",
   "description": "Talent Protocol dApp",
   "author": "andreas@talentprotocol.com",
@@ -26,6 +26,10 @@
     "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.2.11",
     "zeppelin-solidity": "^1.12.0"
+  },
+  "devDependencies": {
+    "prettier": "^2.3.2",
+    "solhint": "^3.3.4"
   },
   "scripts": {
     "start": "react-scripts start",

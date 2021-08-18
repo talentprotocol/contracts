@@ -15,13 +15,15 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
     uint256 public talentFee;
 
     address private owner;
+    TalentProtocol internal talentProtocol;
     
-    constructor(string _symbol, string _name, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee, address _owner) public BancorBondingCurve(_reserveRatio) {
+    constructor(string _symbol, string _name, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee, address _owner, TalentProtocol _talentProtocol) public BancorBondingCurve(_reserveRatio) {
         symbol = _symbol;
         name = _name;
         talentAddress = _talentAddress;
         talentFee = _talentFee;
         owner = _owner;
+        talentProtocol = _talentProtocol;
     }
 
     function initialMint(uint256 amount) public payable {
@@ -31,18 +33,16 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
         return _mint(owner, amount);
     }
 
-    function tMint(address tokenAddress) public payable {
-        require(msg.value > 0, "Must send ether to buy token.");
+    function mintFromTal(uint256 amount) public payable {
+        require(amount > 0, "Desired amount must be greater than 0.");
 
-        ERC20 token = ERC20(tokenAddress);
+        uint tokenAllowance = talentProtocol.allowance(msg.sender, this);
 
-        uint tokenAllowance = token.allowance(msg.sender, this);
+        require(tokenAllowance >= amount);
 
-        require(tokenAllowance >= msg.value);
+        talentProtocol.transferFrom(msg.sender, this, amount);
 
-        token.transferFrom(msg.sender, this, msg.value);
-
-        _continuousMint(msg.value);
+        _continuousMint(amount);
     }
     
     function mint() public payable {
@@ -50,27 +50,17 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
         _continuousMint(msg.value);
     }
 
-    function tBurn(address tokenAddress) public payable {
-        require(msg.value > 0, "Must send ether to buy token.");
+    function burnToTal(uint256 amount) public payable {
+        require(amount > 0, "Must send ether to buy token.");
 
-        uint256 returnAmount = _continuousBurn(msg.value);
+        uint256 returnAmount = _continuousBurn(amount);
 
-        ERC20 token = ERC20(tokenAddress);
-
-        token.transfer(msg.sender, returnAmount);
+        talentProtocol.transfer(msg.sender, returnAmount);
     }
 
     function burn(uint256 _amount) public {
         uint256 returnAmount = _continuousBurn(_amount);
         msg.sender.transfer(returnAmount);
-    }
-
-    function approveTal(address tokenAddress, address targetAddress) payable public {
-        require(msg.sender == owner);
-
-        ERC20 token = ERC20(tokenAddress);
-
-        token.approve(targetAddress, msg.value);
     }
 
     function reserveBalance() public view returns (uint) {

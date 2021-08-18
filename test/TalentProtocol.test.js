@@ -254,7 +254,7 @@ contract ('TalentProtocol', (accounts) => {
 
             await talentProtocol.approve(coin.address, amount, { from: investor });
 
-            await coin.tMint(talentProtocol.address, { from: investor, value: amount});
+            await coin.mintFromTal(amount, { from: investor });
 
             const balanceOfTalAfterMint = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether');
             assert.equal(balanceOfTalAfterMint, balanceOfTal - 5);
@@ -265,7 +265,7 @@ contract ('TalentProtocol', (accounts) => {
             const talBalanceOfCoin = web3.utils.fromWei(await talentProtocol.balanceOf(coin.address))
             assert.equal(talBalanceOfCoin, 5)
 
-            await coin.tBurn(talentProtocol.address, { from: investor, value: amount});
+            await coin.burnToTal(amount, { from: investor });
 
             const balanceOfTalAfterBurn = web3.utils.fromWei(await talentProtocol.balanceOf(investor), 'ether');
             assert.equal(balanceOfTalAfterBurn, balanceOfTal);

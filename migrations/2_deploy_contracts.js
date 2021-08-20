@@ -19,8 +19,8 @@ module.exports = async function(deployer, network, accounts) {
   const talentProtocolFactory = await TalentProtocolFactory.deployed()
 
   // Instanciate 2 new talent JDOE and MDOE
-  await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', 1, talent1, 5)
-  await talentProtocolFactory.instanceNewTalent('MDOE', 'Mary Doe', 1, talent2, 5)
+  // await talentProtocolFactory.instanceNewTalent('JDOE', 'John Doe', 1, talent1, 5)
+  // await talentProtocolFactory.instanceNewTalent('MDOE', 'Mary Doe', 1, talent2, 5)
 
   await talentProtocol.transfer(investor, 1000)
   await talentProtocol.transfer(talent1, 1000)

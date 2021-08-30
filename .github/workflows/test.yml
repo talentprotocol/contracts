@@ -6,8 +6,8 @@ on:
       - master
     tags:
       - '*'
-    pull_request:
-      types: [opened, synchronize]
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   test-contracts:
@@ -34,5 +34,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - run: chown -R 1001:121 "/github/home/.npm"
       - run: npm install
       - run: node_modules/.bin/hardhat test

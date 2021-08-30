@@ -28,13 +28,20 @@ module.exports = {
       gasPrice: 20000000000,
       network_id: "*", // Match any network id
     },
+    ci: {
+      host: "ganache",
+      port: 8545,
+      gas: 6721975,
+      gasPrice: 20000000000,
+      network_id: "*", // Match any network id
+    },
     alfajores: {
       provider: client.connection.web3.currentProvider, // CeloProvider
       network_id: 44787, // latest Alfajores network id
     },
     ropsten: {
       networkCheckTimeout: 1000000,
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           "https://ropsten.infura.io/e91c45f37e5b4b968f0d3212865358ec"

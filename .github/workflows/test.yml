@@ -42,5 +42,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
-      - run: npm install
+      - run: yarn install
       - run: node_modules/.bin/truffle test --network ci

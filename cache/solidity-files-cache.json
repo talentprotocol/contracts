@@ -1,0 +1,583 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/CareerCoin.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "6b312042394b4473847bf317d98bd221",
+      "sourceName": "contracts/CareerCoin.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./curves/BancorBondingCurve.sol",
+        "./token/ERC20.sol",
+        "./TalentProtocol.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "CareerCoin"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/curves/BancorBondingCurve.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "84029e6173b79c6cebc2302ee082bae3",
+      "sourceName": "contracts/curves/BancorBondingCurve.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../math/BancorFormula.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "BancorBondingCurve",
+        "IBondingCurve"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/ERC20.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "e99b1dcffe4560f3b93988a1110d9ccd",
+      "sourceName": "contracts/token/ERC20.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol",
+        "../math/SafeMath.sol"
+      ],
+      "versionPragmas": [
+        "^0.4.24"
+      ],
+      "artifacts": [
+        "ERC20"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/TalentProtocol.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "2a6a90e4c5977cbce14ed76312f6e7ed",
+      "sourceName": "contracts/TalentProtocol.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./token/ERC20Detailed.sol",
+        "./token/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "TalentProtocol"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/math/BancorFormula.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "a3d224f7a7ca1d3eb673da0f79dbe555",
+      "sourceName": "contracts/math/BancorFormula.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./SafeMath.sol",
+        "./Power.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "BancorFormula"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/math/SafeMath.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "855c39c838b2275ba251c20584897f1c",
+      "sourceName": "contracts/math/SafeMath.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.4.24"
+      ],
+      "artifacts": [
+        "SafeMath"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/math/Power.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "00fc1989ffc5390aa9c112d075afb696",
+      "sourceName": "contracts/math/Power.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "Power"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/IERC20.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "1e905ffff24c62c1f583723d2fe4aed1",
+      "sourceName": "contracts/token/IERC20.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.4.24"
+      ],
+      "artifacts": [
+        "IERC20"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/ERC20Detailed.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "a312e2fa37b3a546c033e74f0b12fff3",
+      "sourceName": "contracts/token/ERC20Detailed.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.4.24"
+      ],
+      "artifacts": [
+        "ERC20Detailed"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/TalentProtocolFactory.sol": {
+      "lastModificationDate": 1628710284889,
+      "contentHash": "3ea397783259dd4c19fcca735c9ebf61",
+      "sourceName": "contracts/TalentProtocolFactory.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ownership/Ownable.sol",
+        "./TalentProtocol.sol",
+        "./CareerCoin.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "TalentProtocolFactory"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/ownership/Ownable.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "eff59b344ebc42116e3230bcb0a400c4",
+      "sourceName": "contracts/ownership/Ownable.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.4.24"
+      ],
+      "artifacts": [
+        "Ownable"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/TestERC20.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "bfbb0702113e50390ffe1317900e3642",
+      "sourceName": "contracts/token/TestERC20.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ERC20Detailed.sol",
+        "./ERC20.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "TestERC20"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/ContinuousToken.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "71d99d40d62b4faf64df263dad874741",
+      "sourceName": "contracts/token/ContinuousToken.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../ownership/Ownable.sol",
+        "./ERC20.sol",
+        "./ERC20Detailed.sol",
+        "../curves/BancorBondingCurve.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "ContinuousToken"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/ETHContinuousToken.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "44139000bc95b36ee33d0d398647e453",
+      "sourceName": "contracts/token/ETHContinuousToken.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ContinuousToken.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "ETHContinuousToken"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/token/ERC20ContinuousToken.sol": {
+      "lastModificationDate": 1628603001846,
+      "contentHash": "a4c579d34cbdfab007157d6a09e1acc5",
+      "sourceName": "contracts/token/ERC20ContinuousToken.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./ContinuousToken.sol"
+      ],
+      "versionPragmas": [
+        "0.4.25"
+      ],
+      "artifacts": [
+        "ERC20ContinuousToken"
+      ]
+    },
+    "/home/naps62/subvisual/talentprotocol/contracts/contracts/Migrations.sol": {
+      "lastModificationDate": 1628603001843,
+      "contentHash": "f5528c8f92c865439deb7f2a70cb8d58",
+      "sourceName": "contracts/Migrations.sol",
+      "solcConfig": {
+        "version": "0.4.25",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.21 <0.6.0"
+      ],
+      "artifacts": [
+        "Migrations"
+      ]
+    }
+  }
+}

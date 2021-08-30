@@ -6,8 +6,8 @@ on:
       - master
     tags:
       - '*'
-    pull_request:
-      types: [opened, synchronize]
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
   test-contracts:

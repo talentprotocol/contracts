@@ -34,6 +34,5 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - run: chown -R 1001:121 "/github/home/.npm"
       - run: npm install
       - run: node_modules/.bin/truffle test --network ci

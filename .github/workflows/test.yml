@@ -17,6 +17,8 @@ jobs:
     services:
       ganache:
         image: trufflesuite/ganache-cli
+        ports:
+          - 7545:7545
 
     env:
       FORCE_COLOR: true

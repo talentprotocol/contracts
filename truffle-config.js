@@ -29,7 +29,7 @@ module.exports = {
       network_id: "*", // Match any network id
     },
     ci: {
-      host: "127.0.0.1",
+      host: "ganache",
       port: 8545,
       gas: 6721975,
       gasPrice: 20000000000,

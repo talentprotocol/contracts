@@ -30,14 +30,5 @@ jobs:
         with:
           node-version: '16'
 
-      - run: npm cache clean --force
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - run: npm install
       - run: node_modules/.bin/truffle test --network ci

@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
 
 
  /**
@@ -13,7 +13,7 @@ pragma solidity 0.4.25;
  * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
  * and to You under the Apache License, Version 2.0. "
  */
-contract Power {
+abstract contract Power {
     string public version = "0.3";
 
     uint256 private constant ONE = 1;
@@ -47,7 +47,7 @@ contract Power {
     */
     uint256[128] private maxExpArray;
 
-    constructor() public {
+    constructor() {
     //  maxExpArray[0] = 0x6bffffffffffffffffffffffffffffffff;
     //  maxExpArray[1] = 0x67ffffffffffffffffffffffffffffffff;
     //  maxExpArray[2] = 0x637fffffffffffffffffffffffffffffff;

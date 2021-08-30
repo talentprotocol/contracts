@@ -1,18 +1,18 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
 
 import "./ContinuousToken.sol";
 
 
 contract ETHContinuousToken is ContinuousToken {
     uint256 internal reserve;
-  
+
     constructor(
-        string _name,
-        string _symbol,
+        string memory _name,
+        string memory _symbol,
         uint8 _decimals,
         uint _initialSupply,
         uint32 _reserveRatio
-    ) public payable ContinuousToken(_name, _symbol, _decimals, _initialSupply, _reserveRatio) {
+    ) payable ContinuousToken(_name, _symbol, _decimals, _initialSupply, _reserveRatio) {
         reserve = msg.value;
     }
 
@@ -20,18 +20,18 @@ contract ETHContinuousToken is ContinuousToken {
     function mint(uint _minReceived) public payable {
         uint purchaseAmount = msg.value;
         _continuousMint(purchaseAmount, _minReceived);
-        reserve = reserve.add(purchaseAmount);
+        reserve += purchaseAmount;
     }
 
     function burn(uint _amount, uint _minReceived) public {
         uint refundAmount = _continuousBurn(_amount, _minReceived);
-        reserve = reserve.sub(refundAmount);
-        msg.sender.transfer(refundAmount);
+        reserve -= refundAmount;
+        payable(msg.sender).transfer(refundAmount);
     }
 
-    function reserveBalance() public view returns (uint) {
+    function reserveBalance() public view override returns (uint) {
         return reserve;
     }
 
-    function () public { revert("Cannot call fallback function."); }
+    fallback() external { revert("Cannot call fallback function."); }
 }

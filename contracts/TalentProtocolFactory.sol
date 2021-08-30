@@ -17,7 +17,12 @@ contract TalentProtocolFactory is Ownable {
         talentProtocol = _talentProtocol;
     }
 
-    modifier onlyValidInputData(string _symbol, string _name, address _talentAddress, uint256 _talentFee) {
+    modifier onlyValidInputData(
+        string _symbol,
+        string _name,
+        address _talentAddress,
+        uint256 _talentFee
+    ) {
         require(bytes(_symbol).length >= 3 && bytes(_symbol).length <= 8, "Symbol must be between 3 and 8 chars");
         require(bytes(_name).length >= 1, "Name must be at least 1 char");
         require(_talentAddress != 0, "Talent wallet address must be set");
@@ -26,8 +31,22 @@ contract TalentProtocolFactory is Ownable {
     }
 
     // INSTANTIATE NEW TALENT ON FACTORY
-    function instanceNewTalent(string _symbol, string _name, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee) onlyOwner onlyValidInputData(_symbol, _name, _talentAddress, _talentFee) public returns (bool) {
-        CareerCoin tCareerCoin = new CareerCoin(_symbol, _name, _reserveRatio, _talentAddress, _talentFee, owner(), talentProtocol);
+    function instanceNewTalent(
+        string _symbol,
+        string _name,
+        uint32 _reserveRatio,
+        address _talentAddress,
+        uint256 _talentFee
+    ) onlyOwner onlyValidInputData(_symbol, _name, _talentAddress, _talentFee) public returns (bool) {
+        CareerCoin tCareerCoin = new CareerCoin(
+            _symbol,
+            _name,
+            _reserveRatio,
+            _talentAddress,
+            _talentFee,
+            owner(),
+            talentProtocol
+        );
         talentList.push(tCareerCoin);
 
         // emit event when talent contract is created

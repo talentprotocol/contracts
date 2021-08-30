@@ -16,8 +16,16 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
 
     address private owner;
     TalentProtocol internal talentProtocol;
-    
-    constructor(string _symbol, string _name, uint32 _reserveRatio, address _talentAddress, uint256 _talentFee, address _owner, TalentProtocol _talentProtocol) public BancorBondingCurve(_reserveRatio) {
+
+    constructor(
+        string _symbol,
+        string _name,
+        uint32 _reserveRatio,
+        address _talentAddress,
+        uint256 _talentFee,
+        address _owner,
+        TalentProtocol _talentProtocol
+    ) public BancorBondingCurve(_reserveRatio) {
         symbol = _symbol;
         name = _name;
         talentAddress = _talentAddress;
@@ -44,7 +52,7 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
 
         _continuousMint(amount);
     }
-    
+
     function mint() public payable {
         require(msg.value > 0, "Must send ether to buy tokens.");
         _continuousMint(msg.value);

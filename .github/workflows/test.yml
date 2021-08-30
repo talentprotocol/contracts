@@ -14,15 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     container: node:16.4.2
 
-    services:
-      ganache:
-        image: trufflesuite/ganache-cli
-        ports:
-          - 8545:8545
-
     env:
       FORCE_COLOR: true
-
 
     steps:
       - uses: actions/checkout@v2
@@ -43,4 +36,4 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - run: yarn install
-      - run: node_modules/.bin/truffle test --network ci
+      - run: node_modules/.bin/hardhat test

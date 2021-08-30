@@ -22,9 +22,6 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  networks: {
-    // TODO
-  },
 };
 
 export default config;

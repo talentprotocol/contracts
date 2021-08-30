@@ -18,7 +18,7 @@ jobs:
       ganache:
         image: trufflesuite/ganache-cli
         ports:
-          - 7545:7545
+          - 8545:8545
 
     env:
       FORCE_COLOR: true
@@ -43,3 +43,4 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - run: yarn install
+      - run: node_modules/.bin/truffle test --network ci

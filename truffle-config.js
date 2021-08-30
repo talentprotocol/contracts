@@ -28,13 +28,6 @@ module.exports = {
       gasPrice: 20000000000,
       network_id: "*", // Match any network id
     },
-    ci: {
-      host: "ganache",
-      port: 7545,
-      gas: 6721975,
-      gasPrice: 20000000000,
-      network_id: "*", // Match any network id
-    },
     alfajores: {
       provider: client.connection.web3.currentProvider, // CeloProvider
       network_id: 44787, // latest Alfajores network id

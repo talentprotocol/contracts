@@ -43,4 +43,4 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - run: yarn install
-      - run: node_modules/.bin/truffle test --network ci
+      - run: node_modules/.bin/truffle test --network development

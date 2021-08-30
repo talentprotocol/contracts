@@ -14,7 +14,7 @@ function tokens(n) {
 
 const DEFAULT_RESERVE_RATIO = 1000000;
 
-describe("TalentProtocol", (accounts) => {
+describe("TalentProtocol", () => {
   let TalentProtocol;
   let TalentProtocolFactory;
   let CareerCoin;
@@ -194,7 +194,7 @@ describe("TalentProtocol", (accounts) => {
       });
     });
 
-    it("Can mint tokens with ether following the bounding curve", async function () {
+    it("Can mint tokens with ether following the bounding curve", async function() {
       let allCoins = await talentProtocolFactory.getTalentList();
 
       // generate JDOE token coin if necessary
@@ -236,7 +236,7 @@ describe("TalentProtocol", (accounts) => {
       expect(await coin.balanceOf(investor.address)).to.equal(parseEther("80"));
     });
 
-    it("Can burn minted tokens for ether", async function () {
+    it("Can burn minted tokens for ether", async function() {
       let allCoins = await talentProtocolFactory.getTalentList();
 
       // generate JDOE token coin if necessary
@@ -263,15 +263,16 @@ describe("TalentProtocol", (accounts) => {
       await coin.connect(investor).burn(allInvestorBalance);
 
       const reserveAfterBurn = await coin.reserveBalance();
-      const expectedReserveAfterBurn =
-        beforeBurnReserve.sub(allInvestorBalance);
+      const expectedReserveAfterBurn = beforeBurnReserve.sub(
+        allInvestorBalance
+      );
       expect(reserveAfterBurn).to.equal(expectedReserveAfterBurn);
 
       const balanceOfInvestorAfterBurn = await coin.balanceOf(investor.address);
       expect(balanceOfInvestorAfterBurn).to.equal("0");
     });
 
-    it("Mint & Burn Career coins with TAL", async function () {
+    it("Mint & Burn Career coins with TAL", async function() {
       let allCoins = await talentProtocolFactory.getTalentList();
 
       await talentProtocolFactory.instanceNewTalent(

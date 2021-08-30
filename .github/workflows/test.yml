@@ -17,9 +17,12 @@ jobs:
     services:
       ganache:
         image: trufflesuite/ganache-cli
+        ports:
+          - 8545:8545
 
     env:
       FORCE_COLOR: true
+
 
     steps:
       - uses: actions/checkout@v2
@@ -27,13 +30,17 @@ jobs:
         with:
           node-version: '16'
 
-      - uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - run: chown -R 1001:121 "/github/home/.npm"
-      - run: npm install
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - run: yarn install
       - run: node_modules/.bin/truffle test --network ci

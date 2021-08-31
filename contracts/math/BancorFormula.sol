@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
 
 import "./SafeMath.sol";
 import "./Power.sol"; // Efficient power function.

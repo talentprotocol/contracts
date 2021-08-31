@@ -1,15 +1,13 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
+
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./curves/BancorBondingCurve.sol";
-import "./token/ERC20.sol";
 import "./TalentProtocol.sol";
+
 
 contract CareerCoin is BancorBondingCurve, ERC20 {
     uint256 internal reserve;
-
-    string public symbol;
-    string public name;
-    uint8 internal decimals = 18;
 
     address public talentAddress;
     uint256 public talentFee;
@@ -18,16 +16,14 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
     TalentProtocol internal talentProtocol;
 
     constructor(
-        string _symbol,
-        string _name,
+        string memory _symbol,
+        string memory _name,
         uint32 _reserveRatio,
         address _talentAddress,
         uint256 _talentFee,
         address _owner,
         TalentProtocol _talentProtocol
-    ) public BancorBondingCurve(_reserveRatio) {
-        symbol = _symbol;
-        name = _name;
+    ) BancorBondingCurve(_reserveRatio) ERC20(_name, _symbol) {
         talentAddress = _talentAddress;
         talentFee = _talentFee;
         owner = _owner;
@@ -44,11 +40,11 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
     function mintFromTal(uint256 amount) public payable {
         require(amount > 0, "Desired amount must be greater than 0.");
 
-        uint tokenAllowance = talentProtocol.allowance(msg.sender, this);
+        uint tokenAllowance = talentProtocol.allowance(msg.sender, address(this));
 
         require(tokenAllowance >= amount);
 
-        talentProtocol.transferFrom(msg.sender, this, amount);
+        talentProtocol.transferFrom(msg.sender, address(this), amount);
 
         _continuousMint(amount);
     }
@@ -68,10 +64,10 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
 
     function burn(uint256 _amount) public {
         uint256 returnAmount = _continuousBurn(_amount);
-        msg.sender.transfer(returnAmount);
+        payable(msg.sender).transfer(returnAmount);
     }
 
-    function reserveBalance() public view returns (uint) {
+    function reserveBalance() public view override returns (uint) {
         return reserve;
     }
 
@@ -88,7 +84,7 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
 
         uint256 amount = getContinuousMintReward(_deposit);
         _mint(msg.sender, amount);
-        reserve = reserve.add(_deposit);
+        reserve += _deposit;
 
         return amount;
     }
@@ -98,15 +94,15 @@ contract CareerCoin is BancorBondingCurve, ERC20 {
         require(balanceOf(msg.sender) >= _amount, "Insufficient tokens to burn.");
 
         uint256 reimburseAmount = getContinuousBurnRefund(_amount);
-        reserve = reserve.sub(reimburseAmount);
+        reserve -= reimburseAmount;
         _burn(msg.sender, _amount);
 
         return reimburseAmount;
     }
 
-    function continuousSupply() public view returns (uint) {
+    function continuousSupply() public view override returns (uint) {
         return totalSupply();
     }
 
-    function () public { revert("Cannot call fallback function."); }
+    fallback() external { revert("Cannot call fallback function."); }
 }

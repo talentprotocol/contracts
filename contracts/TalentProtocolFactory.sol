@@ -38,7 +38,16 @@ contract TalentProtocolFactory is Ownable {
         address _talentAddress,
         uint256 _talentFee
     ) onlyOwner onlyValidInputData(_symbol, _name, _talentAddress, _talentFee) public returns (bool) {
-        CareerCoin tCareerCoin = new CareerCoin(_symbol, _name, _reserveRatio, _talentAddress, _talentFee, owner(), talentProtocol);
+        CareerCoin tCareerCoin = new CareerCoin(
+            _symbol,
+            _name,
+            _reserveRatio,
+            _talentAddress,
+            _talentFee,
+            owner(),
+            talentProtocol
+        );
+
         talentList.push(tCareerCoin);
 
         // emit event when talent contract is created

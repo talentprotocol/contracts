@@ -8,7 +8,6 @@ import "../curves/BancorBondingCurve.sol";
 
 abstract contract ContinuousToken is Ownable, ERC20, BancorBondingCurve {
     uint8 private customDecimals;
-    using SafeMath for uint;
 
     event Minted(address sender, uint amount, uint deposit);
     event Burned(address sender, uint amount, uint refund);

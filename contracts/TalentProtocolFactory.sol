@@ -1,6 +1,7 @@
 pragma solidity 0.8.7;
 
-import "./ownership/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
 import "./TalentProtocol.sol";
 import "./CareerCoin.sol";
 

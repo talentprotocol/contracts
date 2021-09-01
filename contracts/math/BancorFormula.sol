@@ -1,8 +1,6 @@
 pragma solidity 0.8.7;
 
-import "./SafeMath.sol";
 import "./Power.sol"; // Efficient power function.
-
 
 /**
 * @title Bancor formula by Bancor
@@ -11,7 +9,6 @@ import "./Power.sol"; // Efficient power function.
 * and to You under the Apache License, Version 2.0. "
 */
 contract BancorFormula is Power {
-    using SafeMath for uint256;
     uint32 private constant MAX_RESERVE_RATIO = 1000000;
 
     /**
@@ -42,16 +39,16 @@ contract BancorFormula is Power {
         }
         // special case if the ratio = 100%
         if (_reserveRatio == MAX_RESERVE_RATIO) {
-            return _supply.mul(_depositAmount).div(_reserveBalance);
+            return _supply * _depositAmount / _reserveBalance;
         }
         uint256 result;
         uint8 precision;
-        uint256 baseN = _depositAmount.add(_reserveBalance);
+        uint256 baseN = _depositAmount + _reserveBalance;
         (result, precision) = power(
             baseN, _reserveBalance, _reserveRatio, MAX_RESERVE_RATIO
         );
-        uint256 newTokenSupply = _supply.mul(result) >> precision;
-        return newTokenSupply.sub(_supply);
+        uint256 newTokenSupply = _supply * result >> precision;
+        return newTokenSupply - _supply;
     }
 
     /**
@@ -86,16 +83,16 @@ contract BancorFormula is Power {
         }
         // special case if the ratio = 100%
         if (_reserveRatio == MAX_RESERVE_RATIO) {
-            return _reserveBalance.mul(_sellAmount).div(_supply);
+            return _reserveBalance * _sellAmount / _supply;
         }
         uint256 result;
         uint8 precision;
-        uint256 baseD = _supply.sub(_sellAmount);
+        uint256 baseD = _supply - _sellAmount;
         (result, precision) = power(
             _supply, baseD, MAX_RESERVE_RATIO, _reserveRatio
         );
-        uint256 oldBalance = _reserveBalance.mul(result);
+        uint256 oldBalance = _reserveBalance * result;
         uint256 newBalance = _reserveBalance << precision;
-        return oldBalance.sub(newBalance).div(result);
+        return (oldBalance - newBalance) / result;
     }
 }

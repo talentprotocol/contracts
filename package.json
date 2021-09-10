@@ -20,7 +20,6 @@
     "bootstrap": "4.3.1",
     "chai": "4.2.0",
     "chai-bignumber": "3.0.0",
-    "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.0",
     "hardhat": "^2.1.2",
     "identicon.js": "^2.3.3",
@@ -32,14 +31,19 @@
     "solhint": "^3.3.6",
     "ts-node": "^9.1.1",
     "typechain": "5.1.2",
-    "typescript": "^4.2.3",
+    "typescript": "^4.4.2",
     "zeppelin-solidity": "^1.12.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^9.0.0",
-    "@types/node": "^16.7.8"
+    "@types/node": "^16.7.8",
+    "@typescript-eslint/eslint-plugin": "^4.31.0",
+    "@typescript-eslint/parser": "^4.31.0",
+    "chai-as-promised": "^7.1.1",
+    "eslint": "^7.32.0",
+    "ethereum-waffle": "^3.4.0"
   },
   "scripts": {
     "start": "react-scripts start",

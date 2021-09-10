@@ -1,8 +1,8 @@
-// import "@typechain/hardhat";
-import { task } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
+import { task, HardhatUserConfig } from "hardhat/config";
 
-import { HardhatUserConfig } from "hardhat/config";
+import "@typechain/hardhat";
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();

@@ -1,28 +1,34 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
+
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "../ownership/Ownable.sol";
-import "./ERC20.sol";
-import "./ERC20Detailed.sol";
 import "../curves/BancorBondingCurve.sol";
 
 
-contract ContinuousToken is Ownable, ERC20, ERC20Detailed, BancorBondingCurve {
+abstract contract ContinuousToken is Ownable, ERC20, BancorBondingCurve {
+    uint8 private customDecimals;
     using SafeMath for uint;
 
     event Minted(address sender, uint amount, uint deposit);
     event Burned(address sender, uint amount, uint refund);
 
     constructor(
-        string _name,
-        string _symbol,
+        string memory _name,
+        string memory _symbol,
         uint8 _decimals,
         uint _initialSupply,
         uint32 _reserveRatio
-    ) public ERC20Detailed(_name, _symbol, _decimals) BancorBondingCurve(_reserveRatio) {
+    ) ERC20(_name, _symbol) BancorBondingCurve(_reserveRatio) {
+        customDecimals = _decimals;
         _mint(msg.sender, _initialSupply);
     }
 
-    function continuousSupply() public view returns (uint) {
+    function decimals() public view override returns(uint8) {
+        return customDecimals;
+    }
+
+    function continuousSupply() public view override returns (uint) {
         return totalSupply(); // Continuous Token total supply
     }
 
@@ -45,5 +51,5 @@ contract ContinuousToken is Ownable, ERC20, ERC20Detailed, BancorBondingCurve {
         _burn(msg.sender, _amount);
         emit Burned(msg.sender, _amount, refundAmount);
         return refundAmount;
-    } 
+    }
 }

@@ -1,4 +1,4 @@
-pragma solidity 0.4.25;
+pragma solidity 0.8.7;
 
 import "../math/BancorFormula.sol";
 
@@ -8,7 +8,7 @@ interface IBondingCurve {
     function getContinuousBurnRefund(uint _continuousTokenAmount) external view returns (uint);
 }
 
-contract BancorBondingCurve is IBondingCurve, BancorFormula {
+abstract contract BancorBondingCurve is IBondingCurve, BancorFormula {
     /*
         reserve ratio, represented in ppm, 1-1000000
         1/3 corresponds to y= multiple * x^2
@@ -17,19 +17,19 @@ contract BancorBondingCurve is IBondingCurve, BancorFormula {
     */
     uint32 public reserveRatio;
 
-    constructor(uint32 _reserveRatio) public {
+    constructor(uint32 _reserveRatio) {
         reserveRatio = _reserveRatio;
     }
 
-    function getContinuousMintReward(uint _reserveTokenAmount) public view returns (uint) {
+    function getContinuousMintReward(uint _reserveTokenAmount) public view override returns (uint) {
         return calculatePurchaseReturn(continuousSupply(), reserveBalance(), reserveRatio, _reserveTokenAmount);
     }
 
-    function getContinuousBurnRefund(uint _continuousTokenAmount) public view returns (uint) {
+    function getContinuousBurnRefund(uint _continuousTokenAmount) public view override returns (uint) {
         return calculateSaleReturn(continuousSupply(), reserveBalance(), reserveRatio, _continuousTokenAmount);
     }
 
-    function continuousSupply() public view returns (uint);
+    function continuousSupply() public view virtual returns (uint);
 
-    function reserveBalance() public view returns (uint);
+    function reserveBalance() public view virtual returns (uint);
 }

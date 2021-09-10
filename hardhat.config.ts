@@ -1,8 +1,8 @@
-// import "@typechain/hardhat";
-import { task } from "hardhat/config";
-import "@nomiclabs/hardhat-waffle";
+import { task, HardhatUserConfig } from "hardhat/config";
 
-import { HardhatUserConfig } from "hardhat/config";
+import "@typechain/hardhat";
+import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-waffle";
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -14,7 +14,7 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.4.25",
+    version: "0.8.7",
     settings: {
       optimizer: {
         enabled: true,

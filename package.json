@@ -35,6 +35,7 @@
     "zeppelin-solidity": "^1.12.0"
   },
   "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.13",
     "@types/chai": "^4.2.21",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^9.0.0",

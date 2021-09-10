@@ -2,8 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import { TalentProtocol } from "../../typechain/TalentProtocol";
-import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
+import { CareerCoin } from "../../typechain/CareerCoin";
+import CareerCoinArtifact from "../../artifacts/contracts/CareerCoin.sol/CareerCoin.json";
 
 chai.use(solidity);
 
@@ -11,22 +11,25 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("TalentProtocol", () => {
+describe("CareerCoin", () => {
   let signers: any;
   let creator: any;
+  let talent: any;
 
-  let tal: TalentProtocol;
+  let coin: CareerCoin;
 
   beforeEach(async () => {
     signers = await ethers.getSigners();
     creator = signers[0];
+    talent = signers[1];
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, TalentProtocolArtifact, [
-      "TalentProtocol",
-      "TAL",
+    const action = deployContract(creator, CareerCoinArtifact, [
+      "FooBar",
+      "FOO",
       parseUnits("1000"),
+      talent.address,
     ]);
 
     await expect(action).not.to.be.reverted;
@@ -34,25 +37,26 @@ describe("TalentProtocol", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      tal = (await deployContract(creator, TalentProtocolArtifact, [
-        "TalentProtocol",
-        "TAL",
+      coin = (await deployContract(creator, CareerCoinArtifact, [
+        "FooBar",
+        "FOO",
         parseUnits("123"),
-      ])) as TalentProtocol;
+        talent.address,
+      ])) as CareerCoin;
     });
 
     it("has the given name and symbol", async () => {
-      expect(await tal.name()).to.eq("TalentProtocol");
-      expect(await tal.symbol()).to.eq("TAL");
+      expect(await coin.name()).to.eq("FooBar");
+      expect(await coin.symbol()).to.eq("FOO");
     });
 
     it("has the expected number of decimal places", async () => {
-      expect(await tal.decimals()).to.eq(18);
+      expect(await coin.decimals()).to.eq(18);
     });
 
     it("mints the full supply to the creator", async () => {
-      expect(await tal.totalSupply()).to.eq(parseUnits("123"));
-      expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("123"));
+      expect(await coin.totalSupply()).to.eq(parseUnits("123"));
+      expect(await coin.balanceOf(talent.address)).to.eq(parseUnits("123"));
     });
   });
 });

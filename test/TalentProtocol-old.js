@@ -44,7 +44,6 @@ describe("TalentProtocol", () => {
     talentProtocol = await TalentProtocol.deploy(
       "Talent Protocol",
       "TAL",
-      18,
       parseUnits("1000")
     );
 

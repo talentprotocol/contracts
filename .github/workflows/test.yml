@@ -37,4 +37,5 @@ jobs:
 
       - run: yarn install
       - run: node_modules/.bin/solhint contracts/**/*.sol
+      - run: node_modules/.bin/hardhat compile
       - run: node_modules/.bin/hardhat test

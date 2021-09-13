@@ -49,8 +49,8 @@ describe("Staking", () => {
       parseEther("1000"),
     ])) as TalentProtocol;
 
-    await tal.connect(owner).transfer(investor1.address, parseEther("50"));
-    await tal.connect(owner).transfer(investor2.address, parseEther("50"));
+    // await tal.connect(owner).transfer(investor1.address, parseEther("50"));
+    // await tal.connect(owner).transfer(investor2.address, parseEther("50"));
   });
 
   describe("constructor", () => {

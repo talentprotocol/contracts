@@ -47,6 +47,15 @@ describe("StableThenToken", () => {
       expect(await contract.stableCoin()).to.eq(stable.address);
       expect(await contract.token()).to.hexEqual("0x0");
     });
+
+    it("fails if tokenPrice is 0", async () => {
+      const action = deployContract(owner, TestStableThenTokenArtifact, [
+        stable.address,
+        0,
+      ]);
+
+      await expect(action).to.be.revertedWith("_tokenPrice cannot be 0");
+    });
   });
 
   describe("functions", () => {

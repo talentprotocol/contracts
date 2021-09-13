@@ -7,7 +7,7 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 contract ERC20Mock is ERC20, ERC165 {
   constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-    _mint(msg.sender, 1000000);
+    _mint(msg.sender, 1000 ether);
   }
 
   function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
@@ -18,6 +18,6 @@ contract ERC20Mock is ERC20, ERC165 {
 
 contract ERC20MockWithoutErc165 is ERC20 {
   constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-    _mint(msg.sender, 1000000);
+    _mint(msg.sender, 1000 ether);
   }
 }

@@ -2,6 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
+import { ERC165 } from "../shared";
+
 import { TalentToken } from "../../typechain/TalentToken";
 import TalentTokenArtifact from "../../artifacts/contracts/TalentToken.sol/TalentToken.json";
 
@@ -35,14 +37,23 @@ describe("TalentToken", () => {
     await expect(action).not.to.be.reverted;
   });
 
+  const builder = async () => {
+    return deployContract(creator, TalentTokenArtifact, [
+      "FooBar",
+      "FOO",
+      parseUnits("123"),
+      talent.address,
+    ]) as Promise<TalentToken>;
+  };
+
+  describe("behaviour", () => {
+    ERC165.behavesAsERC165(builder);
+    ERC165.supportsInterfaces(builder, ["ERC165", "ERC20"]);
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
-      coin = (await deployContract(creator, TalentTokenArtifact, [
-        "FooBar",
-        "FOO",
-        parseUnits("123"),
-        talent.address,
-      ])) as TalentToken;
+      coin = await builder();
     });
 
     it("has the given name and symbol", async () => {

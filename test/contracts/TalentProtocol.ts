@@ -2,6 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
+import { ERC165 } from "../shared";
+
 import { TalentProtocol } from "../../typechain/TalentProtocol";
 import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
 
@@ -32,13 +34,22 @@ describe("TalentProtocol", () => {
     await expect(action).not.to.be.reverted;
   });
 
+  const builder = async () => {
+    return deployContract(creator, TalentProtocolArtifact, [
+      "TalentProtocol",
+      "TAL",
+      parseUnits("123"),
+    ]) as Promise<TalentProtocol>;
+  };
+
+  describe("behaviour", () => {
+    ERC165.behavesAsERC165(builder);
+    ERC165.supportsInterfaces(builder, ["ERC165", "ERC20"]);
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
-      tal = (await deployContract(creator, TalentProtocolArtifact, [
-        "TalentProtocol",
-        "TAL",
-        parseUnits("123"),
-      ])) as TalentProtocol;
+      tal = await builder();
     });
 
     it("has the given name and symbol", async () => {

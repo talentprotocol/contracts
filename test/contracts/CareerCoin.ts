@@ -2,6 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
+import { ERC165 } from "../shared";
+
 import { CareerCoin } from "../../typechain/CareerCoin";
 import CareerCoinArtifact from "../../artifacts/contracts/CareerCoin.sol/CareerCoin.json";
 
@@ -35,14 +37,23 @@ describe("CareerCoin", () => {
     await expect(action).not.to.be.reverted;
   });
 
+  const builder = async () => {
+    return deployContract(creator, CareerCoinArtifact, [
+      "FooBar",
+      "FOO",
+      parseUnits("123"),
+      talent.address,
+    ]) as Promise<CareerCoin>;
+  };
+
+  describe("behaviour", () => {
+    ERC165.behavesAsERC165(builder);
+    ERC165.supportsInterfaces(builder, ["ERC165", "ERC20"]);
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
-      coin = (await deployContract(creator, CareerCoinArtifact, [
-        "FooBar",
-        "FOO",
-        parseUnits("123"),
-        talent.address,
-      ])) as CareerCoin;
+      coin = await builder();
     });
 
     it("has the given name and symbol", async () => {

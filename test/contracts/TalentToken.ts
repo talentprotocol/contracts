@@ -2,8 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import { CareerCoin } from "../../typechain/CareerCoin";
-import CareerCoinArtifact from "../../artifacts/contracts/CareerCoin.sol/CareerCoin.json";
+import { TalentToken } from "../../typechain/TalentToken";
+import TalentTokenArtifact from "../../artifacts/contracts/TalentToken.sol/TalentToken.json";
 
 chai.use(solidity);
 
@@ -11,12 +11,12 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("CareerCoin", () => {
+describe("TalentToken", () => {
   let signers: any;
   let creator: any;
   let talent: any;
 
-  let coin: CareerCoin;
+  let coin: TalentToken;
 
   beforeEach(async () => {
     signers = await ethers.getSigners();
@@ -25,7 +25,7 @@ describe("CareerCoin", () => {
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, CareerCoinArtifact, [
+    const action = deployContract(creator, TalentTokenArtifact, [
       "FooBar",
       "FOO",
       parseUnits("1000"),
@@ -37,12 +37,12 @@ describe("CareerCoin", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      coin = (await deployContract(creator, CareerCoinArtifact, [
+      coin = (await deployContract(creator, TalentTokenArtifact, [
         "FooBar",
         "FOO",
         parseUnits("123"),
         talent.address,
-      ])) as CareerCoin;
+      ])) as TalentToken;
     });
 
     it("has the given name and symbol", async () => {

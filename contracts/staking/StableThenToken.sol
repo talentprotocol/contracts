@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 /**
  * @title A helper contract that switches operation from a stable-coin to a regular token,
@@ -11,6 +12,8 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  *   switch to the TAL token, while also converting any initial USD stakes to TAL, given a pre-determined rate
  */
 abstract contract StableThenToken {
+  using ERC165Checker for address;
+
   /// @notice stable coin to use
   address public immutable stableCoin;
 
@@ -51,6 +54,8 @@ abstract contract StableThenToken {
    */
   function setToken(address _token) public stablePhaseOnly {
     require(_token != address(0x0), "Address must be set");
+    require(_token.supportsInterface(type(IERC20).interfaceId), "not a valid ERC20 token");
+    // require(ERC165(_token).supportsInterface(type(IERC20).interfaceId), "not a valid ERC20 token");
 
     ERC20 erc20 = ERC20(_token);
     require(strcmp(erc20.symbol(), "TAL"), "token name is not TAL");

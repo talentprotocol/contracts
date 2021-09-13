@@ -7,6 +7,7 @@ import TestStableThenTokenArtifact from "../../../artifacts/contracts/test/TestS
 
 import { ERC20 } from "../../../typechain/ERC20";
 import ERC20MockArtifact from "../../../artifacts/contracts/test/ERC20Mock.sol/ERC20Mock.json";
+import ERC20MockWithoutErc165Artifact from "../../../artifacts/contracts/test/ERC20Mock.sol/ERC20MockWithoutErc165.json";
 
 chai.use(solidity);
 
@@ -69,10 +70,23 @@ describe("StableThenToken", () => {
       it("accepts an ERC20 with symbol TAL", async () => {
         await expect(contract.setToken(token.address)).not.to.be.reverted;
       });
+
       it("does not accept a token with another name", async () => {
         await expect(contract.setToken(stable.address)).to.be.revertedWith(
           "token name is not TAL"
         );
+      });
+
+      it("does not accept a token not implementing ERC20's interfaceId", async () => {
+        const token = await deployContract(
+          owner,
+          ERC20MockWithoutErc165Artifact,
+          ["Talent Protocol", "TAL"]
+        );
+
+        const action = contract.setToken(token.address);
+
+        await expect(action).to.be.revertedWith("not a valid ERC20 token");
       });
     });
 

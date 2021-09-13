@@ -40,6 +40,7 @@ describe("Staking", () => {
       "USDT",
     ])) as ERC20;
 
+    console.log(await stable.balanceOf(owner.address));
     await stable.connect(owner).transfer(investor1.address, parseEther("50"));
     await stable.connect(owner).transfer(investor2.address, parseEther("50"));
 

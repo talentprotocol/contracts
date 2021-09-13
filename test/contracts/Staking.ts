@@ -40,8 +40,8 @@ describe("Staking", () => {
       "USDT",
     ])) as ERC20;
 
-    await stable.transfer(investor1.address, parseEther("50"));
-    await stable.transfer(investor2.address, parseEther("50"));
+    await stable.connect(owner).transfer(investor1.address, parseEther("50"));
+    await stable.connect(owner).transfer(investor2.address, parseEther("50"));
 
     tal = (await deployContract(owner, TalentProtocolArtifact, [
       "TalentProtocol",
@@ -49,8 +49,8 @@ describe("Staking", () => {
       parseEther("1000"),
     ])) as TalentProtocol;
 
-    await tal.transfer(investor1.address, parseEther("50"));
-    await tal.transfer(investor2.address, parseEther("50"));
+    await tal.connect(owner).transfer(investor1.address, parseEther("50"));
+    await tal.connect(owner).transfer(investor2.address, parseEther("50"));
   });
 
   describe("constructor", () => {

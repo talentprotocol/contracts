@@ -28,8 +28,9 @@ abstract contract StableThenToken {
     address _stableCoin,
     uint _tokenPrice
   ) {
+    // USDT does not implement ERC165, so we can't do much more than this
     require(_stableCoin != address(0), "stable-coin address must be valid");
-    require(_tokenPrice > 0, "tokenPrice cannot be 0");
+    require(_tokenPrice > 0, "_tokenPrice cannot be 0");
 
     stableCoin = _stableCoin;
     tokenPrice = _tokenPrice;

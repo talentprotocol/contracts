@@ -7,7 +7,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /**
  * @title The base contract for Career Coins in the Talent Protocol platform.
  */
-contract CareerCoin is ERC20 {
+contract TalentToken is ERC20 {
     constructor(
         string memory _name,
         string memory _symbol,

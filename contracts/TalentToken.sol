@@ -6,7 +6,7 @@ import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 /**
- * @title The base contract for Career Coins in the Talent Protocol platform.
+ * @title The base contract for Talent Tokens
  */
 contract TalentToken is ERC20, ERC165 {
   constructor(

@@ -7,12 +7,24 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "commonjs",
+    "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "jsx": "preserve"
   },
-  "include": ["./scripts", "./test"],
-  "files": ["./hardhat.config.ts"]
+  "include": [
+    "./scripts",
+    "./test"
+  ],
+  "files": [
+    "./hardhat.config.ts"
+  ]
 }

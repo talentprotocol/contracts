@@ -35,10 +35,7 @@ describe("Staking", () => {
     investor1 = signers[1];
     investor2 = signers[2];
 
-    stable = (await deployContract(owner, ERC20MockArtifact, [
-      "USDT",
-      "USDT",
-    ])) as ERC20;
+    stable = (await deployContract(owner, ERC20MockArtifact, ["USDT", "USDT"])) as ERC20;
 
     await stable.connect(owner).transfer(investor1.address, parseEther("50"));
     await stable.connect(owner).transfer(investor2.address, parseEther("50"));
@@ -55,19 +52,13 @@ describe("Staking", () => {
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const action = deployContract(owner, StakingArtifact, [
-        stable.address,
-        50,
-      ]);
+      const action = deployContract(owner, StakingArtifact, [stable.address, 50]);
 
       await expect(action).not.to.be.reverted;
     });
 
     it("fails if tokenPrice is 0", async () => {
-      const action = deployContract(owner, StakingArtifact, [
-        stable.address,
-        0,
-      ]);
+      const action = deployContract(owner, StakingArtifact, [stable.address, 0]);
 
       await expect(action).to.be.revertedWith("_tokenPrice cannot be 0");
     });
@@ -75,17 +66,12 @@ describe("Staking", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      staking = (await deployContract(owner, StakingArtifact, [
-        stable.address,
-        50,
-      ])) as Staking;
+      staking = (await deployContract(owner, StakingArtifact, [stable.address, 50])) as Staking;
     });
 
     describe("stakeStable", () => {
       it("accepts stable coin stakes", async () => {
-        await stable
-          .connect(investor1)
-          .approve(staking.address, parseEther("1"));
+        await stable.connect(investor1).approve(staking.address, parseEther("1"));
 
         const action = staking.connect(investor1).stakeStable(parseEther("1"));
 
@@ -93,9 +79,7 @@ describe("Staking", () => {
       });
 
       it("does not accept stable coin stakes while in phase2", async () => {
-        await stable
-          .connect(investor1)
-          .approve(staking.address, parseEther("1"));
+        await stable.connect(investor1).approve(staking.address, parseEther("1"));
         await staking.setToken(tal.address);
 
         const action = staking.connect(investor1).stakeStable(parseEther("1"));
@@ -125,12 +109,8 @@ describe("Staking", () => {
 
     describe("stableCoinBalance", () => {
       it("returns the amount of stable coin held", async () => {
-        await stable
-          .connect(investor1)
-          .transfer(staking.address, parseEther("1"));
-        await stable
-          .connect(investor1)
-          .transfer(staking.address, parseEther("2.5"));
+        await stable.connect(investor1).transfer(staking.address, parseEther("1"));
+        await stable.connect(investor1).transfer(staking.address, parseEther("2.5"));
 
         expect(await staking.stableCoinBalance()).to.equal(parseEther("3.5"));
       });
@@ -141,9 +121,7 @@ describe("Staking", () => {
         await staking.setToken(tal.address);
 
         await tal.connect(investor1).transfer(staking.address, parseEther("1"));
-        await tal
-          .connect(investor1)
-          .transfer(staking.address, parseEther("2.5"));
+        await tal.connect(investor1).transfer(staking.address, parseEther("2.5"));
 
         expect(await staking.tokenBalance()).to.equal(parseEther("3.5"));
       });

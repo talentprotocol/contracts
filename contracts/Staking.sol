@@ -6,14 +6,18 @@ import "hardhat/console.sol";
 
 import { StableThenToken } from "./staking/StableThenToken.sol";
 
+/// Staking contract
+///
+/// @notice During phase 1, accepts USDT, which is automatically converted into an equivalent TAL amount.
+///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 contract Staking is StableThenToken {
+  /// Details of each individual stake
   struct Stake {
     address owner;
     uint amount;
   }
 
-  uint public totalStableAmount;
-
+  /// List of all stakes
   mapping(address => Stake) public stakes;
 
   /// Hello
@@ -40,7 +44,6 @@ contract Staking is StableThenToken {
 
     IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
-    totalStableAmount += _amount;
     uint _talAmount = convertUsdToToken(_amount);
 
     _createStake(msg.sender, _talAmount);
@@ -71,6 +74,20 @@ contract Staking is StableThenToken {
     require(stake.owner == msg.sender, "sender does not have a stake");
 
     delete stakes[msg.sender];
+  }
+
+  /// Calculates stable coin balance of the contract
+  ///
+  /// @return the stable coin balance
+  function stableCoinBalance() public view returns (uint) {
+    return IERC20(stableCoin).balanceOf(address(this));
+  }
+
+  /// Calculates TAL token balance of the contract
+  ///
+  /// @return the amount of TAL tokens
+  function tokenBalance() public view returns (uint) {
+    return IERC20(token).balanceOf(address(this));
   }
 
   //

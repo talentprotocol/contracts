@@ -122,5 +122,31 @@ describe("Staking", () => {
         await expect(action).to.be.revertedWith("TAL token not yet set");
       });
     });
+
+    describe("stableCoinBalance", () => {
+      it("returns the amount of stable coin held", async () => {
+        await stable
+          .connect(investor1)
+          .transfer(staking.address, parseEther("1"));
+        await stable
+          .connect(investor1)
+          .transfer(staking.address, parseEther("2.5"));
+
+        expect(await staking.stableCoinBalance()).to.equal(parseEther("3.5"));
+      });
+    });
+
+    describe("tokenBalance", () => {
+      it("returns the amount of tokens held", async () => {
+        await staking.setToken(tal.address);
+
+        await tal.connect(investor1).transfer(staking.address, parseEther("1"));
+        await tal
+          .connect(investor1)
+          .transfer(staking.address, parseEther("2.5"));
+
+        expect(await staking.tokenBalance()).to.equal(parseEther("3.5"));
+      });
+    });
   });
 });

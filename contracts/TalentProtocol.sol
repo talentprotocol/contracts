@@ -9,12 +9,8 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 ///
 /// @notice This is a simple, fixed-supply ERC20 token.
 contract TalentProtocol is ERC20, ERC165 {
-  constructor(
-    string memory _name,
-    string memory _symbol,
-    uint _supply
-  ) ERC20(_name, _symbol) {
-    _mint(msg.sender, _supply);
+  constructor() ERC20("Talent Protocol", "TAL") {
+    _mint(msg.sender, 10000 ether);
   }
 
   /// @inheritdoc ERC165

@@ -5,6 +5,7 @@ pragma solidity ^0.8.7;
 import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import "hardhat/console.sol";
 
 /// @title The base contract for Talent Tokens
 contract TalentToken is ERC20, ERC165, AccessControl {
@@ -25,9 +26,7 @@ contract TalentToken is ERC20, ERC165, AccessControl {
 
   /// @inheritdoc ERC165
   function supportsInterface(bytes4 interfaceId) public view override(ERC165, AccessControl) returns (bool) {
-    return interfaceId == type(ERC165).interfaceId
-      || interfaceId == type(IERC20).interfaceId
-      || AccessControl.supportsInterface(interfaceId);
+    return interfaceId == type(IERC20).interfaceId || super.supportsInterface(interfaceId);
   }
 
   /// Mints new supply

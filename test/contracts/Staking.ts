@@ -36,11 +36,7 @@ describe("Staking", () => {
     await stable.connect(owner).transfer(investor1.address, parseEther("50"));
     await stable.connect(owner).transfer(investor2.address, parseEther("50"));
 
-    tal = (await deployContract(owner, TalentProtocolArtifact, [
-      "TalentProtocol",
-      "TAL",
-      parseEther("1000"),
-    ])) as TalentProtocol;
+    tal = (await deployContract(owner, TalentProtocolArtifact, [])) as TalentProtocol;
 
     await tal.connect(owner).transfer(investor1.address, parseEther("50"));
     await tal.connect(owner).transfer(investor2.address, parseEther("50"));

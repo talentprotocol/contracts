@@ -46,6 +46,9 @@ export function supportsInterfaces(builder: () => Promise<any>, interfaces: stri
           case "ERC165":
             id = await interfaceIDs.erc165();
             break;
+          case "AccessControl":
+            id = await interfaceIDs.accessControl();
+            break;
         }
 
         expect(await contract.supportsInterface(id)).to.be.true;

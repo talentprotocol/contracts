@@ -25,17 +25,13 @@ describe("TalentProtocol", () => {
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, TalentProtocolArtifact, ["TalentProtocol", "TAL", parseUnits("1000")]);
+    const action = deployContract(creator, TalentProtocolArtifact, []);
 
     await expect(action).not.to.be.reverted;
   });
 
   const builder = async () => {
-    return deployContract(creator, TalentProtocolArtifact, [
-      "TalentProtocol",
-      "TAL",
-      parseUnits("123"),
-    ]) as Promise<TalentProtocol>;
+    return deployContract(creator, TalentProtocolArtifact, []) as Promise<TalentProtocol>;
   };
 
   describe("behaviour", () => {
@@ -49,7 +45,7 @@ describe("TalentProtocol", () => {
     });
 
     it("has the given name and symbol", async () => {
-      expect(await tal.name()).to.eq("TalentProtocol");
+      expect(await tal.name()).to.eq("Talent Protocol");
       expect(await tal.symbol()).to.eq("TAL");
     });
 
@@ -58,8 +54,8 @@ describe("TalentProtocol", () => {
     });
 
     it("mints the full supply to the creator", async () => {
-      expect(await tal.totalSupply()).to.eq(parseUnits("123"));
-      expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("123"));
+      expect(await tal.totalSupply()).to.eq(parseUnits("10000"));
+      expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("10000"));
     });
   });
 });

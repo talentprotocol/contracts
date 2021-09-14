@@ -21,3 +21,9 @@ contract ERC20MockWithoutErc165 is ERC20 {
     _mint(msg.sender, 1000 ether);
   }
 }
+
+contract USDTMock is ERC20 {
+  constructor() ERC20("USDT", "USDT") {
+    _mint(msg.sender, 1000 ether);
+  }
+}

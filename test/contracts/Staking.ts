@@ -4,11 +4,12 @@ import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import { TalentProtocol } from "../../typechain/TalentProtocol";
-import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
+import { TalentProtocol as TAL } from "../../typechain/TalentProtocol";
+import TALArtifacth from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
 
-import { ERC20 } from "../../typechain/ERC20";
-import ERC20MockArtifact from "../../artifacts/contracts/test/ERC20Mock.sol/ERC20Mock.json";
+import { USDTMock } from "../../typechain/USDTMock";
+import USDTArtifact from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
+import TALArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
 
 import { Staking } from "../../typechain/Staking";
 import StakingArtifact from "../../artifacts/contracts/Staking.sol/Staking.json";
@@ -24,19 +25,19 @@ describe("Staking", () => {
   let investor1: SignerWithAddress;
   let investor2: SignerWithAddress;
 
-  let tal: TalentProtocol;
-  let stable: ERC20;
+  let tal: TAL;
+  let stable: USDTMock;
   let staking: Staking;
 
   beforeEach(async () => {
     [owner, investor1, investor2] = await ethers.getSigners();
 
-    stable = (await deployContract(owner, ERC20MockArtifact, ["USDT", "USDT"])) as ERC20;
+    stable = (await deployContract(owner, USDTArtifact, [])) as USDTMock;
 
     await stable.connect(owner).transfer(investor1.address, parseEther("50"));
     await stable.connect(owner).transfer(investor2.address, parseEther("50"));
 
-    tal = (await deployContract(owner, TalentProtocolArtifact, [])) as TalentProtocol;
+    tal = (await deployContract(owner, TALArtifact, [])) as TAL;
 
     await tal.connect(owner).transfer(investor1.address, parseEther("50"));
     await tal.connect(owner).transfer(investor2.address, parseEther("50"));

@@ -3,6 +3,7 @@ import { task } from "hardhat/config";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
+import "@openzeppelin/hardhat-upgrades";
 
 import type { HardhatUserConfig } from "hardhat/config";
 

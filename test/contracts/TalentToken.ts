@@ -1,8 +1,9 @@
 import chai from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { ContractFactory } from "ethers";
 
 import { ERC165 } from "../shared";
 
@@ -21,15 +22,19 @@ describe("TalentToken", () => {
   let minter: SignerWithAddress;
   let investor: SignerWithAddress;
 
+  let TalentTokenFactory: ContractFactory;
   let coin: TalentToken;
 
   beforeEach(async () => {
     [creator, talent, minter, investor] = await ethers.getSigners();
+
+    // deploy template
+    TalentTokenFactory = await ethers.getContractFactory("TalentToken");
   });
 
-  describe("constructor", () => {
-    it("can be deployed", async () => {
-      const action = deployContract(creator, TalentTokenArtifact, [
+  describe("initialize", () => {
+    it("can be deployed as a proxy", async () => {
+      const action = upgrades.deployProxy(TalentTokenFactory, [
         "FooBar",
         "FOO",
         parseUnits("1000"),
@@ -42,7 +47,7 @@ describe("TalentToken", () => {
   });
 
   const builder = async () => {
-    return deployContract(creator, TalentTokenArtifact, [
+    return upgrades.deployProxy(TalentTokenFactory, [
       "FooBar",
       "FOO",
       parseUnits("123"),

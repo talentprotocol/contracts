@@ -4,6 +4,7 @@ import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
+import "hardhat-gas-reporter";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
@@ -24,6 +25,9 @@ const config: HardhatUserConfig = {
         runs: 1000,
       },
     },
+  },
+  gasReporter: {
+    currency: "ETH",
   },
 };
 

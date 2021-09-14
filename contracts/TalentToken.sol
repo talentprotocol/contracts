@@ -2,30 +2,38 @@
 
 pragma solidity ^0.8.7;
 
-import { ERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import "hardhat/console.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 /// @title The base contract for Talent Tokens
-contract TalentToken is ERC20, ERC165, AccessControl {
+contract TalentToken is ERC165Upgradeable, ERC20Upgradeable, AccessControlUpgradeable {
   /// minter role
   bytes32 public constant ROLE_MINTER_BURNER = keccak256("MINTER_BURNER");
 
-  constructor(
+  function initialize(
     string memory _name,
     string memory _symbol,
     uint _initialSupply,
     address _talent,
     address _minter_burner
-  ) ERC20(_name, _symbol) {
-    _mint(_talent, _initialSupply);
+  ) public initializer {
+    __Context_init_unchained();
+    __ERC165_init_unchained();
+    __AccessControl_init_unchained();
+    __ERC20_init_unchained(_name, _symbol);
 
+    _mint(_talent, _initialSupply);
     _setupRole(ROLE_MINTER_BURNER, _minter_burner);
   }
 
-  /// @inheritdoc ERC165
-  function supportsInterface(bytes4 interfaceId) public view override(ERC165, AccessControl) returns (bool) {
+  /// @inheritdoc ERC165Upgradeable
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view override(ERC165Upgradeable, AccessControlUpgradeable) returns (bool) {
     return interfaceId == type(IERC20).interfaceId || super.supportsInterface(interfaceId);
   }
 

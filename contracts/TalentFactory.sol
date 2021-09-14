@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 
 import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import { TalentToken } from "./TalentToken.sol";
 
@@ -20,6 +21,9 @@ contract TalentFactory is ERC165, AccessControl {
   // minter for new tokens
   address public minter;
 
+  // implementation template to clone
+  address immutable public implementation;
+
   event TalentCreated(
     address indexed talent,
     address indexed token
@@ -29,6 +33,8 @@ contract TalentFactory is ERC165, AccessControl {
   constructor(address _minter) {
     minter = _minter;
     _setupRole(ROLE_CREATOR, _minter);
+
+    implementation = address(new TalentToken());
   }
 
   /// Creates a new talent token
@@ -43,7 +49,8 @@ contract TalentFactory is ERC165, AccessControl {
   ) public onlyRole(ROLE_CREATOR) returns (address) {
     require(talents[_talent] == address(0x0), "address already has a token");
 
-    address token = address(new TalentToken(_name, _symbol, INITIAL_SUPPLY, _talent, minter));
+    address token = Clones.clone(implementation);
+    TalentToken(token).initialize(_name, _symbol, INITIAL_SUPPLY, _talent, minter);
 
     talents[_talent] = token;
 

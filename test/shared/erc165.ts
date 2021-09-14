@@ -1,11 +1,8 @@
 import chai from "chai";
 import { ethers, waffle } from "hardhat";
-// import { makeInterfaceId } from "@openzeppelin/test-helpers";
 
 const { expect } = chai;
 const { deployContract } = waffle;
-
-const interfaces = ["supportsInterface(bytes4)"];
 
 import { InterfaceIDs } from "../../typechain/InterfaceIDs";
 import InterfaceIDsArtifact from "../../artifacts/contracts/test/InterfaceIDs.sol/InterfaceIDs.json";
@@ -25,21 +22,17 @@ export function behavesAsERC165(builder: () => Promise<any>): void {
   });
 }
 
-export function supportsInterfaces(builder: any, interfaces: string[]): void {
+export function supportsInterfaces(builder: () => Promise<any>, interfaces: string[]): void {
   describe(`interfaces`, () => {
     let contract: any;
-    let interfaceIDs: any;
+    let interfaceIDs: InterfaceIDs;
 
     beforeEach(async () => {
       const signers = await ethers.getSigners();
       const owner = signers[0];
 
       contract = await builder();
-      interfaceIDs = (await deployContract(
-        owner,
-        InterfaceIDsArtifact,
-        []
-      )) as InterfaceIDs;
+      interfaceIDs = (await deployContract(owner, InterfaceIDsArtifact, [])) as InterfaceIDs;
     });
 
     interfaces.map((interf) => {

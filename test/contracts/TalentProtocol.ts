@@ -2,6 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
 import { ERC165 } from "../shared";
 
 import { TalentProtocol } from "../../typechain/TalentProtocol";
@@ -14,22 +16,16 @@ const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
 describe("TalentProtocol", () => {
-  let signers: any;
-  let creator: any;
+  let creator: SignerWithAddress;
 
   let tal: TalentProtocol;
 
   beforeEach(async () => {
-    signers = await ethers.getSigners();
-    creator = signers[0];
+    [creator] = await ethers.getSigners();
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, TalentProtocolArtifact, [
-      "TalentProtocol",
-      "TAL",
-      parseUnits("1000"),
-    ]);
+    const action = deployContract(creator, TalentProtocolArtifact, ["TalentProtocol", "TAL", parseUnits("1000")]);
 
     await expect(action).not.to.be.reverted;
   });

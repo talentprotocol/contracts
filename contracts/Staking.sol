@@ -47,6 +47,8 @@ contract Staking is StableThenToken {
     uint _talAmount = convertUsdToToken(_amount);
 
     _createStake(msg.sender, _talAmount);
+
+    return true;
   }
 
   /// Creates a new stake from an amount of TAL
@@ -63,6 +65,8 @@ contract Staking is StableThenToken {
     IERC20(token).transferFrom(msg.sender, address(this), _amount);
 
     _createStake(msg.sender, _amount);
+
+    return true;
   }
 
   /// Terminates a stake
@@ -74,6 +78,8 @@ contract Staking is StableThenToken {
     require(stake.owner == msg.sender, "sender does not have a stake");
 
     delete stakes[msg.sender];
+
+    return true;
   }
 
   /// Calculates stable coin balance of the contract

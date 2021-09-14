@@ -2,6 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
 import { ERC165 } from "../shared";
 
 import { TalentToken } from "../../typechain/TalentToken";
@@ -14,20 +16,15 @@ const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
 describe("TalentToken", () => {
-  let signers: any;
-  let creator: any;
-  let talent: any;
-  let minter: any;
-  let investor: any;
+  let creator: SignerWithAddress;
+  let talent: SignerWithAddress;
+  let minter: SignerWithAddress;
+  let investor: SignerWithAddress;
 
   let coin: TalentToken;
 
   beforeEach(async () => {
-    signers = await ethers.getSigners();
-    creator = signers[0];
-    talent = signers[1];
-    minter = signers[2];
-    investor = signers[3];
+    [creator, talent, minter, investor] = await ethers.getSigners();
   });
 
   describe("constructor", () => {
@@ -80,48 +77,34 @@ describe("TalentToken", () => {
 
     describe("mint", () => {
       it("works when called by the minter", async () => {
-        const action = coin
-          .connect(minter)
-          .mint(investor.address, parseUnits("1"));
+        const action = coin.connect(minter).mint(investor.address, parseUnits("1"));
 
         await expect(action).not.to.be.reverted;
-        expect(await coin.balanceOf(investor.address)).to.equal(
-          parseUnits("1")
-        );
+        expect(await coin.balanceOf(investor.address)).to.equal(parseUnits("1"));
       });
 
       it("is not callable by a non-minter", async () => {
-        const action = coin
-          .connect(investor)
-          .mint(investor.address, parseUnits("1"));
+        const action = coin.connect(investor).mint(investor.address, parseUnits("1"));
 
         await expect(action).to.be.reverted;
       });
     });
     describe("burn", () => {
       it("works when called by the minter", async () => {
-        const action = coin
-          .connect(minter)
-          .burn(talent.address, parseUnits("1"));
+        const action = coin.connect(minter).burn(talent.address, parseUnits("1"));
 
         await expect(action).not.to.be.reverted;
-        expect(await coin.balanceOf(talent.address)).to.equal(
-          parseUnits("122")
-        );
+        expect(await coin.balanceOf(talent.address)).to.equal(parseUnits("122"));
       });
 
       it("is not callable by a non-minter", async () => {
-        const action = coin
-          .connect(talent)
-          .burn(talent.address, parseUnits("1"));
+        const action = coin.connect(talent).burn(talent.address, parseUnits("1"));
 
         await expect(action).to.be.reverted;
       });
 
       it("cannot burn tokens if owner doesn't have enough", async () => {
-        const action = coin
-          .connect(minter)
-          .burn(investor.address, parseUnits("1"));
+        const action = coin.connect(minter).burn(investor.address, parseUnits("1"));
 
         await expect(action).to.be.reverted;
       });

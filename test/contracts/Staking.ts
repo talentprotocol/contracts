@@ -2,7 +2,7 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import { ERC165 } from "../shared";
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { TalentProtocol } from "../../typechain/TalentProtocol";
 import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
@@ -20,20 +20,16 @@ const { parseEther } = ethers.utils;
 const { deployContract } = waffle;
 
 describe("Staking", () => {
-  let signers: any;
-  let owner: any;
-  let investor1: any;
-  let investor2: any;
+  let owner: SignerWithAddress;
+  let investor1: SignerWithAddress;
+  let investor2: SignerWithAddress;
 
   let tal: TalentProtocol;
   let stable: ERC20;
   let staking: Staking;
 
   beforeEach(async () => {
-    signers = await ethers.getSigners();
-    owner = signers[0];
-    investor1 = signers[1];
-    investor2 = signers[2];
+    [owner, investor1, investor2] = await ethers.getSigners();
 
     stable = (await deployContract(owner, ERC20MockArtifact, ["USDT", "USDT"])) as ERC20;
 

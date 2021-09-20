@@ -39,12 +39,14 @@
     "chai-bignumber": "^3.0.0",
     "eslint": "^7.32.0",
     "ethereum-waffle": "^3.4.0",
+    "prettier": "^2.4.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.18",
     "solc-0.8.7": "npm:solc@0.8.7-fixed"
   },
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "lint": "solhint contracts/**.sol",
+    "lint": "solhint contracts/**.sol && prettier --check contracts/**/*.sol",
     "docgen": "solidity-docgen --solc-module solc-0.8.7 --templates=docgen/templates"
   }
 }

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import {TalentToken} from "./TalentToken.sol";

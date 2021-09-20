@@ -37,8 +37,8 @@ contract TalentToken is
         __ERC20_init_unchained(_name, _symbol);
         __AccessControl_init_unchained();
 
-        _mint(_talent, _initialSupply);
         _setupRole(ROLE_MINTER_BURNER, _minter_burner);
+        _mint(_talent, _initialSupply);
     }
 
     /// Mints new supply

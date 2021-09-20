@@ -36,7 +36,7 @@ describe("TalentProtocol", () => {
 
   describe("behaviour", () => {
     ERC165.behavesAsERC165(builder);
-    ERC165.supportsInterfaces(builder, ["ERC165", "ERC20"]);
+    ERC165.supportsInterfaces(builder, ["IERC165", "IERC20", "IERC1363"]);
   });
 
   describe("functions", () => {

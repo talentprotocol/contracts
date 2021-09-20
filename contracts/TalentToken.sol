@@ -2,15 +2,26 @@
 
 pragma solidity ^0.8.7;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
+import {IERC1363Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363Upgradeable.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
+import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
+
 /// @title The base contract for Talent Tokens
-contract TalentToken is ERC165Upgradeable, ERC20Upgradeable, AccessControlUpgradeable {
+contract TalentToken is
+    Initializable,
+    ContextUpgradeable,
+    ERC165Upgradeable,
+    AccessControlUpgradeable,
+    ERC1363Upgradeable
+{
     /// minter role
     bytes32 public constant ROLE_MINTER_BURNER = keccak256("MINTER_BURNER");
 
@@ -23,21 +34,11 @@ contract TalentToken is ERC165Upgradeable, ERC20Upgradeable, AccessControlUpgrad
     ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
-        __AccessControl_init_unchained();
         __ERC20_init_unchained(_name, _symbol);
+        __AccessControl_init_unchained();
 
         _mint(_talent, _initialSupply);
         _setupRole(ROLE_MINTER_BURNER, _minter_burner);
-    }
-
-    /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlUpgradeable)
-        returns (bool)
-    {
-        return interfaceId == type(IERC20).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /// Mints new supply
@@ -59,4 +60,25 @@ contract TalentToken is ERC165Upgradeable, ERC20Upgradeable, AccessControlUpgrad
     function burn(address _from, uint256 _amount) public onlyRole(ROLE_MINTER_BURNER) {
         _burn(_from, _amount);
     }
+
+    //
+    // Begin: ERC165
+    //
+
+    /// @inheritdoc ERC165Upgradeable
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC20Upgradeable).interfaceId ||
+            interfaceId == type(IERC1363Upgradeable).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
+    //
+    // End: ERC165
+    //
 }

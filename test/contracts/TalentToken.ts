@@ -58,7 +58,7 @@ describe("TalentToken", () => {
 
   describe("behaviour", () => {
     ERC165.behavesAsERC165(builder);
-    ERC165.supportsInterfaces(builder, ["ERC165", "ERC20", "AccessControl"]);
+    ERC165.supportsInterfaces(builder, ["IERC165", "IERC20", "AccessControl", "IERC1363"]);
   });
 
   describe("functions", () => {

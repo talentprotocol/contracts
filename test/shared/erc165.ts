@@ -40,11 +40,14 @@ export function supportsInterfaces(builder: () => Promise<any>, interfaces: stri
         let id;
 
         switch (interf) {
-          case "ERC20":
+          case "IERC20":
             id = await interfaceIDs.erc20();
             break;
-          case "ERC165":
+          case "IERC165":
             id = await interfaceIDs.erc165();
+            break;
+          case "IERC1363":
+            id = await interfaceIDs.erc1363();
             break;
           case "AccessControl":
             id = await interfaceIDs.accessControl();

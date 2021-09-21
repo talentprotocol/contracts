@@ -49,7 +49,7 @@ export function supportsInterfaces(builder: () => Promise<any>, interfaces: stri
           case "IERC1363":
             id = await interfaceIDs.erc1363();
             break;
-          case "AccessControl":
+          case "IAccessControl":
             id = await interfaceIDs.accessControl();
             break;
         }

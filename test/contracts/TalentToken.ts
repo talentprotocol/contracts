@@ -45,7 +45,7 @@ describe("TalentToken", () => {
     });
   });
 
-  const builder = async () => {
+  async function builder(): Promise<TalentToken> {
     return upgrades.deployProxy(TalentTokenFactory, [
       "FooBar",
       "FOO",
@@ -53,11 +53,11 @@ describe("TalentToken", () => {
       talent.address,
       minter.address,
     ]) as Promise<TalentToken>;
-  };
+  }
 
   describe("behaviour", () => {
     ERC165.behavesAsERC165(builder);
-    ERC165.supportsInterfaces(builder, ["IERC165", "IERC20", "AccessControl", "IERC1363"]);
+    ERC165.supportsInterfaces(builder, ["IERC165", "IERC20", "IAccessControl", "IERC1363"]);
   });
 
   describe("functions", () => {

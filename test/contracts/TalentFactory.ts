@@ -9,6 +9,7 @@ import { TalentToken__factory } from "../../typechain/factories/TalentToken__fac
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
+import { ERC165 } from "../shared";
 import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
@@ -36,9 +37,18 @@ describe("TalentFactory", () => {
     });
   });
 
+  const builder = async (): Promise<TalentFactory> => {
+    return deployContract(creator, TalentFactoryArtifact, []) as Promise<TalentFactory>;
+  };
+
+  describe("behaviour", () => {
+    ERC165.behavesAsERC165(builder);
+    ERC165.supportsInterfaces(builder, ["IERC165", "IAccessControl"]);
+  });
+
   describe("without minter set", () => {
     it("can't create talent tokens", async () => {
-      factory = (await deployContract(creator, TalentFactoryArtifact, [])) as TalentFactory;
+      factory = await builder();
 
       const action = factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
 

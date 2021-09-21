@@ -3,6 +3,7 @@ pragma solidity ^0.8.7;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC1363Receiver} from "@openzeppelin/contracts/interfaces/IERC1363Receiver.sol";
+import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "hardhat/console.sol";
 
@@ -16,7 +17,7 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 ///
 /// @dev Across
-contract Staking is StableThenToken, IERC1363Receiver {
+contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {
         address owner;
@@ -39,6 +40,19 @@ contract Staking is StableThenToken, IERC1363Receiver {
     /// The price (in TAL tokens) of a single Talent Token
     uint256 public talentPrice;
 
+    /// How much stablecoin was staked, but without yet depositing the expected TAL equivalent
+    ///
+    /// @notice After TAL is deployed, `swapStableForToken(uint256)` needs to be
+    /// called by an admin, to withdraw any stable coin stored in the contract,
+    /// and replace it with the TAL equivalent
+    uint256 public totalStableStored;
+
+    // How much TAL is currently staked (not including rewards)
+    uint256 public totalTokenStaked;
+
+    // How much TAL is currently reserved for rewards
+    uint256 public totalRewardsReserved;
+
     /// @param _stableCoin The USD-pegged stable-coin contract to use
     /// @param _factory ITalentFactory instance
     /// @param _protocolPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
@@ -55,6 +69,8 @@ contract Staking is StableThenToken, IERC1363Receiver {
         factory = _factory;
         protocolPrice = _protocolPrice;
         talentPrice = _talentPrice;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /// Creates a new stake from an amount of stable coin.
@@ -71,6 +87,8 @@ contract Staking is StableThenToken, IERC1363Receiver {
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
         uint256 protocolAmount = convertUsdToProtocol(_amount);
+
+        totalStableStored += _amount;
 
         _createStake(msg.sender, _talent, protocolAmount);
 
@@ -89,6 +107,15 @@ contract Staking is StableThenToken, IERC1363Receiver {
     /// @return the amount of TAL tokens
     function tokenBalance() public view returns (uint256) {
         return IERC20(token).balanceOf(address(this));
+    }
+
+    function swapStableForToken(uint256 _stableAmount) public onlyRole(DEFAULT_ADMIN_ROLE) tokenPhaseOnly {
+        require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
+
+        uint256 tokenAmount = convertUsdToProtocol(_stableAmount);
+        totalStableStored += _stableAmount;
+
+        IERC20(token).transferFrom(msg.sender, address(this), tokenAmount);
     }
 
     //
@@ -156,9 +183,11 @@ contract Staking is StableThenToken, IERC1363Receiver {
         require(_protocolAmount > 0, "amount cannot be zero");
 
         uint256 talentAmount = convertProtocolToTalent(_protocolAmount);
-        _mintTalent(_owner, _talent, talentAmount);
 
         stakes[_owner] = Stake(_owner, _talent, _protocolAmount, talentAmount);
+        totalTokenStaked = _protocolAmount;
+
+        _mintTalent(_owner, _talent, talentAmount);
     }
 
     function _withdrawStake(

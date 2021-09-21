@@ -11,13 +11,18 @@ import {TalentToken} from "./TalentToken.sol";
 interface ITalentFactory {
     /// Returns true is a given address corresponds to the creator of a Talent Token
     ///
-    /// @param addr address of the Talent to find
+    /// @param addr address of the talent to find
     function isTalent(address addr) external view returns (bool);
 
     /// Returns true is a given address corresponds to a registered Talent Token
     ///
-    /// @param addr address of the Token to find
+    /// @param addr address of the token to find
     function isTalentToken(address addr) external view returns (bool);
+
+    /// Returns true is a given symbol corresponds to a registered Talent Token
+    ///
+    /// @param symbol Symbol of the token to find
+    function isSymbol(string memory symbol) external view returns (bool);
 }
 
 contract TalentFactory is ERC165, AccessControl, ITalentFactory {
@@ -29,7 +34,12 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
 
     // maps each talent's address to their talent token
     mapping(address => address) public talentsToTokens;
+
+    // maps each talent tokens' address to their talent
     mapping(address => address) public tokensToTalents;
+
+    // maps each token's symbol to the token address
+    mapping(string => address) public symbolsToTokens;
 
     // minter for new tokens
     address public minter;
@@ -63,12 +73,14 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
         string memory _symbol
     ) public returns (address) {
         require(!isTalent(_talent), "address already has a token");
+        require(!isSymbol(_symbol), "talent token with this symbol already exists");
         require(_isMinterSet(), "minter not yet set");
 
         address token = Clones.clone(implementation);
         TalentToken(token).initialize(_name, _symbol, INITIAL_SUPPLY, _talent, minter);
 
         talentsToTokens[_talent] = token;
+        symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
 
         emit TalentCreated(_talent, token);
@@ -99,6 +111,10 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
 
     function isTalentToken(address addr) public view override(ITalentFactory) returns (bool) {
         return tokensToTalents[addr] != address(0x0);
+    }
+
+    function isSymbol(string memory _symbol) public view override(ITalentFactory) returns (bool) {
+        return symbolsToTokens[_symbol] != address(0x0);
     }
 
     //

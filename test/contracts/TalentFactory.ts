@@ -117,5 +117,18 @@ describe("TalentFactory", () => {
         expect(await factory.isTalent(talent1.address)).to.be.false;
       });
     });
+
+    describe("isSymbol", () => {
+      it("finds existing symbols", async () => {
+        const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+        const event = await findEvent(tx, "TalentCreated");
+
+        expect(await factory.isSymbol("NAPS")).to.be.true;
+      });
+
+      it("does not find non-existing symbols", async () => {
+        expect(await factory.isSymbol("NAPS")).not.to.be.true;
+      });
+    });
   });
 });

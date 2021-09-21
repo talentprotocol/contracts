@@ -13,8 +13,6 @@ import USDTArtifact from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.
 import { TalentFactory } from "../../typechain/TalentFactory";
 import TalentFactoryArtifact from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
 
-import { TalentToken } from "../../typechain/TalentToken";
-
 import { Staking } from "../../typechain/Staking";
 import StakingArtifact from "../../artifacts/contracts/Staking.sol/Staking.json";
 
@@ -36,7 +34,7 @@ describe("Staking", () => {
 
   let tal: TalentProtocol;
   let stable: USDTMock;
-  let talentToken: TalentToken;
+  let talentToken: TalentProtocol;
   let factory: TalentFactory;
   let staking: Staking;
 
@@ -69,7 +67,7 @@ describe("Staking", () => {
       await expect(action).not.to.be.reverted;
     });
 
-    it("fails if protocolPrice is 0", async () => {
+    it("fails if tokenPrice is 0", async () => {
       const action = deployContract(owner, StakingArtifact, [
         stable.address,
         factory.address,
@@ -77,7 +75,7 @@ describe("Staking", () => {
         parseUnits("50"),
       ]);
 
-      await expect(action).to.be.revertedWith("_protocolPrice cannot be 0");
+      await expect(action).to.be.revertedWith("_tokenPrice cannot be 0");
     });
 
     it("fails if talentPrice is 0", async () => {
@@ -162,15 +160,15 @@ describe("Staking", () => {
         await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
         await staking.setToken(tal.address);
 
-        const protocolAmount = await staking.convertUsdToProtocol(parseUnits("25"));
-        await tal.connect(owner).approve(staking.address, protocolAmount);
+        const tokenAmount = await staking.convertUsdToToken(parseUnits("25"));
+        await tal.connect(owner).approve(staking.address, tokenAmount);
 
         const action = staking.connect(owner).swapStableForToken(parseUnits("25"));
 
         await expect(action).not.to.be.reverted;
 
         expect(await tal.balanceOf(stable.address)).to.equal(0);
-        expect(await tal.balanceOf(staking.address)).to.equal(protocolAmount);
+        expect(await tal.balanceOf(staking.address)).to.equal(tokenAmount);
       });
 
       it("does not allow non-admins", async () => {
@@ -186,8 +184,8 @@ describe("Staking", () => {
         await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
         await staking.setToken(tal.address);
 
-        const protocolAmount = await staking.convertUsdToProtocol(parseUnits("25"));
-        await tal.connect(owner).approve(staking.address, protocolAmount);
+        const tokenAmount = await staking.convertUsdToToken(parseUnits("25"));
+        await tal.connect(owner).approve(staking.address, tokenAmount);
 
         const action = staking.connect(owner).swapStableForToken(parseUnits("50"));
 
@@ -215,7 +213,7 @@ describe("Staking", () => {
             expect(await tal.balanceOf(investor1.address)).to.eq(parseUnits("0"));
 
             const talentBalance = await talentToken.balanceOf(investor1.address);
-            const expectedBalance = await staking.convertProtocolToTalent(parseUnits("50"));
+            const expectedBalance = await staking.convertTokenToTalent(parseUnits("50"));
 
             // // NAPS is credited
             expect(talentBalance).to.equal(expectedBalance);
@@ -271,21 +269,21 @@ describe("Staking", () => {
       });
     });
 
-    describe("convertUsdToProtocol", () => {
+    describe("convertUsdToToken", () => {
       it("converts a USD value to TAL based on given rate", async () => {
-        expect(await staking.convertUsdToProtocol(parseUnits("1"))).to.equal(parseUnits("50"));
+        expect(await staking.convertUsdToToken(parseUnits("1"))).to.equal(parseUnits("50"));
       });
     });
 
-    describe("convertProtocolToTalent", () => {
+    describe("convertTokenToTalent", () => {
       it("converts a TAL value to a talent token based on a given rate", async () => {
-        expect(await staking.convertProtocolToTalent(parseUnits("50"))).to.equal(parseUnits("1"));
+        expect(await staking.convertTokenToTalent(parseUnits("50"))).to.equal(parseUnits("1"));
       });
     });
 
-    describe("convertTalentToProtocol", () => {
+    describe("convertTalentToToken", () => {
       it("converts a Talent token value to TAL based on a given rate", async () => {
-        expect(await staking.convertTalentToProtocol(parseUnits("1"))).to.equal(parseUnits("50"));
+        expect(await staking.convertTalentToToken(parseUnits("1"))).to.equal(parseUnits("50"));
       });
     });
 

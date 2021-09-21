@@ -20,9 +20,13 @@ import {ITalentFactory} from "./TalentFactory.sol";
 contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {
+        /// Owner of the stake
         address owner;
+        /// Talent token the stake applies to
         address talent;
-        uint256 protocolAmount;
+        /// Amount currently staked
+        uint256 tokenAmount;
+        /// Talent tokens minted as part of this stake
         uint256 talentAmount;
     }
 
@@ -35,7 +39,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     address public factory;
 
     /// The price (in USD cents) of a single TAL token
-    uint256 public protocolPrice;
+    uint256 public tokenPrice;
 
     /// The price (in TAL tokens) of a single Talent Token
     uint256 public talentPrice;
@@ -55,19 +59,19 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
 
     /// @param _stableCoin The USD-pegged stable-coin contract to use
     /// @param _factory ITalentFactory instance
-    /// @param _protocolPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
+    /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
     /// @param _talentPrice The price of a talent token in TAL (50 means 1 Talent Token = 50 TAL)
     constructor(
         address _stableCoin,
         address _factory,
-        uint256 _protocolPrice,
+        uint256 _tokenPrice,
         uint256 _talentPrice
     ) StableThenToken(_stableCoin) {
-        require(_protocolPrice > 0, "_protocolPrice cannot be 0");
+        require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
 
         factory = _factory;
-        protocolPrice = _protocolPrice;
+        tokenPrice = _tokenPrice;
         talentPrice = _talentPrice;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -86,11 +90,11 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
-        uint256 protocolAmount = convertUsdToProtocol(_amount);
+        uint256 tokenAmount = convertUsdToToken(_amount);
 
         totalStableStored += _amount;
 
-        _createStake(msg.sender, _talent, protocolAmount);
+        _createStake(msg.sender, _talent, tokenAmount);
 
         return true;
     }
@@ -112,7 +116,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     function swapStableForToken(uint256 _stableAmount) public onlyRole(DEFAULT_ADMIN_ROLE) tokenPhaseOnly {
         require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
 
-        uint256 tokenAmount = convertUsdToProtocol(_stableAmount);
+        uint256 tokenAmount = convertUsdToToken(_stableAmount);
         totalStableStored += _stableAmount;
 
         IERC20(token).transferFrom(msg.sender, address(this), tokenAmount);
@@ -128,9 +132,9 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         uint256 _amount,
         bytes calldata data
     ) external override(IERC1363Receiver) returns (bytes4) {
-        require(_isProtocolToken(msg.sender) || _isTalentToken(msg.sender), "Unrecognized ERC20 token received");
+        require(_isTokenToken(msg.sender) || _isTalentToken(msg.sender), "Unrecognized ERC20 token received");
 
-        if (_isProtocolToken(msg.sender)) {
+        if (_isTokenToken(msg.sender)) {
             // if input is TAL, this is a stake since TAL deposits are enabled when
             // `setToken` is called, no additional check for `tokenPhaseOnly` is
             // necessary here
@@ -153,7 +157,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         }
     }
 
-    function _isProtocolToken(address _address) internal view returns (bool) {
+    function _isTokenToken(address _address) internal view returns (bool) {
         return _address == token;
     }
 
@@ -176,16 +180,16 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     function _createStake(
         address _owner,
         address _talent,
-        uint256 _protocolAmount
+        uint256 _tokenAmount
     ) private {
         require(_isTalentToken(_talent), "not a valid talent token");
         require(stakes[_owner].owner == address(0x0), "address already has stake");
-        require(_protocolAmount > 0, "amount cannot be zero");
+        require(_tokenAmount > 0, "amount cannot be zero");
 
-        uint256 talentAmount = convertProtocolToTalent(_protocolAmount);
+        uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
-        stakes[_owner] = Stake(_owner, _talent, _protocolAmount, talentAmount);
-        totalTokenStaked = _protocolAmount;
+        stakes[_owner] = Stake(_owner, _talent, _tokenAmount, talentAmount);
+        totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
     }
@@ -203,10 +207,10 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         require(stake.talentAmount == _talentAmount);
 
         // TODO missing rewards calculation
-        require(IERC20(token).balanceOf(address(this)) >= stake.protocolAmount, "not enough TAL to fulfill request");
+        require(IERC20(token).balanceOf(address(this)) >= stake.tokenAmount, "not enough TAL to fulfill request");
 
         _burnTalent(_talent, _talentAmount);
-        _withdrawProtocol(stake.owner, stake.protocolAmount);
+        _withdrawToken(stake.owner, stake.tokenAmount);
 
         // stake.finished = true;
 
@@ -238,7 +242,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     }
 
     /// returns a given amount of TAL to an owner
-    function _withdrawProtocol(address _owner, uint256 _amount) private {
+    function _withdrawToken(address _owner, uint256 _amount) private {
         IERC20(token).transfer(_owner, _amount);
     }
 
@@ -246,15 +250,15 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     ///
     /// @param _usd The amount of USD, in cents, to convert
     /// @return The converted TAL amount
-    function convertUsdToProtocol(uint256 _usd) public view returns (uint256) {
-        return (_usd / protocolPrice) * 1 ether;
+    function convertUsdToToken(uint256 _usd) public view returns (uint256) {
+        return (_usd / tokenPrice) * 1 ether;
     }
 
     /// Converts a given TAL amount to a Talent Token amount
     ///
     /// @param _tal The amount of TAL to convert
     /// @return The converted Talent Token amount
-    function convertProtocolToTalent(uint256 _tal) public view returns (uint256) {
+    function convertTokenToTalent(uint256 _tal) public view returns (uint256) {
         return (_tal / talentPrice) * 1 ether;
     }
 
@@ -262,7 +266,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     ///
     /// @param _talent The amount of Talent Tokens to convert
     /// @return The converted TAL amount
-    function convertTalentToProtocol(uint256 _talent) public view returns (uint256) {
+    function convertTalentToToken(uint256 _talent) public view returns (uint256) {
         return (_talent * talentPrice) / 1 ether;
     }
 
@@ -271,7 +275,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     /// @param _usd The amount of USD, in cents, to convert
     /// @return The converted Talent token amount
     function convertUsdToTalent(uint256 _usd) public view returns (uint256) {
-        return convertProtocolToTalent(convertUsdToProtocol(_usd));
+        return convertTokenToTalent(convertUsdToToken(_usd));
     }
 
     /// Converts a byte sequence to address

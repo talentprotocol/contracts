@@ -18,6 +18,7 @@ import { TalentToken } from "../../typechain/TalentToken";
 import { Staking } from "../../typechain/Staking";
 import StakingArtifact from "../../artifacts/contracts/Staking.sol/Staking.json";
 
+import { ERC165 } from "../shared";
 import { deployTalentToken, transferAndCall } from "../shared/utils";
 
 chai.use(solidity);
@@ -91,14 +92,23 @@ describe("Staking", () => {
     });
   });
 
+  const builder = async (): Promise<Staking> => {
+    return deployContract(owner, StakingArtifact, [
+      stable.address,
+      factory.address,
+      parseUnits("0.02"),
+      parseUnits("50"),
+    ]) as Promise<Staking>;
+  };
+
+  describe("behaviour", () => {
+    ERC165.behavesAsERC165(builder);
+    ERC165.supportsInterfaces(builder, ["IERC165", "IAccessControl"]);
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
-      staking = (await deployContract(owner, StakingArtifact, [
-        stable.address,
-        factory.address,
-        parseUnits("0.02"),
-        parseUnits("50"),
-      ])) as Staking;
+      staking = await builder();
 
       await factory.setMinter(staking.address);
 
@@ -136,6 +146,52 @@ describe("Staking", () => {
         const action = staking.connect(investor1).stakeStable(talentToken.address, parseUnits("1"));
 
         await expect(action).to.be.revertedWith("Stable coin disabled");
+      });
+
+      it("updates totalStableStored", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+
+        expect(await staking.totalStableStored()).to.eq(parseUnits("25"));
+      });
+    });
+
+    describe("swapStableForToken", () => {
+      it("swaps existing stable coin for TAL", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        await staking.setToken(tal.address);
+
+        const protocolAmount = await staking.convertUsdToProtocol(parseUnits("25"));
+        await tal.connect(owner).approve(staking.address, protocolAmount);
+
+        const action = staking.connect(owner).swapStableForToken(parseUnits("25"));
+
+        await expect(action).not.to.be.reverted;
+
+        expect(await tal.balanceOf(stable.address)).to.equal(0);
+        expect(await tal.balanceOf(staking.address)).to.equal(protocolAmount);
+      });
+
+      it("does not allow non-admins", async () => {
+        const action = staking.connect(investor1).swapStableForToken(0);
+
+        await expect(action).to.be.revertedWith(
+          `AccessControl: account ${investor1.address.toLowerCase()} is missing role ${await staking.DEFAULT_ADMIN_ROLE()}`
+        );
+      });
+
+      it("does not accept withdrawing more stable coin than available", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        await staking.setToken(tal.address);
+
+        const protocolAmount = await staking.convertUsdToProtocol(parseUnits("25"));
+        await tal.connect(owner).approve(staking.address, protocolAmount);
+
+        const action = staking.connect(owner).swapStableForToken(parseUnits("50"));
+
+        await expect(action).to.be.revertedWith("not enough stable coin left in the contract");
       });
     });
 

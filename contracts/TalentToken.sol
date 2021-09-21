@@ -14,13 +14,20 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
 
+interface ITalentToken is IERC20Upgradeable {
+    function mint(address _owner, uint256 _amount) external;
+
+    function burn(address _owner, uint256 _amount) external;
+}
+
 /// @title The base contract for Talent Tokens
 contract TalentToken is
     Initializable,
     ContextUpgradeable,
     ERC165Upgradeable,
     AccessControlUpgradeable,
-    ERC1363Upgradeable
+    ERC1363Upgradeable,
+    ITalentToken
 {
     /// minter role
     bytes32 public constant ROLE_MINTER_BURNER = keccak256("MINTER_BURNER");
@@ -47,7 +54,7 @@ contract TalentToken is
     ///
     /// @param _to Recipient of the new tokens
     /// @param _amount Amount to mint
-    function mint(address _to, uint256 _amount) public onlyRole(ROLE_MINTER_BURNER) {
+    function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
         _mint(_to, _amount);
     }
 
@@ -57,7 +64,7 @@ contract TalentToken is
     ///
     /// @param _from Owner of the tokens to burn
     /// @param _amount Amount to mint
-    function burn(address _from, uint256 _amount) public onlyRole(ROLE_MINTER_BURNER) {
+    function burn(address _from, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
         _burn(_from, _amount);
     }
 

@@ -26,33 +26,22 @@ describe("StableThenToken", () => {
     const signers = await ethers.getSigners();
     owner = signers[0];
 
-    stable = (await deployContract(owner, ERC20MockArtifact, [
-      "Stable Coin",
-      "USDT",
-    ])) as ERC20;
-    token = (await deployContract(owner, ERC20MockArtifact, [
-      "TalentProtocol",
-      "TAL",
-    ])) as ERC20;
+    stable = (await deployContract(owner, ERC20MockArtifact, ["Stable Coin", "USDT"])) as ERC20;
+    token = (await deployContract(owner, ERC20MockArtifact, ["TalentProtocol", "TAL"])) as ERC20;
   });
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const contract = (await deployContract(
-        owner,
-        TestStableThenTokenArtifact,
-        [stable.address, 50]
-      )) as TestStableThenToken;
+      const contract = (await deployContract(owner, TestStableThenTokenArtifact, [
+        stable.address,
+      ])) as TestStableThenToken;
 
       expect(await contract.stableCoin()).to.eq(stable.address);
       expect(await contract.token()).to.hexEqual("0x0");
     });
 
     it("fails if tokenPrice is 0", async () => {
-      const action = deployContract(owner, TestStableThenTokenArtifact, [
-        stable.address,
-        0,
-      ]);
+      const action = deployContract(owner, TestStableThenTokenArtifact, [stable.address, 0]);
 
       await expect(action).to.be.revertedWith("_tokenPrice cannot be 0");
     });
@@ -60,10 +49,7 @@ describe("StableThenToken", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      contract = (await deployContract(owner, TestStableThenTokenArtifact, [
-        stable.address,
-        50,
-      ])) as TestStableThenToken;
+      contract = (await deployContract(owner, TestStableThenTokenArtifact, [stable.address])) as TestStableThenToken;
     });
 
     describe("setToken", () => {
@@ -72,17 +58,11 @@ describe("StableThenToken", () => {
       });
 
       it("does not accept a token with another name", async () => {
-        await expect(contract.setToken(stable.address)).to.be.revertedWith(
-          "token name is not TAL"
-        );
+        await expect(contract.setToken(stable.address)).to.be.revertedWith("token name is not TAL");
       });
 
       it("does not accept a token not implementing ERC20's interfaceId", async () => {
-        const token = await deployContract(
-          owner,
-          ERC20MockWithoutErc165Artifact,
-          ["Talent Protocol", "TAL"]
-        );
+        const token = await deployContract(owner, ERC20MockWithoutErc165Artifact, ["Talent Protocol", "TAL"]);
 
         const action = contract.setToken(token.address);
 
@@ -98,9 +78,7 @@ describe("StableThenToken", () => {
       it("fails while in token phase", async () => {
         await contract.setToken(token.address);
 
-        await expect(contract.test_stablePhaseOnly()).to.be.revertedWith(
-          "Stable coin disabled"
-        );
+        await expect(contract.test_stablePhaseOnly()).to.be.revertedWith("Stable coin disabled");
       });
     });
 
@@ -111,15 +89,7 @@ describe("StableThenToken", () => {
         await expect(contract.test_tokenPhaseOnly()).not.to.be.reverted;
       });
       it("fails while in stable phase", async () => {
-        await expect(contract.test_tokenPhaseOnly()).to.be.revertedWith(
-          "TAL token not yet set"
-        );
-      });
-    });
-
-    describe("convertUsdToToken", () => {
-      it("converts a USD value to TAL based on given rate", async () => {
-        expect(await contract.test_convertUsdToToken(50)).to.equal(1);
+        await expect(contract.test_tokenPhaseOnly()).to.be.revertedWith("TAL token not yet set");
       });
     });
   });

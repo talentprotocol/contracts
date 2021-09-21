@@ -8,7 +8,6 @@ import type { ContractFactory } from "ethers";
 import { ERC165 } from "../shared";
 
 import { TalentToken } from "../../typechain/TalentToken";
-import TalentTokenArtifact from "../../artifacts/contracts/TalentToken.sol/TalentToken.json";
 
 chai.use(solidity);
 

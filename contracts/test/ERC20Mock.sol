@@ -25,4 +25,8 @@ contract USDTMock is ERC20 {
     constructor() ERC20("USDT", "USDT") {
         _mint(msg.sender, 1000 ether);
     }
+
+    function decimals() public pure override(ERC20) returns (uint8) {
+        return 6;
+    }
 }

@@ -217,7 +217,7 @@ describe("Staking", () => {
 
     describe("convertUsdToProtocol", () => {
       it("converts a USD value to TAL based on given rate", async () => {
-        expect(await staking.convertUsdToProtocol(parseUnits("50"))).to.equal(parseUnits("50"));
+        expect(await staking.convertUsdToProtocol(parseUnits("1"))).to.equal(parseUnits("50"));
       });
     });
 
@@ -235,7 +235,7 @@ describe("Staking", () => {
 
     describe("convertUsdToTalent", () => {
       it("converts a USD value to a talent token based on both given rates", async () => {
-        expect(await staking.convertUsdToTalent(parseUnits("50"))).to.equal(parseUnits("2"));
+        expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("2"));
       });
     });
   });

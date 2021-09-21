@@ -70,9 +70,9 @@ contract Staking is StableThenToken, IERC1363Receiver {
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
-        uint256 _protocolAmount = convertUsdToProtocol(_amount);
+        uint256 protocolAmount = convertUsdToProtocol(_amount);
 
-        _createStake(msg.sender, _talent, _protocolAmount);
+        _createStake(msg.sender, _talent, protocolAmount);
 
         return true;
     }
@@ -156,8 +156,7 @@ contract Staking is StableThenToken, IERC1363Receiver {
         require(_protocolAmount > 0, "amount cannot be zero");
 
         uint256 talentAmount = convertProtocolToTalent(_protocolAmount);
-
-        ITalentToken(_talent).mint(_owner, talentAmount);
+        _mintTalent(_owner, _talent, talentAmount);
 
         stakes[_owner] = Stake(_owner, _talent, _protocolAmount, talentAmount);
     }
@@ -177,18 +176,42 @@ contract Staking is StableThenToken, IERC1363Receiver {
         // TODO missing rewards calculation
         require(IERC20(token).balanceOf(address(this)) >= stake.protocolAmount, "not enough TAL to fulfill request");
 
-        ITalentToken(_talent).burn(address(this), _talentAmount);
-
-        IERC20(token).transfer(stake.owner, stake.protocolAmount);
+        _burnTalent(_talent, _talentAmount);
+        _withdrawProtocol(stake.owner, stake.protocolAmount);
 
         // stake.finished = true;
 
         // TODO? do we only allow refunds for 100% of the talent tokens received?
     }
 
-    // function _restake() {
+    /// mints a given amount of a given talent token
+    /// to be used within a staking update (re-stake or new deposit)
+    ///
+    /// @notice The staking update itself is assumed to happen on the caller
+    function _mintTalent(
+        address _owner,
+        address _talent,
+        uint256 _amount
+    ) private {
+        ITalentToken(_talent).mint(_owner, _amount);
+    }
 
-    // }
+    /// burns a given amount of a given talent token
+    /// to be used within a staking update (withdrawal or refund)
+    ///
+    /// @notice The staking update itself is assumed to happen on the caller
+    ///
+    /// @notice Since withdrawal functions work via ERC1363 and receive the
+    /// Talent token prior to calling `onTransferReceived`, /   by this point,
+    /// the contract is the owner of the tokens to be burnt, not the owner
+    function _burnTalent(address _talent, uint256 _amount) private {
+        ITalentToken(_talent).burn(address(this), _amount);
+    }
+
+    /// returns a given amount of TAL to an owner
+    function _withdrawProtocol(address _owner, uint256 _amount) private {
+        IERC20(token).transfer(_owner, _amount);
+    }
 
     /// Converts a given USD amount to TAL
     ///

@@ -62,7 +62,7 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
         string memory _name,
         string memory _symbol
     ) public returns (address) {
-        require(isTalent(_talent) == false, "address already has a token");
+        require(!isTalent(_talent), "address already has a token");
         require(_isMinterSet(), "minter not yet set");
 
         address token = Clones.clone(implementation);

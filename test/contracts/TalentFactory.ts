@@ -72,12 +72,6 @@ describe("TalentFactory", () => {
         expect(await token.balanceOf(talent1.address)).to.eq(parseUnits("1000"));
       });
 
-      it("does not allow non minters", async () => {
-        const action = factory.connect(talent1).createTalent(talent1.address, "Miguel Palhas", "NAPS");
-
-        await expect(action).to.be.reverted;
-      });
-
       it("can deploy two independent talent tokens", async () => {
         const tx1 = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
         const tx2 = await factory.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");

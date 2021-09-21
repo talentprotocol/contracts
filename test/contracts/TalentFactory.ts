@@ -7,20 +7,15 @@ import TalentFactoryArtifact from "../../artifacts/contracts/TalentFactory.sol/T
 
 import { TalentToken__factory } from "../../typechain/factories/TalentToken__factory";
 
-import type { ContractReceipt, ContractTransaction, Event, ContractFactory } from "ethers";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
+import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
 
 const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
-
-async function findEvent(tx: ContractTransaction, name: string): Promise<Event | undefined> {
-  const receipt: ContractReceipt = await tx.wait();
-
-  return receipt.events?.find((e) => e.event === "TalentCreated");
-}
 
 describe("TalentFactory", () => {
   let creator: SignerWithAddress;
@@ -35,15 +30,27 @@ describe("TalentFactory", () => {
 
   describe("constructor", () => {
     it("can be deployed", async () => {
-      const action = deployContract(creator, TalentFactoryArtifact, [minter.address]);
+      const action = deployContract(creator, TalentFactoryArtifact, []);
 
       await expect(action).not.to.be.reverted;
     });
   });
 
+  describe("without minter set", () => {
+    it("can't create talent tokens", async () => {
+      factory = (await deployContract(creator, TalentFactoryArtifact, [])) as TalentFactory;
+
+      const action = factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+
+      expect(action).to.be.reverted;
+    });
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
-      factory = (await deployContract(creator, TalentFactoryArtifact, [minter.address])) as TalentFactory;
+      factory = (await deployContract(creator, TalentFactoryArtifact, [])) as TalentFactory;
+
+      await factory.setMinter(minter.address);
     });
 
     describe("createTalent", () => {
@@ -65,12 +72,6 @@ describe("TalentFactory", () => {
         expect(await token.balanceOf(talent1.address)).to.eq(parseUnits("1000"));
       });
 
-      it("does not allow non minters", async () => {
-        const action = factory.connect(talent1).createTalent(talent1.address, "Miguel Palhas", "NAPS");
-
-        await expect(action).to.be.reverted;
-      });
-
       it("can deploy two independent talent tokens", async () => {
         const tx1 = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
         const tx2 = await factory.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
@@ -89,6 +90,31 @@ describe("TalentFactory", () => {
 
         expect(await leal.balanceOf(talent1.address)).to.eq(parseUnits("0"));
         expect(await leal.balanceOf(talent2.address)).to.eq(parseUnits("1000"));
+      });
+    });
+
+    describe("isTalent", () => {
+      it("finds existing talents", async () => {
+        await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+
+        expect(await factory.isTalent(talent1.address)).to.be.true;
+      });
+
+      it("does not find non-talents", async () => {
+        expect(await factory.isTalent(talent1.address)).to.be.false;
+      });
+    });
+
+    describe("isTalentToken", () => {
+      it("finds existing talent tokens", async () => {
+        const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+        const event = await findEvent(tx, "TalentCreated");
+
+        expect(await factory.isTalentToken(event?.args?.token)).to.be.true;
+      });
+
+      it("does not find non-talent tokens", async () => {
+        expect(await factory.isTalent(talent1.address)).to.be.false;
       });
     });
   });

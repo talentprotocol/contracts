@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/interfaces/IERC1363.sol";
 import "@openzeppelin/contracts/interfaces/IERC1363Receiver.sol";
 import "@openzeppelin/contracts/interfaces/IERC1363Spender.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @title ERC1363
  * @author Vittorio Minacori (https://github.com/vittominacori)

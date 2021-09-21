@@ -18,26 +18,12 @@ abstract contract StableThenToken {
     /// the token to stake
     address public token;
 
-    /// The price (in USD cents) of a single TAL token
-    uint256 public tokenPrice;
-
     /// @param _stableCoin The USD-pegged stable-coin contract to use
-    /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
-    constructor(address _stableCoin, uint256 _tokenPrice) {
+    constructor(address _stableCoin) {
         // USDT does not implement ERC165, so we can't do much more than this
         require(_stableCoin != address(0), "stable-coin address must be valid");
-        require(_tokenPrice > 0, "_tokenPrice cannot be 0");
 
         stableCoin = _stableCoin;
-        tokenPrice = _tokenPrice;
-    }
-
-    /// Converts a given USD amount to TAL
-    ///
-    /// @param _usd The amount of USD, in cents, to convert
-    /// @return The converted TAL amount
-    function convertUsdToToken(uint256 _usd) internal view returns (uint256) {
-        return _usd / tokenPrice;
     }
 
     /// Sets the TAL token address
@@ -56,14 +42,18 @@ abstract contract StableThenToken {
 
     /// Allows execution only while in stable phase
     modifier stablePhaseOnly() {
-        require(token == address(0x0), "Stable coin disabled");
+        require(!_isTokenSet(), "Stable coin disabled");
         _;
     }
 
     /// Allows execution only while in token phase
     modifier tokenPhaseOnly() {
-        require(token != address(0x0), "TAL token not yet set");
+        require(_isTokenSet(), "TAL token not yet set");
         _;
+    }
+
+    function _isTokenSet() internal view returns (bool) {
+        return token != address(0x0);
     }
 
     /// Checks equality of two strings

@@ -1,4 +1,6 @@
-import { deployToken } from "./shared";
+import { deployToken, deployFactory, deployStaking } from "./shared";
+
+import type { TalentProtocol__factory } from "../typechain";
 
 const { exit } = process;
 
@@ -8,6 +10,9 @@ async function main() {
   console.log(`
   TAL Token: ${address}
   `);
+
+  // set staking TAL
+  // send TAL to staking
 }
 
 main()

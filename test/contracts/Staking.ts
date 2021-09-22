@@ -178,15 +178,14 @@ describe("Staking", () => {
     describe("swapStableForToken", () => {
       it("swaps existing stable coin for TAL", async () => {
         const stableAmount = parseUnits("25");
-
-        await stable.connect(investor1).approve(staking.address, stableAmount);
-        await staking.connect(investor1).stakeStable(talentToken1.address, stableAmount);
-        await staking.setToken(tal.address);
-
         const tokenAmount = await staking.convertUsdToToken(stableAmount);
         const initialOwnerStableBalance = await stable.balanceOf(owner.address);
         const initialOwnerTalBalance = await tal.balanceOf(owner.address);
 
+        await stable.connect(investor1).approve(staking.address, stableAmount);
+        await staking.connect(investor1).stakeStable(talentToken1.address, stableAmount);
+
+        await staking.setToken(tal.address);
         await tal.connect(owner).approve(staking.address, tokenAmount);
 
         const action = staking.connect(owner).swapStableForToken(stableAmount);
@@ -226,11 +225,14 @@ describe("Staking", () => {
       });
 
       it("does not accept withdrawing more stable coin than available", async () => {
-        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
-        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stableAmount = parseUnits("25");
+        const tokenAmount = await staking.convertUsdToToken(stableAmount);
+
+        await stable.connect(investor1).approve(staking.address, stableAmount);
+        await staking.connect(investor1).stakeStable(talentToken1.address, stableAmount);
+
         await staking.setToken(tal.address);
 
-        const tokenAmount = await staking.convertUsdToToken(parseUnits("25"));
         await tal.connect(owner).approve(staking.address, tokenAmount);
 
         const action = staking.connect(owner).swapStableForToken(parseUnits("50"));

@@ -1,6 +1,7 @@
 import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
+import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
@@ -38,6 +39,10 @@ describe("Staking", () => {
   let factory: TalentFactory;
   let staking: Staking;
 
+  const start = dayjs().add(-1, "day").unix();
+  const end = dayjs().add(1, "day").unix();
+  const rewardsMax = parseUnits("400000000");
+
   beforeEach(async () => {
     [owner, minter, talent, investor1, investor2] = await ethers.getSigners();
 
@@ -58,6 +63,9 @@ describe("Staking", () => {
   describe("constructor", () => {
     it("works with valid arguments", async () => {
       const action = deployContract(owner, StakingArtifact, [
+        start,
+        end,
+        rewardsMax,
         stable.address,
         factory.address,
         parseUnits("0.02"),
@@ -69,6 +77,9 @@ describe("Staking", () => {
 
     it("fails if tokenPrice is 0", async () => {
       const action = deployContract(owner, StakingArtifact, [
+        start,
+        end,
+        rewardsMax,
         stable.address,
         factory.address,
         parseUnits("0"),
@@ -80,6 +91,9 @@ describe("Staking", () => {
 
     it("fails if talentPrice is 0", async () => {
       const action = deployContract(owner, StakingArtifact, [
+        start,
+        end,
+        rewardsMax,
         stable.address,
         factory.address,
         parseUnits("0.5"),
@@ -92,6 +106,9 @@ describe("Staking", () => {
 
   const builder = async (): Promise<Staking> => {
     return deployContract(owner, StakingArtifact, [
+      start,
+      end,
+      rewardsMax,
       stable.address,
       factory.address,
       parseUnits("0.02"),

@@ -307,7 +307,7 @@ describe("Staking", () => {
             await expect(action).to.be.revertedWith("Unrecognized ERC1363 token received");
           });
 
-          it.only("accepts Talent Tokens in the second phase, to refund a TAL investment", async () => {
+          it("accepts Talent Tokens in the second phase, to refund a TAL investment", async () => {
             await enterPhaseTwo();
 
             // mint new NAPS

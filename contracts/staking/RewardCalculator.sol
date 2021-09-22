@@ -44,8 +44,12 @@ abstract contract RewardCalculator is IRewardParameters {
         (uint256 start, uint256 end) = _truncatePeriod(_start, _end);
         (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
 
-        // TODO
-        return this.rewardsLeft() / 10;
+        uint256 percentage = _curvePercentage(startPercent, endPercent);
+
+        // TODO finish formula
+        uint256 reward = (this.rewardsLeft() * percentage) / mul;
+
+        return reward;
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

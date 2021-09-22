@@ -4,8 +4,8 @@ import { ethers, waffle } from "hardhat";
 const { expect } = chai;
 const { deployContract } = waffle;
 
-import { InterfaceIDs } from "../../typechain/InterfaceIDs";
-import InterfaceIDsArtifact from "../../artifacts/contracts/test/InterfaceIDs.sol/InterfaceIDs.json";
+import type { InterfaceIDs } from "../../typechain";
+import { Artifacts } from "../shared";
 
 export function behavesAsERC165(builder: () => Promise<any>): void {
   describe("ERC165 behaviour", () => {
@@ -32,7 +32,7 @@ export function supportsInterfaces(builder: () => Promise<any>, interfaces: stri
       const owner = signers[0];
 
       contract = await builder();
-      interfaceIDs = (await deployContract(owner, InterfaceIDsArtifact, [])) as InterfaceIDs;
+      interfaceIDs = (await deployContract(owner, Artifacts.InterfaceIDs, [])) as InterfaceIDs;
     });
 
     interfaces.map((interf) => {

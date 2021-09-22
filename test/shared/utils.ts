@@ -2,9 +2,8 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractReceipt, ContractTransaction, Event } from "ethers";
 import type { BigNumber } from "ethers";
 
-import { TalentToken } from "../../typechain/TalentToken";
-import { TalentFactory } from "../../typechain/TalentFactory";
-import { TalentToken__factory } from "../../typechain/factories/TalentToken__factory";
+import type { TalentToken, TalentFactory } from "../../typechain";
+import { TalentToken__factory } from "../../typechain";
 
 export async function findEvent(tx: ContractTransaction, name: string): Promise<Event | undefined> {
   const receipt: ContractReceipt = await tx.wait();

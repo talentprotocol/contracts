@@ -2,12 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import { TestStableThenToken } from "../../../typechain/TestStableThenToken";
-import TestStableThenTokenArtifact from "../../../artifacts/contracts/test/TestStableThenToken.sol/TestStableThenToken.json";
-
-import { ERC20 } from "../../../typechain/ERC20";
-import ERC20MockArtifact from "../../../artifacts/contracts/test/ERC20Mock.sol/ERC20Mock.json";
-import ERC20MockWithoutErc165Artifact from "../../../artifacts/contracts/test/ERC20Mock.sol/ERC20MockWithoutErc165.json";
+import type { ERC20, TestStableThenToken } from "../../../typechain";
+import { Artifacts } from "../../shared";
 
 chai.use(solidity);
 
@@ -26,13 +22,13 @@ describe("StableThenToken", () => {
     const signers = await ethers.getSigners();
     owner = signers[0];
 
-    stable = (await deployContract(owner, ERC20MockArtifact, ["Stable Coin", "USDT"])) as ERC20;
-    token = (await deployContract(owner, ERC20MockArtifact, ["TalentProtocol", "TAL"])) as ERC20;
+    stable = (await deployContract(owner, Artifacts.ERC20Mock, ["Stable Coin", "USDT"])) as ERC20;
+    token = (await deployContract(owner, Artifacts.ERC20Mock, ["TalentProtocol", "TAL"])) as ERC20;
   });
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const contract = (await deployContract(owner, TestStableThenTokenArtifact, [
+      const contract = (await deployContract(owner, Artifacts.TestStableThenToken, [
         stable.address,
       ])) as TestStableThenToken;
 
@@ -43,7 +39,7 @@ describe("StableThenToken", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      contract = (await deployContract(owner, TestStableThenTokenArtifact, [stable.address])) as TestStableThenToken;
+      contract = (await deployContract(owner, Artifacts.TestStableThenToken, [stable.address])) as TestStableThenToken;
     });
 
     describe("setToken", () => {
@@ -56,7 +52,7 @@ describe("StableThenToken", () => {
       });
 
       it("does not accept a token not implementing ERC20's interfaceId", async () => {
-        const token = await deployContract(owner, ERC20MockWithoutErc165Artifact, ["Talent Protocol", "TAL"]);
+        const token = await deployContract(owner, Artifacts.ERC20MockWithoutErc165, ["Talent Protocol", "TAL"]);
 
         const action = contract.setToken(token.address);
 

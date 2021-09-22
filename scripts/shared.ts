@@ -22,6 +22,9 @@ export async function deployFactory(): Promise<TalentFactory> {
 }
 
 export async function deployStaking(
+  start: number,
+  end: number,
+  rewardMax: BigNumber,
   stableCoin: string,
   factory: string,
   protocolPrice: BigNumber,
@@ -29,7 +32,7 @@ export async function deployStaking(
 ): Promise<Staking> {
   const Staking = await ethers.getContractFactory("Staking");
 
-  const staking = await Staking.deploy(stableCoin, factory, protocolPrice, talentPrice);
+  const staking = await Staking.deploy(start, end, rewardMax, stableCoin, factory, protocolPrice, talentPrice);
   await staking.deployed();
 
   return staking as Staking;

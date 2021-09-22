@@ -2,14 +2,12 @@ import chai from "chai";
 import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import { TalentFactory } from "../../typechain/TalentFactory";
-import TalentFactoryArtifact from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
-
-import { TalentToken__factory } from "../../typechain/factories/TalentToken__factory";
-
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import { ERC165 } from "../shared";
+import type { TalentFactory } from "../../typechain";
+import { TalentToken__factory } from "../../typechain";
+
+import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
@@ -31,14 +29,14 @@ describe("TalentFactory", () => {
 
   describe("constructor", () => {
     it("can be deployed", async () => {
-      const action = deployContract(creator, TalentFactoryArtifact, []);
+      const action = deployContract(creator, Artifacts.TalentFactory, []);
 
       await expect(action).not.to.be.reverted;
     });
   });
 
   const builder = async (): Promise<TalentFactory> => {
-    return deployContract(creator, TalentFactoryArtifact, []) as Promise<TalentFactory>;
+    return deployContract(creator, Artifacts.TalentFactory, []) as Promise<TalentFactory>;
   };
 
   describe("behaviour", () => {
@@ -58,7 +56,7 @@ describe("TalentFactory", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      factory = (await deployContract(creator, TalentFactoryArtifact, [])) as TalentFactory;
+      factory = (await deployContract(creator, Artifacts.TalentFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
     });

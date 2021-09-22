@@ -4,20 +4,9 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { TalentProtocol, USDTMock, TalentFactory, Staking } from "../../typechain";
 
-import { TalentProtocol } from "../../typechain/TalentProtocol";
-import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
-
-import { USDTMock } from "../../typechain/USDTMock";
-import USDTArtifact from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
-
-import { TalentFactory } from "../../typechain/TalentFactory";
-import TalentFactoryArtifact from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
-
-import { Staking } from "../../typechain/Staking";
-import StakingArtifact from "../../artifacts/contracts/Staking.sol/Staking.json";
-
-import { ERC165 } from "../shared";
+import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall } from "../shared/utils";
 
 chai.use(solidity);
@@ -46,23 +35,22 @@ describe("Staking", () => {
   beforeEach(async () => {
     [owner, minter, talent, investor1, investor2] = await ethers.getSigners();
 
-    stable = (await deployContract(owner, USDTArtifact, [])) as USDTMock;
+    stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
 
     await stable.connect(owner).transfer(investor1.address, parseUnits("50"));
     await stable.connect(owner).transfer(investor2.address, parseUnits("50"));
 
-    tal = (await deployContract(owner, TalentProtocolArtifact, [])) as TalentProtocol;
-    // tal.transferAndCall(investor1.address, parseUnits("1"));
+    tal = (await deployContract(owner, Artifacts.TalentProtocol, [])) as TalentProtocol;
 
     await tal.connect(owner).transfer(investor1.address, parseUnits("50"));
     await tal.connect(owner).transfer(investor2.address, parseUnits("50"));
 
-    factory = (await deployContract(owner, TalentFactoryArtifact, [])) as TalentFactory;
+    factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
   });
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const action = deployContract(owner, StakingArtifact, [
+      const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
         rewardsMax,
@@ -76,7 +64,7 @@ describe("Staking", () => {
     });
 
     it("fails if tokenPrice is 0", async () => {
-      const action = deployContract(owner, StakingArtifact, [
+      const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
         rewardsMax,
@@ -90,7 +78,7 @@ describe("Staking", () => {
     });
 
     it("fails if talentPrice is 0", async () => {
-      const action = deployContract(owner, StakingArtifact, [
+      const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
         rewardsMax,
@@ -105,7 +93,7 @@ describe("Staking", () => {
   });
 
   const builder = async (): Promise<Staking> => {
-    return deployContract(owner, StakingArtifact, [
+    return deployContract(owner, Artifacts.Staking, [
       start,
       end,
       rewardsMax,

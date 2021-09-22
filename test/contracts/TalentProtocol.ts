@@ -4,10 +4,8 @@ import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import { ERC165 } from "../shared";
-
-import { TalentProtocol } from "../../typechain/TalentProtocol";
-import TalentProtocolArtifact from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
+import type { TalentProtocol } from "../../typechain";
+import { ERC165, Artifacts } from "../shared";
 
 chai.use(solidity);
 
@@ -25,13 +23,13 @@ describe("TalentProtocol", () => {
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, TalentProtocolArtifact, []);
+    const action = deployContract(creator, Artifacts.TalentProtocol, []);
 
     await expect(action).not.to.be.reverted;
   });
 
   const builder = async () => {
-    return deployContract(creator, TalentProtocolArtifact, []) as Promise<TalentProtocol>;
+    return deployContract(creator, Artifacts.TalentProtocol, []) as Promise<TalentProtocol>;
   };
 
   describe("behaviour", () => {

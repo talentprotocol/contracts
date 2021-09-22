@@ -32,7 +32,7 @@ describe("Staking", () => {
 
   const start = dayjs().add(-1, "day").unix();
   const end = dayjs().add(1, "day").unix();
-  const rewardsMax = parseUnits("400000000");
+  const noRewards = parseUnits("0");
 
   beforeEach(async () => {
     [owner, minter, talent1, talent2, investor1, investor2] = await ethers.getSigners();
@@ -55,7 +55,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0.02"),
@@ -69,7 +69,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0"),
@@ -83,7 +83,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0.5"),
@@ -98,7 +98,7 @@ describe("Staking", () => {
     return deployContract(owner, Artifacts.Staking, [
       start,
       end,
-      rewardsMax,
+      noRewards,
       stable.address,
       factory.address,
       parseUnits("0.02"),
@@ -307,7 +307,7 @@ describe("Staking", () => {
             await expect(action).to.be.revertedWith("Unrecognized ERC1363 token received");
           });
 
-          it("accepts Talent Tokens in the second phase, to refund a TAL investment", async () => {
+          it.only("accepts Talent Tokens in the second phase, to refund a TAL investment", async () => {
             await enterPhaseTwo();
 
             // mint new NAPS

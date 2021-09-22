@@ -244,10 +244,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 _tokenAmount
     ) private {
         require(_isTalentToken(_talent), "not a valid talent token");
-        require(stakes[_owner][_talent].owner == address(0x0), "address already has stake");
         require(_tokenAmount > 0, "amount cannot be zero");
 
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
+
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
 
         stakes[_owner][_talent] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
         totalTokenStaked = _tokenAmount;
@@ -262,10 +263,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ) private {
         require(_isTalentToken(_talent), "not a valid talent token");
 
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
+
         Stake storage stake = stakes[_owner][_talent];
 
         require(stake.owner == _owner, "stake does not exist");
-        require(stake.talentAmount == _talentAmount);
+        require(stake.talentAmount >= _talentAmount);
 
         // TODO missing rewards calculation
         require(IERC20(token).balanceOf(address(this)) >= stake.tokenAmount, "not enough TAL to fulfill request");
@@ -304,6 +307,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
             stake.tokenAmount += rewards;
+            totalTokenStaked += rewards;
 
             // TODO event
         } else {

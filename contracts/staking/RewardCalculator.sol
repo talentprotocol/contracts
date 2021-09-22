@@ -45,7 +45,7 @@ abstract contract RewardCalculator is IRewardParameters {
         (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
 
         // TODO
-        return 1 ether;
+        return this.rewardsLeft() / 10;
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

@@ -1,6 +1,8 @@
+import { ethers } from "hardhat";
+
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractReceipt, ContractTransaction, Event } from "ethers";
-import type { BigNumber } from "ethers";
+import { BigNumber } from "ethers";
 
 import type { TalentToken, TalentFactory } from "../../typechain";
 import { TalentToken__factory } from "../../typechain";
@@ -41,4 +43,18 @@ export async function transferAndCall(
   } else {
     return token.connect(from)["transferAndCall(address,uint256)"](to, amount);
   }
+}
+
+const ONE = ethers.BigNumber.from(1);
+const TWO = ethers.BigNumber.from(2);
+
+export function sqrt(value: BigNumber): BigNumber {
+  const x = BigNumber.from(value);
+  let z = x.add(ONE).div(TWO);
+  let y = x;
+  while (z.sub(y).isNegative()) {
+    y = z;
+    z = x.div(z).add(z).div(TWO);
+  }
+  return y;
 }

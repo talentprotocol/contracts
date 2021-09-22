@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
+import "hardhat/console.sol";
+
 interface IRewardParameters {
     /// Start of the staking period
     function start() external view returns (uint256);
@@ -29,7 +31,7 @@ abstract contract RewardCalculator is IRewardParameters {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result
     /// after calculations is divided by mul again to retrieve a real value
-    uint256 internal constant MUL = 1e6;
+    uint256 internal constant MUL = 1e10;
 
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp
@@ -53,13 +55,14 @@ abstract contract RewardCalculator is IRewardParameters {
         (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
 
         uint256 percentage = _curvePercentage(startPercent, endPercent);
-        uint256 weight = sqrt(_shares) / this.totalAdjustedShares();
+        uint256 weight = (sqrt(_shares) * MUL) / this.totalAdjustedShares();
 
+        console.log(weight);
         if (weight == 0) {
             return 0;
         }
 
-        return ((this.rewardsLeft() / weight) * percentage) / MUL;
+        return ((this.rewardsLeft() / weight) * percentage) / (MUL * MUL);
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

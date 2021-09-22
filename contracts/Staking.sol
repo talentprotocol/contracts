@@ -158,9 +158,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
 
         uint256 tokenAmount = convertUsdToToken(_stableAmount);
-        totalStableStored += _stableAmount;
+        totalStableStored -= _stableAmount;
 
         IERC20(token).transferFrom(msg.sender, address(this), tokenAmount);
+        IERC20(stableCoin).transfer(msg.sender, _stableAmount);
     }
 
     //

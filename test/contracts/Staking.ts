@@ -18,13 +18,15 @@ const { deployContract } = waffle;
 describe("Staking", () => {
   let owner: SignerWithAddress;
   let minter: SignerWithAddress;
-  let talent: SignerWithAddress;
+  let talent1: SignerWithAddress;
+  let talent2: SignerWithAddress;
   let investor1: SignerWithAddress;
   let investor2: SignerWithAddress;
 
   let tal: TalentProtocol;
   let stable: USDTMock;
-  let talentToken: TalentProtocol;
+  let talentToken1: TalentProtocol;
+  let talentToken2: TalentProtocol;
   let factory: TalentFactory;
   let staking: Staking;
 
@@ -33,17 +35,17 @@ describe("Staking", () => {
   const rewardsMax = parseUnits("400000000");
 
   beforeEach(async () => {
-    [owner, minter, talent, investor1, investor2] = await ethers.getSigners();
+    [owner, minter, talent1, talent2, investor1, investor2] = await ethers.getSigners();
 
     stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
 
-    await stable.connect(owner).transfer(investor1.address, parseUnits("50"));
-    await stable.connect(owner).transfer(investor2.address, parseUnits("50"));
+    await stable.connect(owner).transfer(investor1.address, parseUnits("10000"));
+    await stable.connect(owner).transfer(investor2.address, parseUnits("10000"));
 
     tal = (await deployContract(owner, Artifacts.TalentProtocol, [])) as TalentProtocol;
 
-    await tal.connect(owner).transfer(investor1.address, parseUnits("50"));
-    await tal.connect(owner).transfer(investor2.address, parseUnits("50"));
+    await tal.connect(owner).transfer(investor1.address, parseUnits("1000"));
+    await tal.connect(owner).transfer(investor2.address, parseUnits("1000"));
 
     factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
   });
@@ -115,7 +117,8 @@ describe("Staking", () => {
 
       await factory.setMinter(staking.address);
 
-      talentToken = await deployTalentToken(factory, minter, talent);
+      talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");
+      talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");
     });
 
     async function enterPhaseTwo() {
@@ -127,14 +130,15 @@ describe("Staking", () => {
       it("accepts stable coin stakes", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));
 
-        const action = staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        const investorStableBalanceBefore = await stable.balanceOf(investor1.address);
+        const action = staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
 
         await expect(action).not.to.be.reverted;
 
         // USDT is deducted
-        expect(await stable.balanceOf(investor1.address)).to.eq(parseUnits("25"));
+        expect(await stable.balanceOf(investor1.address)).to.eq(investorStableBalanceBefore.sub(parseUnits("25")));
 
-        const talentBalance = await talentToken.balanceOf(investor1.address);
+        const talentBalance = await talentToken1.balanceOf(investor1.address);
         const expectedBalance = await staking.convertUsdToTalent(parseUnits("25"));
 
         // NAPS is credited
@@ -142,18 +146,30 @@ describe("Staking", () => {
         expect(talentBalance).not.to.equal(parseUnits("0"));
       });
 
+      it("creates a stake", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+
+        const stake = await staking.stakes(investor1.address, talentToken1.address);
+
+        expect(stake.owner).to.equal(investor1.address);
+        expect(stake.talent).to.equal(talentToken1.address);
+        expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
+      });
+
       it("does not accept stable coin stakes while in phase2", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
         await staking.setToken(tal.address);
 
-        const action = staking.connect(investor1).stakeStable(talentToken.address, parseUnits("1"));
+        const action = staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
 
         await expect(action).to.be.revertedWith("Stable coin disabled");
       });
 
       it("updates totalStableStored", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));
-        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
 
         expect(await staking.totalStableStored()).to.eq(parseUnits("25"));
       });
@@ -161,19 +177,44 @@ describe("Staking", () => {
 
     describe("swapStableForToken", () => {
       it("swaps existing stable coin for TAL", async () => {
-        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
-        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        const stableAmount = parseUnits("25");
+
+        await stable.connect(investor1).approve(staking.address, stableAmount);
+        await staking.connect(investor1).stakeStable(talentToken1.address, stableAmount);
         await staking.setToken(tal.address);
 
-        const tokenAmount = await staking.convertUsdToToken(parseUnits("25"));
+        const tokenAmount = await staking.convertUsdToToken(stableAmount);
+        const initialOwnerStableBalance = await stable.balanceOf(owner.address);
+        const initialOwnerTalBalance = await tal.balanceOf(owner.address);
+
         await tal.connect(owner).approve(staking.address, tokenAmount);
 
-        const action = staking.connect(owner).swapStableForToken(parseUnits("25"));
+        const action = staking.connect(owner).swapStableForToken(stableAmount);
 
         await expect(action).not.to.be.reverted;
 
-        expect(await tal.balanceOf(stable.address)).to.equal(0);
         expect(await tal.balanceOf(staking.address)).to.equal(tokenAmount);
+        expect(await tal.balanceOf(owner.address)).to.equal(initialOwnerTalBalance.sub(tokenAmount));
+
+        expect(await stable.balanceOf(staking.address)).to.equal(0);
+        expect(await stable.balanceOf(owner.address)).to.equal(initialOwnerStableBalance.add(stableAmount));
+      });
+
+      it("deducts totalStableStored", async () => {
+        const stableAmount = parseUnits("25");
+        const tokenAmount = await staking.convertUsdToToken(stableAmount);
+
+        await stable.connect(investor1).approve(staking.address, stableAmount);
+        await staking.connect(investor1).stakeStable(talentToken1.address, stableAmount);
+        await staking.setToken(tal.address);
+
+        await tal.connect(owner).approve(staking.address, tokenAmount);
+
+        expect(await staking.totalStableStored()).to.equal(stableAmount);
+
+        await staking.connect(owner).swapStableForToken(parseUnits("15"));
+
+        expect(await staking.totalStableStored()).to.equal(parseUnits("10"));
       });
 
       it("does not allow non-admins", async () => {
@@ -186,7 +227,7 @@ describe("Staking", () => {
 
       it("does not accept withdrawing more stable coin than available", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));
-        await staking.connect(investor1).stakeStable(talentToken.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
         await staking.setToken(tal.address);
 
         const tokenAmount = await staking.convertUsdToToken(parseUnits("25"));
@@ -201,23 +242,54 @@ describe("Staking", () => {
     describe("ERC1363Receiver", () => {
       describe("onTransferReceived", () => {
         describe("TAL stakes", () => {
-          it("rejects TAL stakes while not yet", async () => {
-            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken.address);
+          it("creates a stake", async () => {
+            await staking.setToken(tal.address);
 
-            await expect(action).to.be.revertedWith("Unrecognized ERC20 token received");
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+
+            const stake = await staking.stakes(investor1.address, talentToken1.address);
+
+            expect(stake.owner).to.equal(investor1.address);
+            expect(stake.talent).to.equal(talentToken1.address);
+            expect(stake.tokenAmount).to.equal(parseUnits("50"));
+          });
+
+          it("allows creating stakes in different talents", async () => {
+            await staking.setToken(tal.address);
+
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken2.address);
+
+            const stake1 = await staking.stakes(investor1.address, talentToken1.address);
+            const stake2 = await staking.stakes(investor1.address, talentToken2.address);
+
+            expect(stake1.owner).to.equal(investor1.address);
+            expect(stake1.talent).to.equal(talentToken1.address);
+            expect(stake1.tokenAmount).to.equal(parseUnits("50"));
+
+            expect(stake2.owner).to.equal(investor1.address);
+            expect(stake2.talent).to.equal(talentToken2.address);
+            expect(stake2.tokenAmount).to.equal(parseUnits("100"));
+          });
+
+          it("rejects TAL stakes while not yet", async () => {
+            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+
+            await expect(action).to.be.revertedWith("Unrecognized ERC1363 token received");
           });
 
           it("accepts TAL stakes in the second phase", async () => {
             await staking.setToken(tal.address);
 
-            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken.address);
+            const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
+            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
 
             await expect(action).not.to.be.reverted;
 
             // TAL is deducted
-            expect(await tal.balanceOf(investor1.address)).to.eq(parseUnits("0"));
+            expect(await tal.balanceOf(investor1.address)).to.eq(investorTalBalanceBefore.sub(parseUnits("50")));
 
-            const talentBalance = await talentToken.balanceOf(investor1.address);
+            const talentBalance = await talentToken1.balanceOf(investor1.address);
             const expectedBalance = await staking.convertTokenToTalent(parseUnits("50"));
 
             // // NAPS is credited
@@ -228,27 +300,28 @@ describe("Staking", () => {
 
         describe("Talent Token refunds", () => {
           it("rejects tokens while TAL is not yet set", async () => {
-            const action = transferAndCall(talentToken, talent, staking.address, parseUnits("50"), talentToken.address);
+            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
 
-            await expect(action).to.be.revertedWith("TAL token not yet set. Refund not possible");
+            await expect(action).to.be.revertedWith("Unrecognized ERC1363 token received");
           });
 
           it("accepts Talent Tokens in the second phase, to refund a TAL investment", async () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken.address);
-            expect(await talentToken.balanceOf(investor1.address)).to.equal(parseUnits("1"));
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
-            const action = transferAndCall(talentToken, investor1, staking.address, parseUnits("1"), null);
+            const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
+            const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
             await expect(action).not.to.be.reverted;
 
             // NAPS is burned
-            expect(await talentToken.balanceOf(investor1.address)).to.equal(parseUnits("0"));
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("0"));
 
             // TAL is returned
-            expect(await tal.balanceOf(investor1.address)).to.equal(parseUnits("50"));
+            expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
           });
         });
       });

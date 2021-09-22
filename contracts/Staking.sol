@@ -8,6 +8,7 @@ import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/Acce
 import "hardhat/console.sol";
 
 import {StableThenToken} from "./staking/StableThenToken.sol";
+import {IRewardParameters, RewardCalculator} from "./staking/RewardCalculator.sol";
 import {ITalentToken} from "./TalentToken.sol";
 import {ITalentFactory} from "./TalentFactory.sol";
 
@@ -17,7 +18,7 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 ///
 /// @dev Across
-contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
+contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {
         /// Owner of the stake
@@ -28,9 +29,13 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         uint256 tokenAmount;
         /// Talent tokens minted as part of this stake
         uint256 talentAmount;
+        /// Latest checkpoint for this stake. Staking rewards should only be
+        /// calculated from this moment forward. Anything past it should already
+        /// be accounted for in `tokenAmount`
+        uint256 lastCheckpointAt;
     }
 
-    /// List of all stakes
+    /// List of all stakes (investor => Stake)
     mapping(address => Stake) public stakes;
 
     bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
@@ -54,14 +59,29 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     // How much TAL is currently staked (not including rewards)
     uint256 public totalTokenStaked;
 
-    // How much TAL is currently reserved for rewards
-    uint256 public totalRewardsReserved;
+    // How much TAL is to be given in rewards
+    uint256 public immutable override(IRewardParameters) rewardsMax;
 
+    // How much TAL has already been given/reserved in rewards
+    uint256 public override(IRewardParameters) rewardsGiven;
+
+    /// Start date for staking period
+    uint256 public immutable override(IRewardParameters) start;
+
+    /// End date for staking period
+    uint256 public immutable override(IRewardParameters) end;
+
+    /// @param _start Timestamp at which staking begins
+    /// @param _end Timestamp at which staking ends
+    /// @param _rewardsMax Total amount of TAL to be given in rewards
     /// @param _stableCoin The USD-pegged stable-coin contract to use
     /// @param _factory ITalentFactory instance
     /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
     /// @param _talentPrice The price of a talent token in TAL (50 means 1 Talent Token = 50 TAL)
     constructor(
+        uint256 _start,
+        uint256 _end,
+        uint256 _rewardsMax,
         address _stableCoin,
         address _factory,
         uint256 _tokenPrice,
@@ -70,11 +90,20 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
 
+        start = _start;
+        end = _end;
+        rewardsMax = _rewardsMax;
         factory = _factory;
         tokenPrice = _tokenPrice;
         talentPrice = _talentPrice;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    modifier onlyWhileStakingEnabled() {
+        require(block.timestamp >= start, "staking period not yet started");
+        require(block.timestamp <= end, "staking period already finished");
+        _;
     }
 
     /// Creates a new stake from an amount of stable coin.
@@ -84,8 +113,12 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     /// @return true if operation succeeds
     ///
     /// @notice The contract must be previously approved to spend _amount on behalf of `msg.sender`
-    function stakeStable(address _talent, uint256 _amount) public stablePhaseOnly returns (bool) {
-        require(stakes[msg.sender].owner == address(0x0), "address already has stake");
+    function stakeStable(address _talent, uint256 _amount)
+        public
+        onlyWhileStakingEnabled
+        stablePhaseOnly
+        returns (bool)
+    {
         require(_amount > 0, "amount cannot be zero");
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
@@ -94,7 +127,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
 
         totalStableStored += _amount;
 
-        _createStake(msg.sender, _talent, tokenAmount);
+        _stake(msg.sender, _talent, tokenAmount);
 
         return true;
     }
@@ -113,6 +146,14 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         return IERC20(token).balanceOf(address(this));
     }
 
+    /// Deposits TAL in exchange for the equivalent amount of stable coin stored in the contract
+    ///
+    /// @notice Meant to be used by the contract owner to retrieve stable coin
+    /// from phase 1, and provide the equivalent TAL amount expected from stakers
+    ///
+    /// @param _stableAmount amount of stable coin to be retrieved.
+    ///
+    /// @notice Corresponding TAL amount will be enforced based on the set price
     function swapStableForToken(uint256 _stableAmount) public onlyRole(DEFAULT_ADMIN_ROLE) tokenPhaseOnly {
         require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
 
@@ -123,7 +164,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     }
 
     //
-    // Begin: IERC1363Receivber
+    // Begin: IERC1363Receiver
     //
 
     function onTransferReceived(
@@ -131,7 +172,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
         address _sender,
         uint256 _amount,
         bytes calldata data
-    ) external override(IERC1363Receiver) returns (bytes4) {
+    ) external override(IERC1363Receiver) onlyWhileStakingEnabled returns (bytes4) {
         require(_isTokenToken(msg.sender) || _isTalentToken(msg.sender), "Unrecognized ERC20 token received");
 
         if (_isTokenToken(msg.sender)) {
@@ -140,7 +181,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
             // necessary here
             address talent = bytesToAddress(data);
 
-            _createStake(_sender, talent, _amount);
+            _stake(_sender, talent, _amount);
 
             return ERC1363_RECEIVER_RET;
         } else if (_isTalentToken(msg.sender)) {
@@ -149,7 +190,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
             // if it's a registered Talent Token, this is a refund
             address talent = msg.sender;
 
-            _withdrawStake(_sender, talent, _amount);
+            _unstake(_sender, talent, _amount);
 
             return ERC1363_RECEIVER_RET;
         } else {
@@ -170,6 +211,22 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     //
 
     //
+    // Begin: IRewardParameters
+    //
+
+    function totalShares() public view override(IRewardParameters) returns (uint256) {
+        return totalTokenStaked;
+    }
+
+    function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
+        return rewardsMax - rewardsGiven;
+    }
+
+    //
+    // End: IRewardParameters
+    //
+
+    //
     // Private Interface
     //
 
@@ -177,7 +234,7 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
     ///
     /// @dev This function assumes tokens have been previously transfered by
     ///   the caller function or via ERC1363Receiver
-    function _createStake(
+    function _stake(
         address _owner,
         address _talent,
         uint256 _tokenAmount
@@ -188,13 +245,13 @@ contract Staking is AccessControl, StableThenToken, IERC1363Receiver {
 
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
-        stakes[_owner] = Stake(_owner, _talent, _tokenAmount, talentAmount);
+        stakes[_owner] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
     }
 
-    function _withdrawStake(
+    function _unstake(
         address _owner,
         address _talent,
         uint256 _talentAmount

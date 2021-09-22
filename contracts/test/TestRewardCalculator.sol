@@ -35,7 +35,7 @@ contract TestRewardCalculator is RewardCalculator {
         return _periodToPercents(_start, _end);
     }
 
-    function test_curvePercentage(uint256 _start, uint256 _end) public pure returns (uint256) {
+    function test_curvePercentage(uint256 _start, uint256 _end) public view returns (uint256) {
         return _curvePercentage(_start, _end);
     }
 
@@ -45,5 +45,9 @@ contract TestRewardCalculator is RewardCalculator {
 
     function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
         return rewardsMax - rewardsGiven;
+    }
+
+    function multiplier() public pure returns (uint256) {
+        return MUL;
     }
 }

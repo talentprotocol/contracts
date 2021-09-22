@@ -29,7 +29,7 @@ abstract contract RewardCalculator is IRewardParameters {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result
     /// after calculations is divided by mul again to retrieve a real value
-    uint256 internal constant mul = 1e6;
+    uint256 internal constant MUL = 1e6;
 
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp
@@ -59,10 +59,7 @@ abstract contract RewardCalculator is IRewardParameters {
             return 0;
         }
 
-        // TODO finish formula
-        uint256 reward = ((this.rewardsLeft() / weight) * percentage) / mul;
-
-        return reward;
+        return ((this.rewardsLeft() / weight) * percentage) / MUL;
     }
 
     /// Truncates a period to fit within the start and end date of the staking period
@@ -86,41 +83,39 @@ abstract contract RewardCalculator is IRewardParameters {
             return (0, 1);
         }
 
-        uint256 startPercent = ((_start - this.start()) * mul) / totalDuration;
-        uint256 endPercent = ((_end - this.start()) * mul) / totalDuration;
+        uint256 startPercent = ((_start - this.start()) * MUL) / totalDuration;
+        uint256 endPercent = ((_end - this.start()) * MUL) / totalDuration;
 
         return (startPercent, endPercent);
     }
 
-    function _curvePercentage(uint256 _start, uint256 _end) internal pure returns (uint256) {
-        int256 maxArea = _integralAt(mul) - _integralAt(0);
+    function _curvePercentage(uint256 _start, uint256 _end) internal view returns (uint256) {
+        int256 maxArea = _integralAt(MUL) - _integralAt(0);
         int256 actualArea = _integralAt(_end) - _integralAt(_start);
 
-        uint256 ratio = uint256((actualArea * int256(mul)) / maxArea);
+        uint256 ratio = uint256((actualArea * int256(MUL)) / maxArea);
 
         return ratio;
     }
 
-    /// Curve equation: (1-x)^2
-    /// Expanded with multiplier:
-    ///   m*(1-x)^2/m
-    ///   => (mx^2-2mx+m)/m
-
-    /// Integrate[mx^2-2mx+m)/m]
-    /// => Integrate[mx^2-2mx+m] / m
-    /// => (mx^3/3 - mx^2 + mx) / m
-    ///
-    /// This last part, `mx^3/3 - mx^2 + mx`, is what we want to calculate here
-    ///
-    /// `m` is our `mul` multiplier, / to get out of floating point territory
-    /// The final division by `m` is missing, but this expected to / be done
-    /// outside, / once the / final / reward calculation is made, since / it
-    /// would result in values lower / than 1 at this stage
+    // Original equation: (1-x)^2 (ranging from 0 to 1 in both axis)
+    // We actualy need to go from 0 to MUL, to keep outside of floating point territory:
+    // Equation with multiplier: (MUL-x)^2/MUL
+    //
+    // We want the integral equation of that:
+    //   Integrate[(MUL-x)^2/MUL]
+    //   => Integrate[(MUL-x)^2] / MUL
+    //   => (x^3/3 - MUL * x^2 + M^2 * x) / MUL
+    //
+    // This last part, `x^3/3 - MUL * x^2 + M^2 * x`, is what we want to calculate here
+    // The final division by `MUL` is missing, but this is expected to be done
+    // outside, once the final reward calculation is made, since it would
+    // result in too much loss of precision at this stage.
     function _integralAt(uint256 _x) internal pure returns (int256) {
         int256 x = int256(_x);
-        int256 m = int256(mul);
+        int256 m = int256(MUL);
 
-        return (m * x**3) / 3 - m * x**2 + m * x;
+        return (x**3) / 3 - m * x**2 + m**2 * x;
     }
 
     /// copied from https://github.com/ethereum/dapp-bin/pull/50/files

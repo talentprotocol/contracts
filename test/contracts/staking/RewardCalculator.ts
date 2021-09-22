@@ -23,20 +23,25 @@ describe("RewardCalculator", () => {
   const start = 100;
   const end = 200;
 
-  async function builder(given: BigNumber, totalShares: BigNumber): Promise<TestRewardCalculator> {
+  async function builder(
+    given: BigNumber,
+    totalShares: BigNumber,
+    totalAdjustedShares: BigNumber
+  ): Promise<TestRewardCalculator> {
     return (await deployContract(owner, Artifacts.TestRewardCalculator, [
       start,
       end,
       parseUnits("100"),
       given,
       totalShares,
+      totalAdjustedShares,
     ])) as TestRewardCalculator;
   }
 
   beforeEach(async () => {
     [owner] = await ethers.getSigners();
 
-    calculator = await builder(parseUnits("0"), parseUnits("4000"));
+    calculator = await builder(parseUnits("0"), parseUnits("4000"), parseUnits("4000"));
   });
 
   describe("_truncatePeriod", () => {
@@ -102,6 +107,7 @@ describe("RewardCalculator", () => {
       const apr1 = await calculator.test_curvePercentage(0, mul * 0.3);
       const step = BigNumber.from(mul * 0.01);
       const apr2 = await calculator.test_curvePercentage(step.mul(10), step.mul(40));
+      console.log(apr1.toNumber(), apr2.toNumber());
 
       expect(apr1).to.be.gt(apr2);
     });
@@ -111,7 +117,7 @@ describe("RewardCalculator", () => {
       const step = BigNumber.from(mul * 0.01);
 
       for (let i = 0; i < 10; i += 1) {
-        const apr = await calculator.test_curvePercentage(step.mul(i), step.mul(i + 10));
+        const apr = await calculator.test_curvePercentage(step.mul(i * 10), step.mul((i + 1) * 10));
 
         expect(apr).to.be.lte(last);
         last = apr;
@@ -139,6 +145,28 @@ describe("RewardCalculator", () => {
         expect(apr).to.be.lt(last);
         last = apr;
       }
+    });
+  });
+
+  describe("integralAt", () => {
+    // values retrieved via Wolfram Alpha
+    // https://www.wolframalpha.com/input/?i=solve+x%5E3%2F3+-+mx%5E2+%2B+m%5E2+*+x%2C+m%3D1000000%2C+x%3D1000000
+    it("has the expected result at 0%", async () => {
+      expect(await calculator.test_integralAt(0)).to.equal(0);
+    });
+
+    it("has the expected result at 50%", async () => {
+      const x = (await calculator.multiplier()).div(2);
+      const y = BigNumber.from("875000000000000000").div("3");
+
+      expect(await calculator.test_integralAt(x)).to.equal(y);
+    });
+
+    it("has the expected result at the 100% point", async () => {
+      const x = await calculator.multiplier();
+      const y = BigNumber.from("1000000000000000000").div("3");
+
+      expect(await calculator.test_integralAt(x)).to.equal(y);
     });
   });
 });

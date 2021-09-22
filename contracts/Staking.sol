@@ -275,8 +275,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         // rewards, then returning 1 Talent Token should result in 50.5 TAL
         // being returned, instead of the 50 that would be given under the set
         // exchange rate
-        uint256 proportion = (_talentAmount * mul) / stake.talentAmount;
-        uint256 tokenAmount = (stake.tokenAmount * proportion) / mul;
+        uint256 proportion = (_talentAmount * MUL) / stake.talentAmount;
+        uint256 tokenAmount = (stake.tokenAmount * proportion) / MUL;
 
         require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
 

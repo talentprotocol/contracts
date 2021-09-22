@@ -14,9 +14,11 @@ export async function findEvent(tx: ContractTransaction, name: string): Promise<
 export async function deployTalentToken(
   factory: TalentFactory,
   minter: SignerWithAddress,
-  owner: SignerWithAddress
+  owner: SignerWithAddress,
+  name: string,
+  symbol: string
 ): Promise<TalentToken> {
-  const tx = await factory.connect(minter).createTalent(owner.address, "Miguel Palhas", "NAPS");
+  const tx = await factory.connect(minter).createTalent(owner.address, name, symbol);
   const event = await findEvent(tx, "TalentCreated");
 
   const address = event?.args?.token;

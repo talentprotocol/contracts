@@ -35,8 +35,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 lastCheckpointAt;
     }
 
-    /// List of all stakes (investor => Stake)
-    mapping(address => Stake) public stakes;
+    /// List of all stakes (investor => talent => Stake)
+    mapping(address => mapping(address => Stake)) public stakes;
 
     bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
 
@@ -174,9 +174,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 _amount,
         bytes calldata data
     ) external override(IERC1363Receiver) onlyWhileStakingEnabled returns (bytes4) {
-        require(_isTokenToken(msg.sender) || _isTalentToken(msg.sender), "Unrecognized ERC20 token received");
-
-        if (_isTokenToken(msg.sender)) {
+        if (_isToken(msg.sender)) {
             // if input is TAL, this is a stake since TAL deposits are enabled when
             // `setToken` is called, no additional check for `tokenPhaseOnly` is
             // necessary here
@@ -199,7 +197,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         }
     }
 
-    function _isTokenToken(address _address) internal view returns (bool) {
+    function _isToken(address _address) internal view returns (bool) {
         return _address == token;
     }
 
@@ -241,12 +239,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 _tokenAmount
     ) private {
         require(_isTalentToken(_talent), "not a valid talent token");
-        require(stakes[_owner].owner == address(0x0), "address already has stake");
+        require(stakes[_owner][_talent].owner == address(0x0), "address already has stake");
         require(_tokenAmount > 0, "amount cannot be zero");
 
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
-        stakes[_owner] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
+        stakes[_owner][_talent] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
@@ -259,7 +257,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ) private {
         require(_isTalentToken(_talent), "not a valid talent token");
 
-        Stake storage stake = stakes[_owner];
+        Stake storage stake = stakes[_owner][_talent];
 
         require(stake.owner == _owner, "stake does not exist");
         require(stake.talentAmount == _talentAmount);

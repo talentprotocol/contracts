@@ -73,4 +73,22 @@ abstract contract RewardCalculator is IRewardParameters {
 
         return (startPercent, endPercent);
     }
+
+    function _curvePercentage(uint256 _start, uint256 _end) internal pure returns (uint256) {
+        int256 maxArea = _integralAt(mul) - _integralAt(0);
+        int256 actualArea = _integralAt(_end) - _integralAt(_start);
+
+        uint256 ratio = uint256((actualArea * int256(mul)) / maxArea);
+
+        return ratio;
+    }
+
+    function _integralAt(uint256 _x) internal pure returns (int256) {
+        // TODO add final curve here
+        // This just returns 50% all the way through
+        int256 x = int256(_x);
+        int256 p1 = ((x - int256(mul))**3) / (3 * int256(mul));
+
+        return p1;
+    }
 }

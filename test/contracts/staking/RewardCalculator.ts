@@ -4,8 +4,8 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { BigNumber } from "ethers";
 import type { TestRewardCalculator } from "../../../typechain";
+import { BigNumber } from "ethers";
 
 import { Artifacts } from "../../shared";
 
@@ -87,6 +87,58 @@ describe("RewardCalculator", () => {
 
       expect(r1).to.equal(mul * 0.1);
       expect(r2).to.equal(mul * 0.9);
+    });
+  });
+
+  describe("curvePercentage", () => {
+    it("is maximum from 0% to 100%", async () => {
+      const apr1 = await calculator.test_curvePercentage(0, mul);
+      const apr2 = await calculator.test_curvePercentage(0, mul * 0.9);
+
+      expect(apr1).to.be.gt(apr2);
+    });
+
+    it("is greater if you enter earlier but stay the same time", async () => {
+      const apr1 = await calculator.test_curvePercentage(0, mul * 0.3);
+      const step = BigNumber.from(mul * 0.01);
+      const apr2 = await calculator.test_curvePercentage(step.mul(10), step.mul(40));
+
+      expect(apr1).to.be.gt(apr2);
+    });
+
+    it("each 10% segment is smaller than or equal the last", async () => {
+      let last: BigNumber | number = BigNumber.from("10").pow(100);
+      const step = BigNumber.from(mul * 0.01);
+
+      for (let i = 0; i < 10; i += 1) {
+        const apr = await calculator.test_curvePercentage(step.mul(i), step.mul(i + 10));
+
+        expect(apr).to.be.lte(last);
+        last = apr;
+      }
+    });
+
+    it("staying for 10% more increases your total APR", async () => {
+      let last: BigNumber | number = 0;
+      const step = BigNumber.from(mul * 0.01);
+
+      for (let i = 0; i < 10; i += 1) {
+        const apr = await calculator.test_curvePercentage(0, step.mul(i));
+
+        expect(apr).to.be.gte(last);
+        last = apr;
+      }
+    });
+
+    it("at least on the first 80%, each 10% segment is smaller than the last", async () => {
+      let last: BigNumber | number = 10e10;
+
+      for (let i = 0; i < 800000; i += 100000) {
+        const apr = await calculator.test_curvePercentage(i, i + 100000);
+
+        expect(apr).to.be.lt(last);
+        last = apr;
+      }
     });
   });
 });

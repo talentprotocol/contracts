@@ -71,6 +71,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
 
+    enum RewardAction {
+        WITHDRAW,
+        RESTAKE
+    }
+
     /// @param _start Timestamp at which staking begins
     /// @param _end Timestamp at which staking ends
     /// @param _rewardsMax Total amount of TAL to be given in rewards
@@ -271,6 +276,39 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         // stake.finished = true;
 
         // TODO? do we only allow refunds for 100% of the talent tokens received?
+    }
+
+    /// Performs a new checkpoint for a given stake
+    ///
+    /// Calculates all pending rewards since the last checkpoint, and accumulates them
+    /// TODO test this
+    /// @param _owner Owner of the stake
+    /// @param _talent Talent token staked
+    /// @param _action Whether to withdraw or restake rewards
+    function _checkpoint(
+        address _owner,
+        address _talent,
+        RewardAction _action
+    ) private {
+        Stake storage stake = stakes[_owner][_talent];
+
+        // calculate rewards since last checkpoint
+        uint256 rewards = calculateReward(stake.tokenAmount, stake.lastCheckpointAt, block.timestamp);
+
+        rewardsGiven += rewards;
+        stake.lastCheckpointAt = block.timestamp;
+
+        if (_action == RewardAction.WITHDRAW) {
+            IERC20(token).transfer(_owner, rewards);
+
+            // TODO event
+        } else if (_action == RewardAction.RESTAKE) {
+            stake.tokenAmount += rewards;
+
+            // TODO event
+        } else {
+            revert("Unrecognized checkpoint action");
+        }
     }
 
     /// mints a given amount of a given talent token

@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall } from "../shared/utils";
@@ -25,8 +25,8 @@ describe("Staking", () => {
 
   let tal: TalentProtocol;
   let stable: USDTMock;
-  let talentToken1: TalentProtocol;
-  let talentToken2: TalentProtocol;
+  let talentToken1: TalentToken;
+  let talentToken2: TalentToken;
   let factory: TalentFactory;
   let staking: Staking;
 
@@ -153,8 +153,6 @@ describe("Staking", () => {
 
         const stake = await staking.stakes(investor1.address, talentToken1.address);
 
-        expect(stake.owner).to.equal(investor1.address);
-        expect(stake.talent).to.equal(talentToken1.address);
         expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
       });
 
@@ -283,8 +281,6 @@ describe("Staking", () => {
 
             const stake = await staking.stakes(investor1.address, talentToken1.address);
 
-            expect(stake.owner).to.equal(investor1.address);
-            expect(stake.talent).to.equal(talentToken1.address);
             expect(stake.tokenAmount).to.equal(parseUnits("50"));
           });
 
@@ -297,12 +293,8 @@ describe("Staking", () => {
             const stake1 = await staking.stakes(investor1.address, talentToken1.address);
             const stake2 = await staking.stakes(investor1.address, talentToken2.address);
 
-            expect(stake1.owner).to.equal(investor1.address);
-            expect(stake1.talent).to.equal(talentToken1.address);
             expect(stake1.tokenAmount).to.equal(parseUnits("50"));
 
-            expect(stake2.owner).to.equal(investor1.address);
-            expect(stake2.talent).to.equal(talentToken2.address);
             expect(stake2.tokenAmount).to.equal(parseUnits("100"));
           });
 

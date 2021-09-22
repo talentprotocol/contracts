@@ -19,6 +19,10 @@ interface IRewardParameters {
 
     // Amount of rewards still left to earn
     function rewardsLeft() external view returns (uint256);
+
+    /// Sum of sqrt(tokenAmount) for each stake
+    /// Used to compute adjusted reward values
+    function totalAdjustedShares() external view returns (uint256);
 }
 
 abstract contract RewardCalculator is IRewardParameters {
@@ -41,13 +45,22 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 _start,
         uint256 _end
     ) internal view returns (uint256) {
+        if (this.totalAdjustedShares() == 0) {
+            return 0;
+        }
+
         (uint256 start, uint256 end) = _truncatePeriod(_start, _end);
         (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
 
         uint256 percentage = _curvePercentage(startPercent, endPercent);
+        uint256 weight = sqrt(_shares) / this.totalAdjustedShares();
+
+        if (weight == 0) {
+            return 0;
+        }
 
         // TODO finish formula
-        uint256 reward = (this.rewardsLeft() * percentage) / mul;
+        uint256 reward = ((this.rewardsLeft() / weight) * percentage) / mul;
 
         return reward;
     }
@@ -88,12 +101,37 @@ abstract contract RewardCalculator is IRewardParameters {
         return ratio;
     }
 
-    function _integralAt(uint256 _x) internal pure returns (int256) {
-        // TODO add final curve here
-        // This just returns 50% all the way through
-        int256 x = int256(_x);
-        int256 p1 = ((x - int256(mul))**3) / (3 * int256(mul));
+    /// Curve equation: (1-x)^2
+    /// Expanded with multiplier:
+    ///   m*(1-x)^2/m
+    ///   => (mx^2-2mx+m)/m
 
-        return p1;
+    /// Integrate[mx^2-2mx+m)/m]
+    /// => Integrate[mx^2-2mx+m] / m
+    /// => (mx^3/3 - mx^2 + mx) / m
+    ///
+    /// This last part, `mx^3/3 - mx^2 + mx`, is what we want to calculate here
+    ///
+    /// `m` is our `mul` multiplier, / to get out of floating point territory
+    /// The final division by `m` is missing, but this expected to / be done
+    /// outside, / once the / final / reward calculation is made, since / it
+    /// would result in values lower / than 1 at this stage
+    function _integralAt(uint256 _x) internal pure returns (int256) {
+        int256 x = int256(_x);
+        int256 m = int256(mul);
+
+        return (m * x**3) / 3 - m * x**2 + m * x;
+    }
+
+    /// copied from https://github.com/ethereum/dapp-bin/pull/50/files
+    function sqrt(uint256 x) internal pure returns (uint256 y) {
+        if (x == 0) return 0;
+        else if (x <= 3) return 1;
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
     }
 }

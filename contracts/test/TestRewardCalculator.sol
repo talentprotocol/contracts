@@ -9,19 +9,22 @@ contract TestRewardCalculator is RewardCalculator {
     uint256 public override(IRewardParameters) rewardsMax;
     uint256 public override(IRewardParameters) rewardsGiven;
     uint256 public override(IRewardParameters) totalShares;
+    uint256 public override(IRewardParameters) totalAdjustedShares;
 
     constructor(
         uint256 _start,
         uint256 _end,
         uint256 _rewardsMax,
         uint256 _rewardsGiven,
-        uint256 _totalShares
+        uint256 _totalShares,
+        uint256 _totalAdjustedShares
     ) {
         start = _start;
         end = _end;
         rewardsMax = _rewardsMax;
         rewardsGiven = _rewardsGiven;
         _totalShares = _totalShares;
+        totalAdjustedShares = _totalAdjustedShares;
     }
 
     function test_truncatePeriod(uint256 _start, uint256 _end) public view returns (uint256, uint256) {
@@ -32,11 +35,11 @@ contract TestRewardCalculator is RewardCalculator {
         return _periodToPercents(_start, _end);
     }
 
-    function test_curvePercentage(uint256 _start, uint256 _end) public view returns (uint256) {
+    function test_curvePercentage(uint256 _start, uint256 _end) public pure returns (uint256) {
         return _curvePercentage(_start, _end);
     }
 
-    function test_integralAt(uint256 _x) public view returns (int256) {
+    function test_integralAt(uint256 _x) public pure returns (int256) {
         return _integralAt(_x);
     }
 

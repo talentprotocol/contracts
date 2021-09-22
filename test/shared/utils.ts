@@ -23,7 +23,7 @@ export async function deployTalentToken(
 
   const address = event?.args?.token;
 
-  return TalentToken__factory.connect(address, minter);
+  return TalentToken__factory.connect(address, minter) as TalentToken;
 }
 
 // We can't currently call ERC1363 functions directly, because they make use of

@@ -173,6 +173,38 @@ describe("Staking", () => {
 
         expect(await staking.totalStableStored()).to.eq(parseUnits("25"));
       });
+
+      it("staking twice in the same talent goes through a checkpoint", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stakeBefore = await staking.stakes(investor1.address, talentToken1.address);
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+
+        expect(stakeAfter.lastCheckpointAt).to.be.gt(stakeBefore.lastCheckpointAt);
+
+        expect(stakeBefore.talentAmount).to.equal(parseUnits("25"));
+        expect(stakeAfter.talentAmount).to.equal(parseUnits("50"));
+      });
+
+      it("staking twice in different talents does not go through a checkpoint", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stake1Before = await staking.stakes(investor1.address, talentToken1.address);
+
+        await staking.connect(investor1).stakeStable(talentToken2.address, parseUnits("25"));
+        const stake1After = await staking.stakes(investor1.address, talentToken2.address);
+
+        const stake2 = await staking.stakes(investor1.address, talentToken1.address);
+
+        expect(stake1After.talentAmount).to.equal(stake2.talentAmount);
+        expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
+        expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
+        expect(stake1After.lastCheckpointAt).to.be.gt(stake1Before.lastCheckpointAt);
+      });
     });
 
     describe("swapStableForToken", () => {
@@ -315,15 +347,31 @@ describe("Staking", () => {
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
-            const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
-
-            await expect(action).not.to.be.reverted;
+            await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
             // NAPS is burned
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("0"));
 
             // TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+          });
+
+          it("performs a checkpoint and keeps a stake with the remainder", async () => {
+            await enterPhaseTwo();
+
+            // mint new NAPS
+            await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken1.address);
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("2"));
+
+            const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
+            await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+
+            // proportional amount of TAL is returned
+            expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+
+            // remaining TAL is still staked
+            const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+            expect(stakeAfter.tokenAmount).to.equal(parseUnits("50"));
           });
         });
       });

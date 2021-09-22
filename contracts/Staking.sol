@@ -126,13 +126,13 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     {
         require(_amount > 0, "amount cannot be zero");
 
-        IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
-
         uint256 tokenAmount = convertUsdToToken(_amount);
 
         totalStableStored += _amount;
 
         _stake(msg.sender, _talent, tokenAmount);
+
+        IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
         return true;
     }
@@ -250,7 +250,16 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         _checkpoint(_owner, _talent, RewardAction.RESTAKE);
 
-        stakes[_owner][_talent] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
+        Stake storage stake = stakes[_owner][_talent];
+
+        if (stake.owner == address(0x0)) {
+            stake.owner = _owner;
+            stake.talent = _talent;
+        }
+
+        stake.tokenAmount += _tokenAmount;
+        stake.talentAmount += talentAmount;
+
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
@@ -270,15 +279,22 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         require(stake.owner == _owner, "stake does not exist");
         require(stake.talentAmount >= _talentAmount);
 
-        // TODO missing rewards calculation
-        require(IERC20(token).balanceOf(address(this)) >= stake.tokenAmount, "not enough TAL to fulfill request");
+        // calculate TAL amount proportional to how many talent tokens are
+        // being deposited if stake has 100 deposited TAL + 1 TAL earned from
+        // rewards, then returning 1 Talent Token should result in 50.5 TAL
+        // being returned, instead of the 50 that would be given under the set
+        // exchange rate
+        uint256 proportion = (_talentAmount * mul) / stake.talentAmount;
+        uint256 tokenAmount = (stake.tokenAmount * proportion) / mul;
+
+        require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
+
+        // TODO should this be instead proportional to my stake (i.e. count the rewards)?
+        stake.talentAmount -= _talentAmount;
+        stake.tokenAmount -= tokenAmount;
 
         _burnTalent(_talent, _talentAmount);
-        _withdrawToken(stake.owner, stake.tokenAmount);
-
-        // stake.finished = true;
-
-        // TODO? do we only allow refunds for 100% of the talent tokens received?
+        _withdrawToken(stake.owner, tokenAmount);
     }
 
     /// Performs a new checkpoint for a given stake

@@ -25,7 +25,7 @@ abstract contract RewardCalculator is IRewardParameters {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result
     /// after calculations is divided by mul again to retrieve a real value
-    uint256 private constant mul = 1e6;
+    uint256 internal constant mul = 1e6;
 
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp

@@ -221,6 +221,24 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         return IERC20(token).balanceOf(address(this));
     }
 
+    /// Queries how much TAL can currently be staked on a given talent token
+    /// TODO test this
+    ///
+    /// @notice The limit of this value is enforced by the tokens' `mintingAvailability()`
+    ///   (see `TalentToken` contract)
+    ///
+    /// @notice Stakes that exceed this amount will be rejected
+    ///
+    /// @param _talent Talent token to query
+    /// @return How much TAL can be staked on the given talent token, before depleting minting supply
+    function stakeAvailability(address _talent) public view returns (uint256) {
+        require(_isTalentToken(_talent), "not a valid talent token");
+
+        uint256 talentAmount = ITalentToken(_talent).mintingAvailability();
+
+        return convertTalentToToken(talentAmount);
+    }
+
     /// Deposits TAL in exchange for the equivalent amount of stable coin stored in the contract
     ///
     /// @notice Meant to be used by the contract owner to retrieve stable coin
@@ -424,8 +442,13 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
+            // truncate rewards to stake to the maximum stake availability
             // TODO test this
-            _stake(_owner, _talent, rewards);
+            uint256 availability = stakeAvailability(_talent);
+            uint256 rewardsToStake = (availability > rewards) ? rewards : availability;
+
+            // TODO test this
+            _stake(_owner, _talent, rewardsToStake);
 
             // TODO event
         } else {
@@ -442,6 +465,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _talent,
         uint256 _amount
     ) private {
+        // TODO test a scenario where more than availableMinting is minted
         ITalentToken(_talent).mint(_owner, _amount);
     }
 

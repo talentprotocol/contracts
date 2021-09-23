@@ -441,10 +441,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.lastCheckpointAt = block.timestamp;
 
         // TODO test this
-        // TODO should we skip this if 0?
-        (uint256 talentShare, address talentAddress) = _calculateTalentShare(_talent, stake.talentAmount, rewards);
+        uint256 talentShare =  _calculateTalentShare(_talent, stake.talentAmount, rewards);
         uint256 stakeShare = rewards - talentShare;
-        IERC20(_talent).transfer(talentAddress, talentShare);
+        talentShares[_talent] += talentShare;
 
         if (_action == RewardAction.WITHDRAW) {
             IERC20(token).transfer(_owner, stakeShare);
@@ -473,14 +472,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// @param _stakeAmount Amount of talent tokens owned by the staker
     /// @param _rewards Total amount of rewards to distribute
     ///
-    /// @return Talent's share of the given reward
     /// @return the talent's address to which their share is to be sent
     function _calculateTalentShare(
         address _talent,
         uint256 _stakeAmount,
         uint256 _rewards
-    ) private view returns (uint256, address) {
-        address talentAddress = ITalentToken(_talent).talent();
+    ) private view returns address {
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
         uint256 stakeAdjustedAmount = sqrt(_stakeAmount * MUL);
@@ -494,7 +491,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             talentRewards = minTalentRewards;
         }
 
-        return (talentRewards, talentAddress);
+        return talentRewards;
     }
 
     /// mints a given amount of a given talent token

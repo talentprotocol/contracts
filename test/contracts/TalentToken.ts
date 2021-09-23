@@ -83,6 +83,18 @@ describe("TalentToken", () => {
       expect(await coin.mintingAvailability()).to.equal((await coin.MAX_SUPPLY()).sub(await coin.totalSupply()));
     });
 
+    it("correctly sets the talent' address", async () => {
+      expect(await coin.talent()).to.equal(talent.address);
+    });
+
+    it("correctly sets the TALENT role", async () => {
+      expect(await coin.hasRole(await coin.ROLE_TALENT(), talent.address)).to.be.true;
+    });
+
+    it("correctly sets the MINTER role", async () => {
+      expect(await coin.hasRole(await coin.ROLE_MINTER(), minter.address)).to.be.true;
+    });
+
     describe("mint", () => {
       it("works when called by the minter", async () => {
         const action = coin.connect(minter).mint(investor.address, parseUnits("1"));

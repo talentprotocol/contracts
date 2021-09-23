@@ -119,6 +119,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         public
         onlyWhileStakingEnabled
         stablePhaseOnly
+        updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
         require(_amount > 0, "amount cannot be zero");
@@ -130,6 +131,38 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         _stake(msg.sender, _talent, tokenAmount);
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
+
+        return true;
+    }
+
+    /// Redeems rewards since last checkpoint, and reinvests them in the stake
+    ///
+    /// @param _talent talent token of the stake to process
+    /// @return true if operation success
+    /// TODO test this
+    function claimRewards(address _talent)
+        public
+        stablePhaseOnly
+        updatesAdjustedShares(msg.sender, _talent)
+        returns (bool)
+    {
+        _checkpoint(msg.sender, _talent, RewardAction.RESTAKE);
+
+        return true;
+    }
+
+    /// Redeems rewards since last checkpoint, and withdraws them to the owner's wallet
+    ///
+    /// @param _talent talent token of the stake to process
+    /// @return true if operation success
+    /// TODO test this
+    function withdrawRewards(address _talent)
+        public
+        stablePhaseOnly
+        updatesAdjustedShares(msg.sender, _talent)
+        returns (bool)
+    {
+        _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
 
         return true;
     }
@@ -314,6 +347,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
+            // TODO should this mint new talent tokens?
             stake.tokenAmount += rewards;
             totalTokenStaked += rewards;
 

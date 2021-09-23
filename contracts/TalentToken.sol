@@ -22,10 +22,10 @@ interface ITalentToken is IERC20Upgradeable {
     function burn(address _owner, uint256 _amount) external;
 
     // timestamp at which MAX_SUPPLY was reached (or 0 if never reached)
-    function mintingFinishedAt() external returns (uint256);
+    function mintingFinishedAt() external view returns (uint256);
 
     // how much is available to be minted
-    function mintingAvailability() external returns (uint256);
+    function mintingAvailability() external view returns (uint256);
 }
 
 /// @title The base contract for Talent Tokens

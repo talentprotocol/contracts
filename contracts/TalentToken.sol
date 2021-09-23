@@ -15,12 +15,16 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
 
 interface ITalentToken is IERC20Upgradeable {
+    // mints new talent tokens
     function mint(address _owner, uint256 _amount) external;
 
+    // burns existing talent tokens
     function burn(address _owner, uint256 _amount) external;
 
+    // timestamp at which MAX_SUPPLY was reached (or 0 if never reached)
     function mintingFinishedAt() external returns (uint256);
 
+    // how much is available to be minted
     function mintingAvailability() external returns (uint256);
 }
 

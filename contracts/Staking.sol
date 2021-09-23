@@ -168,7 +168,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         totalStableStored += _amount;
 
-        _stake(msg.sender, _talent, tokenAmount);
+        _checkpointAndStake(msg.sender, _talent, tokenAmount);
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
@@ -255,7 +255,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // necessary here
             address talent = bytesToAddress(data);
 
-            _stake(_sender, talent, _amount);
+            _checkpointAndStake(_sender, talent, _amount);
 
             return ERC1363_RECEIVER_RET;
         } else if (_isTalentToken(msg.sender)) {
@@ -264,7 +264,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // if it's a registered Talent Token, this is a refund
             address talent = msg.sender;
 
-            _unstake(_sender, talent, _amount);
+            _checkpointAndUnstake(_sender, talent, _amount);
 
             return ERC1363_RECEIVER_RET;
         } else {
@@ -304,11 +304,16 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     // Private Interface
     //
 
-    /// Creates a stake, given an owner and a TAL amount
+    /// Creates a checkpoint, and then stakes adds the given TAL amount to the stake,
+    ///   minting Talent token in the process
     ///
     /// @dev This function assumes tokens have been previously transfered by
-    ///   the caller function or via ERC1363Receiver
-    function _stake(
+    ///   the caller function or via `ERC1363Receiver` or `stableStake`
+    ///
+    /// @param _owner Owner of the stake
+    /// @param _talent Talent token to stake on
+    /// @param _tokenAmount TAL amount to stake
+    function _checkpointAndStake(
         address _owner,
         address _talent,
         uint256 _tokenAmount
@@ -316,21 +321,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         require(_isTalentToken(_talent), "not a valid talent token");
         require(_tokenAmount > 0, "amount cannot be zero");
 
-        uint256 talentAmount = convertTokenToTalent(_tokenAmount);
-
         _checkpoint(_owner, _talent, RewardAction.RESTAKE);
-
-        Stake storage stake = stakes[_owner][_talent];
-
-        stake.tokenAmount += _tokenAmount;
-        stake.talentAmount += talentAmount;
-
-        totalTokenStaked = _tokenAmount;
-
-        _mintTalent(_owner, _talent, talentAmount);
+        _stake(_owner, _talent, _tokenAmount);
     }
 
-    function _unstake(
+    function _checkpointAndUnstake(
         address _owner,
         address _talent,
         uint256 _talentAmount
@@ -359,6 +354,31 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
+    }
+
+    /// Adds the given TAL amount to the stake, minting Talent token in the process
+    ///
+    /// @dev This function assumes tokens have been previously transfered by
+    ///   the caller function or via `ERC1363Receiver` or `stableStake`
+    ///
+    /// @param _owner Owner of the stake
+    /// @param _talent Talent token to stake on
+    /// @param _tokenAmount TAL amount to stake
+    function _stake(
+        address _owner,
+        address _talent,
+        uint256 _tokenAmount
+    ) private {
+        uint256 talentAmount = convertTokenToTalent(_tokenAmount);
+
+        Stake storage stake = stakes[_owner][_talent];
+
+        stake.tokenAmount += _tokenAmount;
+        stake.talentAmount += talentAmount;
+
+        totalTokenStaked = _tokenAmount;
+
+        _mintTalent(_owner, _talent, talentAmount);
     }
 
     /// Performs a new checkpoint for a given stake
@@ -395,9 +415,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
-            // TODO should this mint new talent tokens?
-            stake.tokenAmount += rewards;
-            totalTokenStaked += rewards;
+            // TODO test this
+            _stake(_owner, _talent, rewards);
 
             // TODO event
         } else {

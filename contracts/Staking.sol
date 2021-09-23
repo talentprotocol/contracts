@@ -21,10 +21,6 @@ import {ITalentFactory} from "./TalentFactory.sol";
 contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {
-        /// Owner of the stake
-        address owner;
-        /// Talent token the stake applies to
-        address talent;
         /// Amount currently staked
         uint256 tokenAmount;
         /// Talent tokens minted as part of this stake
@@ -59,6 +55,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     // How much TAL is currently staked (not including rewards)
     uint256 public totalTokenStaked;
 
+    /// Sum of sqrt(tokenAmount) for each stake
+    /// Used to compute adjusted reward values
+    uint256 public override(IRewardParameters) totalAdjustedShares;
+
     // How much TAL is to be given in rewards
     uint256 public immutable override(IRewardParameters) rewardsMax;
 
@@ -70,6 +70,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
+
+    /// Possible actions when a checkpoint is being triggered
+    enum RewardAction {
+        WITHDRAW,
+        RESTAKE
+    }
+
+    bool private isAlreadyUpatingAdjustedShares;
 
     /// @param _start Timestamp at which staking begins
     /// @param _end Timestamp at which staking ends
@@ -100,12 +108,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    modifier onlyWhileStakingEnabled() {
-        require(block.timestamp >= start, "staking period not yet started");
-        require(block.timestamp <= end, "staking period already finished");
-        _;
-    }
-
     /// Creates a new stake from an amount of stable coin.
     /// The USD amount will be converted to the equivalent amount in TAL, according to the pre-determined rate
     ///
@@ -121,13 +123,13 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     {
         require(_amount > 0, "amount cannot be zero");
 
-        IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
-
         uint256 tokenAmount = convertUsdToToken(_amount);
 
         totalStableStored += _amount;
 
         _stake(msg.sender, _talent, tokenAmount);
+
+        IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
         return true;
     }
@@ -237,14 +239,19 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _owner,
         address _talent,
         uint256 _tokenAmount
-    ) private {
+    ) private updatesAdjustedShares(_owner, _talent) {
         require(_isTalentToken(_talent), "not a valid talent token");
-        require(stakes[_owner][_talent].owner == address(0x0), "address already has stake");
         require(_tokenAmount > 0, "amount cannot be zero");
 
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
-        stakes[_owner][_talent] = Stake(_owner, _talent, _tokenAmount, talentAmount, block.timestamp);
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
+
+        Stake storage stake = stakes[_owner][_talent];
+
+        stake.tokenAmount += _tokenAmount;
+        stake.talentAmount += talentAmount;
+
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
@@ -254,23 +261,66 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _owner,
         address _talent,
         uint256 _talentAmount
-    ) private {
+    ) private updatesAdjustedShares(_owner, _talent) {
         require(_isTalentToken(_talent), "not a valid talent token");
+
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
 
         Stake storage stake = stakes[_owner][_talent];
 
-        require(stake.owner == _owner, "stake does not exist");
-        require(stake.talentAmount == _talentAmount);
+        require(stake.lastCheckpointAt > 0, "stake does not exist");
+        require(stake.talentAmount >= _talentAmount);
 
-        // TODO missing rewards calculation
-        require(IERC20(token).balanceOf(address(this)) >= stake.tokenAmount, "not enough TAL to fulfill request");
+        // calculate TAL amount proportional to how many talent tokens are
+        // being deposited if stake has 100 deposited TAL + 1 TAL earned from
+        // rewards, then returning 1 Talent Token should result in 50.5 TAL
+        // being returned, instead of the 50 that would be given under the set
+        // exchange rate
+        uint256 proportion = (_talentAmount * MUL) / stake.talentAmount;
+        uint256 tokenAmount = (stake.tokenAmount * proportion) / MUL;
+
+        require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
+
+        // TODO should this be instead proportional to my stake (i.e. count the rewards)?
+        stake.talentAmount -= _talentAmount;
+        stake.tokenAmount -= tokenAmount;
 
         _burnTalent(_talent, _talentAmount);
-        _withdrawToken(stake.owner, stake.tokenAmount);
+        _withdrawToken(_owner, tokenAmount);
+    }
 
-        // stake.finished = true;
+    /// Performs a new checkpoint for a given stake
+    ///
+    /// Calculates all pending rewards since the last checkpoint, and accumulates them
+    /// TODO test this
+    /// @param _owner Owner of the stake
+    /// @param _talent Talent token staked
+    /// @param _action Whether to withdraw or restake rewards
+    function _checkpoint(
+        address _owner,
+        address _talent,
+        RewardAction _action
+    ) private updatesAdjustedShares(_owner, _talent) {
+        Stake storage stake = stakes[_owner][_talent];
 
-        // TODO? do we only allow refunds for 100% of the talent tokens received?
+        // calculate rewards since last checkpoint
+        uint256 rewards = calculateReward(stake.tokenAmount, stake.lastCheckpointAt, block.timestamp);
+
+        rewardsGiven += rewards;
+        stake.lastCheckpointAt = block.timestamp;
+
+        if (_action == RewardAction.WITHDRAW) {
+            IERC20(token).transfer(_owner, rewards);
+
+            // TODO event
+        } else if (_action == RewardAction.RESTAKE) {
+            stake.tokenAmount += rewards;
+            totalTokenStaked += rewards;
+
+            // TODO event
+        } else {
+            revert("Unrecognized checkpoint action");
+        }
     }
 
     /// mints a given amount of a given talent token
@@ -300,6 +350,36 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// returns a given amount of TAL to an owner
     function _withdrawToken(address _owner, uint256 _amount) private {
         IERC20(token).transfer(_owner, _amount);
+    }
+
+    modifier updatesAdjustedShares(address _owner, address _talent) {
+        if (isAlreadyUpatingAdjustedShares) {
+            // works like a re-entrancy guard, to prevent sqrt calculations
+            // from happening twice
+            _;
+        } else {
+            isAlreadyUpatingAdjustedShares = true;
+            // calculate current adjusted shares for this stake
+            // we don't deduct it directly because other computations wrapped by this modifier depend on the original value
+            // (e.g. reward calculation)
+            // therefore, we just keep track of it, and do a final update to the stored value at the end;
+            // temporarily deduct from adjusted shares
+            uint256 toDeduct = sqrt(stakes[_owner][_talent].tokenAmount);
+
+            _;
+
+            // calculated adjusted shares again, now with rewards included, and
+            // excluding the previously computed amount to be deducted
+            // (replaced by the new one)
+            totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
+            isAlreadyUpatingAdjustedShares = false;
+        }
+    }
+
+    modifier onlyWhileStakingEnabled() {
+        require(block.timestamp >= start, "staking period not yet started");
+        require(block.timestamp <= end, "staking period already finished");
+        _;
     }
 
     /// Converts a given USD amount to TAL

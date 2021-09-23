@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall } from "../shared/utils";
@@ -25,14 +25,14 @@ describe("Staking", () => {
 
   let tal: TalentProtocol;
   let stable: USDTMock;
-  let talentToken1: TalentProtocol;
-  let talentToken2: TalentProtocol;
+  let talentToken1: TalentToken;
+  let talentToken2: TalentToken;
   let factory: TalentFactory;
   let staking: Staking;
 
   const start = dayjs().add(-1, "day").unix();
   const end = dayjs().add(1, "day").unix();
-  const rewardsMax = parseUnits("400000000");
+  const noRewards = parseUnits("0");
 
   beforeEach(async () => {
     [owner, minter, talent1, talent2, investor1, investor2] = await ethers.getSigners();
@@ -55,7 +55,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0.02"),
@@ -69,7 +69,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0"),
@@ -83,7 +83,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        rewardsMax,
+        noRewards,
         stable.address,
         factory.address,
         parseUnits("0.5"),
@@ -98,7 +98,7 @@ describe("Staking", () => {
     return deployContract(owner, Artifacts.Staking, [
       start,
       end,
-      rewardsMax,
+      noRewards,
       stable.address,
       factory.address,
       parseUnits("0.02"),
@@ -153,8 +153,6 @@ describe("Staking", () => {
 
         const stake = await staking.stakes(investor1.address, talentToken1.address);
 
-        expect(stake.owner).to.equal(investor1.address);
-        expect(stake.talent).to.equal(talentToken1.address);
         expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
       });
 
@@ -172,6 +170,38 @@ describe("Staking", () => {
         await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
 
         expect(await staking.totalStableStored()).to.eq(parseUnits("25"));
+      });
+
+      it("staking twice in the same talent goes through a checkpoint", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stakeBefore = await staking.stakes(investor1.address, talentToken1.address);
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+
+        expect(stakeAfter.lastCheckpointAt).to.be.gt(stakeBefore.lastCheckpointAt);
+
+        expect(stakeBefore.talentAmount).to.equal(parseUnits("25"));
+        expect(stakeAfter.talentAmount).to.equal(parseUnits("50"));
+      });
+
+      it("staking twice in different talents does not go through a checkpoint", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const stake1Before = await staking.stakes(investor1.address, talentToken1.address);
+
+        await staking.connect(investor1).stakeStable(talentToken2.address, parseUnits("25"));
+        const stake1After = await staking.stakes(investor1.address, talentToken2.address);
+
+        const stake2 = await staking.stakes(investor1.address, talentToken1.address);
+
+        expect(stake1After.talentAmount).to.equal(stake2.talentAmount);
+        expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
+        expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
+        expect(stake1After.lastCheckpointAt).to.be.gt(stake1Before.lastCheckpointAt);
       });
     });
 
@@ -251,8 +281,6 @@ describe("Staking", () => {
 
             const stake = await staking.stakes(investor1.address, talentToken1.address);
 
-            expect(stake.owner).to.equal(investor1.address);
-            expect(stake.talent).to.equal(talentToken1.address);
             expect(stake.tokenAmount).to.equal(parseUnits("50"));
           });
 
@@ -265,12 +293,8 @@ describe("Staking", () => {
             const stake1 = await staking.stakes(investor1.address, talentToken1.address);
             const stake2 = await staking.stakes(investor1.address, talentToken2.address);
 
-            expect(stake1.owner).to.equal(investor1.address);
-            expect(stake1.talent).to.equal(talentToken1.address);
             expect(stake1.tokenAmount).to.equal(parseUnits("50"));
 
-            expect(stake2.owner).to.equal(investor1.address);
-            expect(stake2.talent).to.equal(talentToken2.address);
             expect(stake2.tokenAmount).to.equal(parseUnits("100"));
           });
 
@@ -315,15 +339,31 @@ describe("Staking", () => {
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
-            const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
-
-            await expect(action).not.to.be.reverted;
+            await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
             // NAPS is burned
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("0"));
 
             // TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+          });
+
+          it("performs a checkpoint and keeps a stake with the remainder", async () => {
+            await enterPhaseTwo();
+
+            // mint new NAPS
+            await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken1.address);
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("2"));
+
+            const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
+            await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+
+            // proportional amount of TAL is returned
+            expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+
+            // remaining TAL is still staked
+            const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+            expect(stakeAfter.tokenAmount).to.equal(parseUnits("50"));
           });
         });
       });

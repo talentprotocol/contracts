@@ -325,6 +325,15 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         _stake(_owner, _talent, _tokenAmount);
     }
 
+    /// Creates a checkpoint, and then unstakes the given TAL amount,
+    ///   burning Talent token in the process
+    ///
+    /// @dev This function assumes tokens have been previously transfered by
+    ///   the caller function or via `ERC1363Receiver` or `stableStake`
+    ///
+    /// @param _owner Owner of the stake
+    /// @param _talent Talent token to stake on
+    /// @param _tokenAmount TAL amount to unstake
     function _checkpointAndUnstake(
         address _owner,
         address _talent,

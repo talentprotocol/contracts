@@ -445,10 +445,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // truncate rewards to stake to the maximum stake availability
             // TODO test this
             uint256 availability = stakeAvailability(_talent);
-            uint256 rewardToStake = (availability > rewardToStake) ? rewards : availability;
+            uint256 rewardsToStake = (availability > rewards) ? rewards : availability;
 
             // TODO test this
-            _stake(_owner, _talent, rewardToStake);
+            _stake(_owner, _talent, rewardsToStake);
 
             // TODO event
         } else {

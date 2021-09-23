@@ -17,7 +17,9 @@ import {ITalentFactory} from "./TalentFactory.sol";
 /// @notice During phase 1, accepts USDT, which is automatically converted into an equivalent TAL amount.
 ///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 ///
-/// @dev Across
+/// @notice Rewards are given based on the logic from `RewardCalculator`, which
+/// relies on a continuous `totalAdjustedShares` being updated on every
+/// stake/withdraw. Seel `RewardCalculator` for more details
 contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {
@@ -314,7 +316,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
 
-        // TODO should this be instead proportional to my stake (i.e. count the rewards)?
         stake.talentAmount -= _talentAmount;
         stake.tokenAmount -= tokenAmount;
 

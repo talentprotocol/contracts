@@ -15,12 +15,33 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
 
 interface ITalentToken is IERC20Upgradeable {
+    // mints new talent tokens
     function mint(address _owner, uint256 _amount) external;
 
+    // burns existing talent tokens
     function burn(address _owner, uint256 _amount) external;
+
+    // timestamp at which MAX_SUPPLY was reached (or 0 if never reached)
+    function mintingFinishedAt() external returns (uint256);
+
+    // how much is available to be minted
+    function mintingAvailability() external returns (uint256);
 }
 
 /// @title The base contract for Talent Tokens
+///
+/// @notice a standard ERC20 contract, upgraded with ERC1363 functionality, and
+/// upgradeability and AccessControl functions from OpenZeppelin
+///
+/// @notice Minting:
+///   A TalentToken has a fixed MAX_SUPPLY, after which no more minting can occur
+///   Minting & burning is only allowed by a specific role, assigned on initialization
+///
+/// @notice Burning:
+///   If tokens are burnt before MAX_SUPPLY is ever reached, they are added
+///   back into the `mintingAvailability` pool /   If MAX_SUPPLY has already been
+///   reached at some point, then future burns can no longer be minted back,
+///   effectively making the burn permanent
 contract TalentToken is
     Initializable,
     ContextUpgradeable,
@@ -31,6 +52,14 @@ contract TalentToken is
 {
     /// minter role
     bytes32 public constant ROLE_MINTER_BURNER = keccak256("MINTER_BURNER");
+
+    uint256 public constant MAX_SUPPLY = 100000 ether;
+
+    // amount available to be minted
+    uint256 public override(ITalentToken) mintingAvailability;
+
+    // timestamp at which minting reached MAX_SUPPLY
+    uint256 public override(ITalentToken) mintingFinishedAt;
 
     function initialize(
         string memory _name,
@@ -46,6 +75,7 @@ contract TalentToken is
 
         _setupRole(ROLE_MINTER_BURNER, _minter_burner);
         _mint(_talent, _initialSupply);
+        mintingAvailability = MAX_SUPPLY - _initialSupply;
     }
 
     /// Mints new supply
@@ -55,6 +85,13 @@ contract TalentToken is
     /// @param _to Recipient of the new tokens
     /// @param _amount Amount to mint
     function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
+        require(mintingAvailability >= _amount);
+        mintingAvailability -= _amount;
+
+        if (mintingAvailability == 0) {
+            mintingFinishedAt = block.timestamp;
+        }
+
         _mint(_to, _amount);
     }
 
@@ -65,6 +102,12 @@ contract TalentToken is
     /// @param _from Owner of the tokens to burn
     /// @param _amount Amount to mint
     function burn(address _from, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
+        // if we have already reached MAX_SUPPLY, we don't ever want to allow
+        // minting, even if a burn has occured afterwards
+        if (mintingAvailability > 0) {
+            mintingAvailability += _amount;
+        }
+
         _burn(_from, _amount);
     }
 

@@ -16,7 +16,7 @@ const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
 describe("TalentToken", () => {
-  let creator: SignerWithAddress;
+  let owner: SignerWithAddress;
   let talent: SignerWithAddress;
   let minter: SignerWithAddress;
   let investor: SignerWithAddress;
@@ -25,7 +25,7 @@ describe("TalentToken", () => {
   let coin: TalentToken;
 
   beforeEach(async () => {
-    [creator, talent, minter, investor] = await ethers.getSigners();
+    [owner, talent, minter, investor] = await ethers.getSigners();
 
     // deploy template
     TalentTokenFactory = await ethers.getContractFactory("TalentToken");
@@ -79,12 +79,37 @@ describe("TalentToken", () => {
       expect(await coin.balanceOf(talent.address)).to.eq(parseUnits("123"));
     });
 
+    it("correctly sets mintingAvailability", async () => {
+      expect(await coin.mintingAvailability()).to.equal((await coin.MAX_SUPPLY()).sub(await coin.totalSupply()));
+    });
+
     describe("mint", () => {
       it("works when called by the minter", async () => {
         const action = coin.connect(minter).mint(investor.address, parseUnits("1"));
 
         await expect(action).not.to.be.reverted;
         expect(await coin.balanceOf(investor.address)).to.equal(parseUnits("1"));
+      });
+
+      it("updates mintingAvailability", async () => {
+        const before = await coin.mintingAvailability();
+        await coin.connect(minter).mint(investor.address, parseUnits("1"));
+        const after = await coin.mintingAvailability();
+
+        expect(after).to.equal(before.sub(parseUnits("1")));
+      });
+
+      it("does not update mintingFinishedAt if MAX_SUPPLY is not reached", async () => {
+        await coin.connect(minter).mint(investor.address, (await coin.mintingAvailability()).div(2));
+
+        expect(await coin.mintingFinishedAt()).to.equal(0);
+      });
+
+      it("updates mintingFinishedAt if MAX_SUPPLY is reached", async () => {
+        await coin.connect(minter).mint(investor.address, await coin.mintingAvailability());
+
+        expect(await coin.mintingAvailability()).to.equal(0);
+        expect(await coin.mintingFinishedAt()).not.to.equal(0);
       });
 
       it("is not callable by a non-minter", async () => {
@@ -111,6 +136,27 @@ describe("TalentToken", () => {
         const action = coin.connect(minter).burn(investor.address, parseUnits("1"));
 
         await expect(action).to.be.reverted;
+      });
+
+      it("updates mintingAvailability if MAX_SUPPLY has never been reached", async () => {
+        await coin.connect(minter).mint(investor.address, parseUnits("1"));
+
+        const before = await coin.mintingAvailability();
+        await coin.connect(minter).burn(investor.address, parseUnits("1"));
+        const after = await coin.mintingAvailability();
+
+        expect(after).to.equal(before.add(parseUnits("1")));
+      });
+
+      it("does not update mintingAvailability if MAX_SUPPLY has been reached", async () => {
+        // reach max supply
+        await coin.connect(minter).mint(investor.address, await coin.mintingAvailability());
+
+        const before = await coin.mintingAvailability();
+        await coin.connect(minter).burn(investor.address, parseUnits("1"));
+        const after = await coin.mintingAvailability();
+
+        expect(after).to.equal(before);
       });
     });
   });

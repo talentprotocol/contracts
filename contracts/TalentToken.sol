@@ -21,6 +21,9 @@ interface ITalentToken is IERC20Upgradeable {
     // burns existing talent tokens
     function burn(address _owner, uint256 _amount) external;
 
+    // talent's wallet
+    function talent() external view returns (address);
+
     // timestamp at which MAX_SUPPLY was reached (or 0 if never reached)
     function mintingFinishedAt() external view returns (uint256);
 
@@ -65,7 +68,7 @@ contract TalentToken is
     uint256 public override(ITalentToken) mintingFinishedAt;
 
     // talent's wallet
-    address public talent;
+    address public override(ITalentToken) talent;
 
     function initialize(
         string memory _name,

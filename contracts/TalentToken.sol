@@ -50,8 +50,11 @@ contract TalentToken is
     ERC1363Upgradeable,
     ITalentToken
 {
-    /// minter role
-    bytes32 public constant ROLE_MINTER_BURNER = keccak256("MINTER_BURNER");
+    /// Talent role
+    bytes32 public constant ROLE_TALENT = keccak256("TALENT");
+
+    /// Minter role
+    bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
     uint256 public constant MAX_SUPPLY = 100000 ether;
 
@@ -61,30 +64,41 @@ contract TalentToken is
     // timestamp at which minting reached MAX_SUPPLY
     uint256 public override(ITalentToken) mintingFinishedAt;
 
+    // talent's wallet
+    address public talent;
+
     function initialize(
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
         address _talent,
-        address _minter_burner
+        address _minter
     ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __ERC20_init_unchained(_name, _symbol);
         __AccessControl_init_unchained();
 
-        _setupRole(ROLE_MINTER_BURNER, _minter_burner);
+        talent = _talent;
+        // TODO set admin role to the same as factory's admin
+
+        _setupRole(ROLE_TALENT, _talent);
+        _setupRole(ROLE_MINTER, _minter);
+
+        // TODO test this
+        _setRoleAdmin(ROLE_TALENT, ROLE_TALENT);
+
         _mint(_talent, _initialSupply);
         mintingAvailability = MAX_SUPPLY - _initialSupply;
     }
 
     /// Mints new supply
     ///
-    /// @notice Only accessible to the role MINTER_BURNER
+    /// @notice Only accessible to the role MINTER
     ///
     /// @param _to Recipient of the new tokens
     /// @param _amount Amount to mint
-    function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
+    function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER) {
         require(mintingAvailability >= _amount);
         mintingAvailability -= _amount;
 
@@ -97,11 +111,11 @@ contract TalentToken is
 
     /// Burns existing supply
     ///
-    /// @notice Only accessible to the role MINTER_BURNER
+    /// @notice Only accessible to the role MINTER
     ///
     /// @param _from Owner of the tokens to burn
     /// @param _amount Amount to mint
-    function burn(address _from, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER_BURNER) {
+    function burn(address _from, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER) {
         // if we have already reached MAX_SUPPLY, we don't ever want to allow
         // minting, even if a burn has occured afterwards
         if (mintingAvailability > 0) {
@@ -109,6 +123,22 @@ contract TalentToken is
         }
 
         _burn(_from, _amount);
+    }
+
+    /// Changes the talent's wallet
+    ///
+    /// @notice Callable by the talent to chance his own ownership address
+    ///
+    /// @notice onlyRole() is not needed here, since the equivalent check is
+    /// already done by `grantRole`, which only allows the role's admin, which
+    /// is the TALENT role itself, to grant the role.
+    ///
+    /// @param _newTalent address for the new talent's wallet
+    /// TODO test this
+    function transferTalentWallet(address _newTalent) public {
+        talent = _newTalent;
+        grantRole(ROLE_TALENT, _newTalent);
+        revokeRole(ROLE_TALENT, msg.sender);
     }
 
     //

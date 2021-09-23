@@ -21,6 +21,19 @@ interface ITalentToken is IERC20Upgradeable {
 }
 
 /// @title The base contract for Talent Tokens
+///
+/// @notice a standard ERC20 contract, upgraded with ERC1363 functionality, and
+/// upgradeability and AccessControl functions from OpenZeppelin
+///
+/// @notice Minting:
+///   A TalentToken has a fixed MAX_SUPPLY, after which no more minting can occur
+///   Minting & burning is only allowed by a specific role, assigned on initialization
+///
+/// @notice Burning:
+///   If tokens are burnt before MAX_SUPPLY is ever reached, they are added
+///   back into the `mintingAvailability` pool /   If MAX_SUPPLY has already been
+///   reached at some point, then future burns can no longer be minted back,
+///   effectively making the burn permanent
 contract TalentToken is
     Initializable,
     ContextUpgradeable,
@@ -39,9 +52,6 @@ contract TalentToken is
 
     // timestamp at which minting reached MAX_SUPPLY
     uint256 public mintingFinishedAt;
-
-    // TODO set maximum supply, after which minting is no longer allowed
-    // for now, let's use 100k tokens
 
     function initialize(
         string memory _name,

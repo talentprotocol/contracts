@@ -332,8 +332,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///   the caller function or via `ERC1363Receiver` or `stableStake`
     ///
     /// @param _owner Owner of the stake
-    /// @param _talent Talent token to stake on
-    /// @param _tokenAmount TAL amount to unstake
+    /// @param _talent Talent token to unstake from
+    /// @param _talentAmount Talent token amount to unstake
     function _checkpointAndUnstake(
         address _owner,
         address _talent,

@@ -101,18 +101,6 @@ describe("TalentFactory", () => {
       });
     });
 
-    describe("isTalent", () => {
-      it("finds existing talents", async () => {
-        await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
-
-        expect(await factory.isTalent(talent1.address)).to.be.true;
-      });
-
-      it("does not find non-talents", async () => {
-        expect(await factory.isTalent(talent1.address)).to.be.false;
-      });
-    });
-
     describe("isTalentToken", () => {
       it("finds existing talent tokens", async () => {
         const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
@@ -122,7 +110,7 @@ describe("TalentFactory", () => {
       });
 
       it("does not find non-talent tokens", async () => {
-        expect(await factory.isTalent(talent1.address)).to.be.false;
+        expect(await factory.isTalentToken(talent1.address)).to.be.false;
       });
     });
 

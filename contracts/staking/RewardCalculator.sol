@@ -27,6 +27,32 @@ interface IRewardParameters {
     function totalAdjustedShares() external view returns (uint256);
 }
 
+/// @title Mathematical model that calculates staking rewards
+///
+/// @notice Rewards are calculated with a few variables in mind:
+///   1. A downward polynomial curve that rewards early stakers more than later ones
+///   2. The relative weight of a stake at the beginning of the given period
+///   3. The relative weight of a stake at the end of the given period
+///   4. The duration of the period
+///
+/// @notice Percentage-based calculation:
+///   Most calculations in this contract are made in percentages (0% to 100%
+///   ranges) to decouple the mathematical model from the actual values defined by
+///   the team.
+///
+/// @notice Multiplier:
+///   All equations were adjusted to consider a multiplier, in order to work
+///   with high-enough numbers and avoid loss of precision due to lack of
+///   floating-point numbers.
+///   i.e.: instead of `0.1` we consider `0.1 * Multiplier`
+///   The inverse operation (divide by the multipler) is thus needed at the end,
+///   to retrieve the originally inteded result
+///
+/// @notice Adjusted weights:
+///   Weights are adjusted through their square root, to decrease differences between high and low stakes
+///   e.g.: if two stakes exist, Alice with 1 TAL, and Bob with 2 TAL, adjusted weights are:
+///     Alice: sqrt(1) / (sqrt(1) + sqrt(2)) ~= 41.42%
+///     Bob:   sqrt(2) / (sqrt(1) + sqrt(2)) ~= 58.57%
 abstract contract RewardCalculator is IRewardParameters {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result

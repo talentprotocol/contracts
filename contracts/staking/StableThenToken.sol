@@ -4,11 +4,12 @@ pragma solidity ^0.8.7;
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-/// @title A helper contract that switches operation from a stable-coin to a regular token,
-///   once the token is available and set
+/// @title A two-phase contract, starting with a stable coin and proceeding to
+//    a alternative token once possible.
 ///
-/// @notice Since the first phase of staking will be done in a USD-pegged stable-coin, we need a mechanism to later
-///   switch to the TAL token, while also converting any initial USD stakes to TAL, given a pre-determined rate
+/// @notice Since the first phase of staking will be done in a USD-pegged
+///   stable-coin, we need a mechanism to later /   switch to the TAL token, while
+///   also converting any initial USD stakes to TAL, given a pre-determined rate
 abstract contract StableThenToken {
     using ERC165Checker for address;
 

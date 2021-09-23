@@ -9,22 +9,27 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {TalentToken} from "./TalentToken.sol";
 
 interface ITalentFactory {
-    /// Returns true is a given address corresponds to the creator of a Talent Token
-    ///
-    /// @param addr address of the talent to find
-    function isTalent(address addr) external view returns (bool);
-
     /// Returns true is a given address corresponds to a registered Talent Token
     ///
     /// @param addr address of the token to find
+    /// @return true if the address corresponds to a talent token
     function isTalentToken(address addr) external view returns (bool);
 
     /// Returns true is a given symbol corresponds to a registered Talent Token
     ///
     /// @param symbol Symbol of the token to find
+    /// @return true if the symbol corresponds to an existing talent token
     function isSymbol(string memory symbol) external view returns (bool);
 }
 
+/// @title Factory in charge of deploying Talent Token contracts
+///
+/// @notice This contract relies on ERC1167 proxies to cheaply deploy talent tokens
+///
+/// @notice Roles:
+///   A minter role defines who is allowed to deploy talent tokens. Deploying
+///   a talent token grants you the right to mint that talent token, meaning the
+///   same deployer will be granted that role
 contract TalentFactory is ERC165, AccessControl, ITalentFactory {
     /// creator role
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
@@ -32,19 +37,19 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
     /// initial supply of each new token minted
     uint256 public constant INITIAL_SUPPLY = 1000 ether;
 
-    // maps each talent's address to their talent token
+    /// maps each talent's address to their talent token
     mapping(address => address) public talentsToTokens;
 
-    // maps each talent tokens' address to their talent
+    /// maps each talent tokens' address to their talent
     mapping(address => address) public tokensToTalents;
 
-    // maps each token's symbol to the token address
+    /// maps each token's symbol to the token address
     mapping(string => address) public symbolsToTokens;
 
-    // minter for new tokens
+    /// minter for new tokens
     address public minter;
 
-    // implementation template to clone
+    /// implementation template to clone
     address public immutable implementation;
 
     event TalentCreated(address indexed talent, address indexed token);
@@ -72,14 +77,12 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
         string memory _name,
         string memory _symbol
     ) public returns (address) {
-        require(!isTalent(_talent), "address already has a token");
         require(!isSymbol(_symbol), "talent token with this symbol already exists");
         require(_isMinterSet(), "minter not yet set");
 
         address token = Clones.clone(implementation);
         TalentToken(token).initialize(_name, _symbol, INITIAL_SUPPLY, _talent, minter);
 
-        talentsToTokens[_talent] = token;
         symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
 
@@ -104,10 +107,6 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
     //
     // Begin: ITalentFactory
     //
-
-    function isTalent(address addr) public view override(ITalentFactory) returns (bool) {
-        return talentsToTokens[addr] != address(0x0);
-    }
 
     function isTalentToken(address addr) public view override(ITalentFactory) returns (bool) {
         return tokensToTalents[addr] != address(0x0);

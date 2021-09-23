@@ -17,9 +17,47 @@ import {ITalentFactory} from "./TalentFactory.sol";
 /// @notice During phase 1, accepts USDT, which is automatically converted into an equivalent TAL amount.
 ///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 ///
-/// @notice Rewards are given based on the logic from `RewardCalculator`, which
-/// relies on a continuous `totalAdjustedShares` being updated on every
-/// stake/withdraw. Seel `RewardCalculator` for more details
+/// @notice Staking:
+///   Each stake results in minting a set supply of the corresponding talent token
+///   Talent tokens are immediately transfered to the staker, and TAL is locked into the stake
+///   If the amount of TAL sent corresponds to an amount of Talent Token greater than
+///   `mintingAvailability` (see `TalentToken`), the stake is rejected. (TODO)
+///
+/// @notice Checkpoints:
+///   Any action on a stake triggers a checkpoint. Checkpoints accumulate
+///   all rewards since the last checkpoint until now. A new stake amount is
+///   calculated, and reward calculation starts again from the checkpoint's
+///   timestamp.
+///
+/// @notice Unstaking:
+///   By sending back an amount of talent token, you can recover an amount of
+///   TAL previously staked (or earned through staking rewards), in proportion to
+///   your stake and amount of talent tokens. e.g.: if you have a stake of 110 TAL
+///   and have minted 2 Talent Tokens, sending 1 Talent Token gets you 55 TAL back.
+///   This process also burns the sent Talent Token
+///
+/// @notice Re-stake:
+///   Stakers can at any moment strengthen their position by sending in more TAL to an existing stake.
+///   This will cause a checkpoint, accumulate rewards in the stake, and mint new Talent Token
+///
+/// @notice Claim rewards:
+///   TODO
+///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
+///   Rewards are only calculated from the moment of their last checkpoint.
+///   Claiming rewards adds the calculated amount of TAL to the existing stake,
+///   and mints the equivalent amount of Talent Token.
+///
+/// @notice Withdraw rewards:
+///   TODO
+///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
+///   Rewards are only calculated from the moment of their last checkpoint.
+///   Withdrawing rewards sends the calculated amount of TAL to the staker's wallet.
+///   No Talent Token is minted in this scenario
+///
+/// @notice Rewards:
+///   given based on the logic from `RewardCalculator`, which
+///   relies on a continuous `totalAdjustedShares` being updated on every
+///   stake/withdraw. Seel `RewardCalculator` for more details
 contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     /// Details of each individual stake
     struct Stake {

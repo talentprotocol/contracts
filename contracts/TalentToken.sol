@@ -18,6 +18,10 @@ interface ITalentToken is IERC20Upgradeable {
     function mint(address _owner, uint256 _amount) external;
 
     function burn(address _owner, uint256 _amount) external;
+
+    function mintingFinishedAt() external returns (uint256);
+
+    function mintingAvailability() external returns (uint256);
 }
 
 /// @title The base contract for Talent Tokens
@@ -48,10 +52,10 @@ contract TalentToken is
     uint256 public constant MAX_SUPPLY = 100000 ether;
 
     // amount available to be minted
-    uint256 public mintingAvailability;
+    uint256 public override(ITalentToken) mintingAvailability;
 
     // timestamp at which minting reached MAX_SUPPLY
-    uint256 public mintingFinishedAt;
+    uint256 public override(ITalentToken) mintingFinishedAt;
 
     function initialize(
         string memory _name,

@@ -57,12 +57,7 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 percentage = _curvePercentage(startPercent, endPercent);
         uint256 weight = (sqrt(_shares) * MUL) / this.totalAdjustedShares();
 
-        console.log(weight);
-        if (weight == 0) {
-            return 0;
-        }
-
-        return ((this.rewardsLeft() / weight) * percentage) / (MUL * MUL);
+        return ((this.rewardsLeft() * percentage * weight)) / (MUL * MUL);
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

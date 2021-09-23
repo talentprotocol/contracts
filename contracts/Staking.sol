@@ -71,6 +71,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
 
+    /// Possible actions when a checkpoint is being triggered
     enum RewardAction {
         WITHDRAW,
         RESTAKE

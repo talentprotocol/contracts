@@ -158,14 +158,18 @@ describe("RewardCalculator", () => {
 
       it("has the expected result at 50%", async () => {
         const x = (await calculator.multiplier()).div(2);
-        const y = BigNumber.from("875000000000000000").div("3");
+        const y = BigNumber.from("87500000000000000000")
+          .mul(await calculator.multiplier())
+          .div("3");
 
         expect(await calculator.test_integralAt(x)).to.equal(y);
       });
 
       it("has the expected result at the 100% point", async () => {
         const x = await calculator.multiplier();
-        const y = BigNumber.from("1000000000000000000").div("3");
+        const y = BigNumber.from("100000000000000000000")
+          .mul(await calculator.multiplier())
+          .div("3");
 
         expect(await calculator.test_integralAt(x)).to.equal(y);
       });
@@ -208,9 +212,25 @@ describe("RewardCalculator", () => {
         calculator = await builder(start, end, ownerShares, otherShares);
       });
 
-      it.only("stays from 0% to 100%, receives 100% of the reward", async () => {
+      it("stays from 0% to 100%, receives 100% of the reward", async () => {
         const rewards = await calculator.test_calculateReward(ownerShares, start, end);
         expect(rewards).to.eq(totalRewards);
+      });
+
+      it("stays from 0% to 50%, receives more than 50% of the reward", async () => {
+        const firstHalf = await calculator.test_calculateReward(ownerShares, start, start + duration * 0.5);
+        const secondHalf = await calculator.test_calculateReward(ownerShares, start + duration * 0.5, end);
+
+        expect(firstHalf).to.be.gt(secondHalf);
+      });
+    });
+
+    describe("two stakes with the same amount", () => {
+      const ownerShares = parseUnits("1");
+      const otherShares: BigNumber[] = [parseUnits("1")];
+
+      beforeEach(async () => {
+        calculator = await builder(start, end, ownerShares, otherShares);
       });
     });
   });

@@ -441,7 +441,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.lastCheckpointAt = block.timestamp;
 
         // TODO test this
-        uint256 talentShare =  _calculateTalentShare(_talent, stake.talentAmount, rewards);
+        uint256 talentShare = _calculateTalentShare(_talent, stake.talentAmount, rewards);
         uint256 stakeShare = rewards - talentShare;
         talentShares[_talent] += talentShare;
 
@@ -477,7 +477,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _talent,
         uint256 _stakeAmount,
         uint256 _rewards
-    ) private view returns address {
+    ) private view returns (uint256) {
+        address talentAddress = ITalentToken(_talent).talent();
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
         uint256 stakeAdjustedAmount = sqrt(_stakeAmount * MUL);

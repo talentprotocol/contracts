@@ -9,6 +9,6 @@ import {ERC1363} from "./tokens/ERC1363.sol";
 /// @notice This is a simple, fixed-supply ERC20 token with ERC1363 capabilities.
 contract TalentProtocol is ERC1363 {
     constructor() ERC1363("Talent Protocol", "TAL") {
-        _mint(msg.sender, 10000 ether);
+        _mint(msg.sender, 1e9 ether);
     }
 }

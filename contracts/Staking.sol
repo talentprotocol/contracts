@@ -21,7 +21,6 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   Each stake results in minting a set supply of the corresponding talent token
 ///   Talent tokens are immediately transfered to the staker, and TAL is locked into the stake
 ///   If the amount of TAL sent corresponds to an amount of Talent Token greater than
-///   `mintingAvailability` (see `TalentToken`), the stake is rejected. (TODO test this)
 ///
 /// @notice Checkpoints:
 ///   Any action on a stake triggers a checkpoint. Checkpoints accumulate
@@ -41,14 +40,12 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   This will cause a checkpoint, accumulate rewards in the stake, and mint new Talent Token
 ///
 /// @notice Claim rewards:
-///   TODO
 ///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
 ///   Rewards are only calculated from the moment of their last checkpoint.
 ///   Claiming rewards adds the calculated amount of TAL to the existing stake,
 ///   and mints the equivalent amount of Talent Token.
 ///
 /// @notice Withdraw rewards:
-///   TODO
 ///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
 ///   Rewards are only calculated from the moment of their last checkpoint.
 ///   Withdrawing rewards sends the calculated amount of TAL to the staker's wallet.
@@ -96,7 +93,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     uint256 public totalStableStored;
 
     // How much TAL is currently staked (not including rewards)
-    // TODO test this
     uint256 public totalTokensStaked;
 
     /// Sum of sqrt(tokenAmount) for each stake
@@ -461,7 +457,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address talentAddress = ITalentToken(_talent).talent();
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
-        // TODO should this split happen after the availability check?
         (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
             stake.tokenAmount,
             stake.lastCheckpointAt,

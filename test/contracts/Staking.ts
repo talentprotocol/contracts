@@ -156,6 +156,17 @@ describe("Staking", () => {
         expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
       });
 
+      it("updates totalTokensStaked", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("1"));
+        await stable.connect(investor2).approve(staking.address, parseUnits("1"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+        expect(await staking.totalTokensStaked()).to.equal(parseUnits("50"));
+
+        await staking.connect(investor2).stakeStable(talentToken2.address, parseUnits("1"));
+        expect(await staking.totalTokensStaked()).to.equal(parseUnits("100"));
+      });
+
       it("does not accept stable coin stakes while in phase2", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
         await staking.setToken(tal.address);
@@ -202,6 +213,14 @@ describe("Staking", () => {
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
         expect(stake1After.lastCheckpointAt).to.be.gt(stake1Before.lastCheckpointAt);
+      });
+
+      it("fails if stake exceeds mintingAvailability", async () => {
+        await stable.connect(owner).approve(staking.address, await stable.balanceOf(owner.address));
+
+        const action = staking.connect(owner).stakeStable(talentToken1.address, await stable.balanceOf(owner.address));
+
+        await expect(action).to.be.revertedWith("_amount exceeds minting availability");
       });
     });
 
@@ -298,10 +317,34 @@ describe("Staking", () => {
             expect(stake2.tokenAmount).to.equal(parseUnits("100"));
           });
 
+          it("updates totalTokensStaked", async () => {
+            await staking.setToken(tal.address);
+
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            expect(await staking.totalTokensStaked()).to.equal(parseUnits("50"));
+
+            await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken2.address);
+            expect(await staking.totalTokensStaked()).to.equal(parseUnits("150"));
+          });
+
           it("rejects TAL stakes while not yet", async () => {
             const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
 
             await expect(action).to.be.revertedWith("Unrecognized ERC1363 token received");
+          });
+
+          it("fails if stake exceeds mintingAvailability", async () => {
+            await staking.setToken(tal.address);
+
+            const action = transferAndCall(
+              tal,
+              owner,
+              staking.address,
+              await tal.balanceOf(owner.address),
+              talentToken1.address
+            );
+
+            await expect(action).to.be.revertedWith("_amount exceeds minting availability");
           });
 
           it("accepts TAL stakes in the second phase", async () => {
@@ -346,6 +389,20 @@ describe("Staking", () => {
 
             // TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+          });
+
+          it("deducts from totalTokensStaked", async () => {
+            await enterPhaseTwo();
+
+            // mint new NAPS
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
+
+            const totalBefore = await staking.totalTokensStaked();
+            await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
+            const totalAfter = await staking.totalTokensStaked();
+
+            expect(totalAfter).to.equal(totalBefore.sub(parseUnits("25")));
           });
 
           it("performs a checkpoint and keeps a stake with the remainder", async () => {

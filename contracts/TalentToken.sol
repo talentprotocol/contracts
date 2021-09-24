@@ -104,7 +104,7 @@ contract TalentToken is
     /// @param _to Recipient of the new tokens
     /// @param _amount Amount to mint
     function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER) {
-        require(mintingAvailability >= _amount);
+        require(mintingAvailability >= _amount, "_amount exceeds minting availability");
         mintingAvailability -= _amount;
 
         if (mintingAvailability == 0) {

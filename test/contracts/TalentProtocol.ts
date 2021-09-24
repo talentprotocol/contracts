@@ -52,8 +52,8 @@ describe("TalentProtocol", () => {
     });
 
     it("mints the full supply to the creator", async () => {
-      expect(await tal.totalSupply()).to.eq(parseUnits("10000"));
-      expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("10000"));
+      expect(await tal.totalSupply()).to.eq(parseUnits("1000000000"));
+      expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("1000000000"));
     });
   });
 });

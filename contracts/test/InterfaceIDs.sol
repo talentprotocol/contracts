@@ -5,6 +5,7 @@ pragma solidity ^0.8.7;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IAccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import {IERC1363} from "@openzeppelin/contracts/interfaces/IERC1363.sol";
 
 library InterfaceIDs {
@@ -22,5 +23,9 @@ library InterfaceIDs {
 
     function accessControl() public pure returns (bytes4) {
         return type(IAccessControl).interfaceId;
+    }
+
+    function accessControlEnumerable() public pure returns (bytes4) {
+        return type(IAccessControlEnumerable).interfaceId;
     }
 }

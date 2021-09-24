@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IAccessControlEnumerable, AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 import {TalentToken} from "./TalentToken.sol";
@@ -30,7 +30,7 @@ interface ITalentFactory {
 ///   A minter role defines who is allowed to deploy talent tokens. Deploying
 ///   a talent token grants you the right to mint that talent token, meaning the
 ///   same deployer will be granted that role
-contract TalentFactory is ERC165, AccessControl, ITalentFactory {
+contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
     /// creator role
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
@@ -81,7 +81,14 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
         require(_isMinterSet(), "minter not yet set");
 
         address token = Clones.clone(implementation);
-        TalentToken(token).initialize(_name, _symbol, INITIAL_SUPPLY, _talent, minter);
+        TalentToken(token).initialize(
+            _name,
+            _symbol,
+            INITIAL_SUPPLY,
+            _talent,
+            minter,
+            getRoleMember(DEFAULT_ADMIN_ROLE, 0)
+        );
 
         symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
@@ -96,8 +103,13 @@ contract TalentFactory is ERC165, AccessControl, ITalentFactory {
     //
 
     /// @inheritdoc ERC165
-    function supportsInterface(bytes4 interfaceId) public view override(ERC165, AccessControl) returns (bool) {
-        return AccessControl.supportsInterface(interfaceId);
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC165, AccessControlEnumerable)
+        returns (bool)
+    {
+        return AccessControlEnumerable.supportsInterface(interfaceId);
     }
 
     //

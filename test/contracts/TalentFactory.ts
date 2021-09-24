@@ -71,6 +71,16 @@ describe("TalentFactory", () => {
         expect(event?.args?.talent).to.eq(talent1.address);
       });
 
+      it("sets the token admin to the proxy's own admin", async () => {
+        const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+        const event = await findEvent(tx, "TalentCreated");
+        const naps = TalentToken__factory.connect(event?.args?.token, creator);
+
+        const factoryAdmin = await factory.getRoleMember(await factory.DEFAULT_ADMIN_ROLE(), 0);
+
+        expect(await naps.hasRole(await naps.DEFAULT_ADMIN_ROLE(), factoryAdmin)).to.be.true;
+      });
+
       it("mints new supply to the talent", async () => {
         const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
 

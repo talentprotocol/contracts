@@ -52,6 +52,9 @@ export function supportsInterfaces(builder: () => Promise<any>, interfaces: stri
           case "IAccessControl":
             id = await interfaceIDs.accessControl();
             break;
+          case "IAccessControlEnumerable":
+            id = await interfaceIDs.accessControlEnumerable();
+            break;
         }
 
         expect(await contract.supportsInterface(id)).to.be.true;

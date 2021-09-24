@@ -75,7 +75,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     mapping(address => mapping(address => Stake)) public stakes;
 
     /// Talent's share of rewards, to be redeemable by each individual talent
-    mapping(address => uint256) public talentShares;
+    mapping(address => uint256) public talentRedeemableRewards;
 
     bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
 
@@ -182,7 +182,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// Redeems rewards since last checkpoint, and reinvests them in the stake
     ///
     /// @param _talent talent token of the stake to process
-    /// @return true if operation success
+    /// @return true if operation succeeds
     /// TODO test this
     function claimRewards(address _talent)
         public
@@ -198,7 +198,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// Redeems rewards since last checkpoint, and withdraws them to the owner's wallet
     ///
     /// @param _talent talent token of the stake to process
-    /// @return true if operation success
+    /// @return true if operation succeeds
     /// TODO test this
     function withdrawRewards(address _talent)
         public
@@ -207,6 +207,27 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         returns (bool)
     {
         _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
+
+        return true;
+    }
+
+    /// Redeems a talent's share of the staking rewards
+    ///
+    /// @notice When stakers claim rewards, a share of those is reserved for
+    ///   the talent to redeem for himself through this function
+    ///
+    /// @param _talent The talent token from which rewards are to be claimed
+    /// @return true if operation succeeds
+    /// TODO test this
+    function claimTalentRewards(address _talent) public stablePhaseOnly returns (bool) {
+        // only the talent himself can redeem their own rewards
+        require(msg.sender == ITalentToken(_talent).talent());
+
+        uint256 amount = talentRedeemableRewards[_talent];
+
+        IERC20(token).transfer(msg.sender, amount);
+
+        talentRedeemableRewards[_talent] = 0;
 
         return true;
     }
@@ -437,25 +458,33 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 rewardsUntil = (mintingFinishedAt > 0) ? mintingFinishedAt : block.timestamp;
 
         // calculate rewards since last checkpoint
-        uint256 rewards = calculateReward(stake.tokenAmount, stake.lastCheckpointAt, rewardsUntil);
+        address talentAddress = ITalentToken(_talent).talent();
+        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
-        rewardsGiven += rewards;
+        // TODO should this split happen after the availability check?
+        (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
+            stake.tokenAmount,
+            stake.lastCheckpointAt,
+            rewardsUntil,
+            stake.talentAmount,
+            talentBalance
+        );
+
+        rewardsGiven += stakerRewards + talentRewards;
         stake.lastCheckpointAt = block.timestamp;
 
         // TODO test this
-        uint256 talentShare = _calculateTalentShare(_talent, stake.talentAmount, rewards);
-        uint256 stakeShare = rewards - talentShare;
-        talentShares[_talent] += talentShare;
+        talentRedeemableRewards[_talent] += talentRewards;
 
         if (_action == RewardAction.WITHDRAW) {
-            IERC20(token).transfer(_owner, stakeShare);
+            IERC20(token).transfer(_owner, stakerRewards);
 
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
             // truncate rewards to stake to the maximum stake availability
             // TODO test this
             uint256 availability = stakeAvailability(_talent);
-            uint256 rewardsToStake = (availability > stakeShare) ? stakeShare : availability;
+            uint256 rewardsToStake = (availability > stakerRewards) ? stakerRewards : availability;
 
             // TODO test this
             _stake(_owner, _talent, rewardsToStake);
@@ -487,14 +516,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 talentAdjustedAmount = sqrt(talentBalance * MUL);
 
         uint256 talentWeight = talentAdjustedAmount / ((stakeAdjustedAmount + talentAdjustedAmount));
-        uint256 talentRewards = (_rewards * talentWeight) / MUL;
+        uint256 talentRedeemableRewards = (_rewards * talentWeight) / MUL;
         uint256 minTalentRewards = _rewards / 100;
 
-        if (talentRewards < minTalentRewards) {
-            talentRewards = minTalentRewards;
+        if (talentRedeemableRewards < minTalentRewards) {
+            talentRedeemableRewards = minTalentRewards;
         }
 
-        return talentRewards;
+        return talentRedeemableRewards;
     }
 
     /// mints a given amount of a given talent token

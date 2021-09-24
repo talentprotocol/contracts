@@ -111,8 +111,10 @@ abstract contract RewardCalculator is IRewardParameters {
 
         uint256 percentage = _curvePercentage(startPercent, endPercent);
         uint256 weight = (sqrt(_shares) * MUL) / this.totalAdjustedShares();
+        console.log("total");
+        console.log(weight);
 
-        return ((this.rewardsLeft() * percentage * weight)) / (MUL * MUL);
+        return ((this.rewardsMax() * percentage * weight)) / (MUL * MUL);
     }
 
     function _calculateTalentShare(
@@ -131,7 +133,8 @@ abstract contract RewardCalculator is IRewardParameters {
             talentRewards = minTalentRewards;
         }
 
-        return talentRewards;
+        // return talentRewards;
+        return 0;
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

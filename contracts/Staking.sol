@@ -96,7 +96,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     uint256 public totalStableStored;
 
     // How much TAL is currently staked (not including rewards)
-    uint256 public totalTokenStaked;
+    // TODO test this
+    uint256 public totalTokensStaked;
 
     /// Sum of sqrt(tokenAmount) for each stake
     /// Used to compute adjusted reward values
@@ -310,7 +311,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     //
 
     function totalShares() public view override(IRewardParameters) returns (uint256) {
-        return totalTokenStaked;
+        return totalTokensStaked;
     }
 
     function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
@@ -381,6 +382,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         stake.talentAmount -= _talentAmount;
         stake.tokenAmount -= tokenAmount;
+        totalTokensStaked -= tokenAmount;
 
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
@@ -406,7 +408,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.tokenAmount += _tokenAmount;
         stake.talentAmount += talentAmount;
 
-        totalTokenStaked = _tokenAmount;
+        totalTokensStaked += _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
     }

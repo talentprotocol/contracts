@@ -336,7 +336,6 @@ describe("Staking", () => {
           it("fails if stake exceeds mintingAvailability", async () => {
             await staking.setToken(tal.address);
 
-            console.log(ethers.utils.formatEther(await tal.balanceOf(owner.address)));
             const action = transferAndCall(
               tal,
               owner,

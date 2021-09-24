@@ -243,7 +243,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     /// Queries how much TAL can currently be staked on a given talent token
-    /// TODO test this
     ///
     /// @notice The limit of this value is enforced by the tokens' `mintingAvailability()`
     ///   (see `TalentToken` contract)
@@ -530,7 +529,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _talent,
         uint256 _amount
     ) private {
-        // TODO test a scenario where more than availableMinting is minted
         ITalentToken(_talent).mint(_owner, _amount);
     }
 

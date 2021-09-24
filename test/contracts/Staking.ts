@@ -378,7 +378,7 @@ describe("Staking", () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            await transferandcall(tal, investor1, staking.address, parseunits("50"), talenttoken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
@@ -467,6 +467,18 @@ describe("Staking", () => {
     describe("convertUsdToTalent", () => {
       it("converts a USD value to a talent token based on both given rates", async () => {
         expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("2"));
+      });
+    });
+
+    describe("stakeAvailability", () => {
+      it("calculates how much TAL is stakeable in a talent", async () => {
+        await enterPhaseTwo();
+
+        const availabilityBefore = await staking.stakeAvailability(talentToken1.address);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken1.address);
+        const availabilityAfter = await staking.stakeAvailability(talentToken1.address);
+
+        expect(availabilityAfter).to.equal(availabilityBefore.sub(parseUnits("100")));
       });
     });
   });

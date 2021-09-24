@@ -161,7 +161,7 @@ describe("Staking", () => {
 
         const action = staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
 
-        expect(action)
+        await expect(action)
           .to.emit(staking, "Stake")
           .withArgs(investor1.address, talentToken1.address, parseUnits("50"), true);
       });
@@ -332,7 +332,7 @@ describe("Staking", () => {
 
             const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
 
-            expect(action)
+            await expect(action)
               .to.emit(staking, "Stake")
               .withArgs(investor1.address, talentToken1.address, parseUnits("50"), false);
           });
@@ -420,7 +420,7 @@ describe("Staking", () => {
 
             const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
-            expect(action)
+            await expect(action)
               .to.emit(staking, "Unstake")
               .withArgs(investor1.address, talentToken1.address, parseUnits("50"));
           });

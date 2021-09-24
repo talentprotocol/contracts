@@ -347,6 +347,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         require(_isTalentToken(_talent), "not a valid talent token");
         require(_tokenAmount > 0, "amount cannot be zero");
 
+        emit StakeCreated(_owner, _talent, _tokenAmount);
         _checkpoint(_owner, _talent, RewardAction.RESTAKE);
         _stake(_owner, _talent, _tokenAmount);
     }
@@ -387,9 +388,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.talentAmount -= _talentAmount;
         stake.tokenAmount -= tokenAmount;
 
+        emit StakeWithdrew(_owner, _talent, tokenAmount);
+
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
-        emit StakeWithdrew(_owner, _talent, tokenAmount);
     }
 
     /// Adds the given TAL amount to the stake, minting Talent token in the process
@@ -415,7 +417,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
-        emit StakeCreated(_owner, _talent, _tokenAmount);
     }
 
     /// Performs a new checkpoint for a given stake
@@ -464,6 +465,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
             // TODO test this
             _stake(_owner, _talent, rewardsToStake);
+            emit StakeCreated(_owner, _talent, rewardsToStake);
 
             // TODO event
         } else {

@@ -7,7 +7,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
-import { deployTalentToken, transferAndCall } from "../shared/utils";
+import { deployTalentToken, transferAndCall, findEvent } from "../shared/utils";
 
 chai.use(solidity);
 
@@ -149,11 +149,17 @@ describe("Staking", () => {
       it("creates a stake", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));
 
-        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        const tx = await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
 
         const stake = await staking.stakes(investor1.address, talentToken1.address);
 
+        const event = await findEvent(tx, "StakeCreated");
+
         expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
+        expect(event).to.be;
+        expect(event?.args?.talent).to.eq(talentToken1.address);
+        expect(event?.args?.sender).to.eq(investor1.address);
+        expect(event?.args?.amount).to.equal(stake.tokenAmount);
       });
 
       it("does not accept stable coin stakes while in phase2", async () => {

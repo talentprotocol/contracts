@@ -77,6 +77,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// Talent's share of rewards, to be redeemable by each individual talent
     mapping(address => uint256) public talentShares;
 
+    // Emitted event whenever a stake is created
+    event StakeCreated(address indexed sender, address indexed talent, uint256 amount);
+    // Emitted event whenever a stake is withdrew
+    event StakeWithdrew(address indexed sender, address indexed talent, uint256 amount);
+
     bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
 
     /// The Talent Token Factory contract (ITalentFactory)
@@ -384,6 +389,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
+        emit StakeWithdrew(_owner, _talent, tokenAmount);
     }
 
     /// Adds the given TAL amount to the stake, minting Talent token in the process
@@ -409,6 +415,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         totalTokenStaked = _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
+        emit StakeCreated(_owner, _talent, _tokenAmount);
     }
 
     /// Performs a new checkpoint for a given stake

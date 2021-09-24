@@ -1,5 +1,7 @@
+import { BigNumber } from "@ethersproject/bignumber";
 import { ethers, network } from "hardhat";
 import { deployStaking, deployFactory } from "./shared";
+import dayjs from "dayjs";
 
 const { parseUnits } = ethers.utils;
 
@@ -23,7 +25,7 @@ const mainnet: NetworkConfig = {
 
 const Configs: Record<string, NetworkConfig> = {
   alfajores,
-  mainnet,
+  mainnet
 };
 
 async function main() {
@@ -35,6 +37,9 @@ async function main() {
 
   const factory = await deployFactory();
   const staking = await deployStaking(
+    dayjs().add(-1, "day").unix(),
+    dayjs().add(1, "month").unix(),
+    BigNumber.from("400000000000"),
     config.usdStableCoinContract,
     factory.address,
     parseUnits(config.talPriceInUsd),

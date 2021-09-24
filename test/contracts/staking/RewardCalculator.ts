@@ -192,7 +192,7 @@ describe("RewardCalculator", () => {
 
         const result = await calculator.test_calculateTalentShare(totalRewards, stakeShares, talentShares);
 
-        expect(result).to.be.closeTo(parseUnits("0.4142"), parseUnits("0.001"));
+        expect(result).to.be.closeTo(parseUnits("0.4142"), parseUnits("0.001") as unknown as number);
       });
 
       it("correctly splits 1 TAL reward when staker has a lower share", async () => {
@@ -202,7 +202,7 @@ describe("RewardCalculator", () => {
 
         const result = await calculator.test_calculateTalentShare(totalRewards, stakeShares, talentShares);
 
-        expect(result).to.be.closeTo(parseUnits("0.5857"), parseUnits("0.001"));
+        expect(result).to.be.closeTo(parseUnits("0.5857"), parseUnits("0.001") as unknown as number);
       });
 
       it("gives a minimum of 1% to the talent", async () => {

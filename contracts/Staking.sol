@@ -74,6 +74,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// List of all stakes (investor => talent => Stake)
     mapping(address => mapping(address => Stake)) public stakes;
 
+    /// Talent's share of rewards, to be redeemable by each individual talent
+    mapping(address => uint256) public talentShares;
+
     bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
 
     /// The Talent Token Factory contract (ITalentFactory)
@@ -437,15 +440,20 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         rewardsGiven += rewards;
         stake.lastCheckpointAt = block.timestamp;
 
+        // TODO test this
+        uint256 talentShare = _calculateTalentShare(_talent, stake.talentAmount, rewards);
+        uint256 stakeShare = rewards - talentShare;
+        talentShares[_talent] += talentShare;
+
         if (_action == RewardAction.WITHDRAW) {
-            IERC20(token).transfer(_owner, rewards);
+            IERC20(token).transfer(_owner, stakeShare);
 
             // TODO event
         } else if (_action == RewardAction.RESTAKE) {
             // truncate rewards to stake to the maximum stake availability
             // TODO test this
             uint256 availability = stakeAvailability(_talent);
-            uint256 rewardsToStake = (availability > rewards) ? rewards : availability;
+            uint256 rewardsToStake = (availability > stakeShare) ? stakeShare : availability;
 
             // TODO test this
             _stake(_owner, _talent, rewardsToStake);
@@ -454,6 +462,37 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         } else {
             revert("Unrecognized checkpoint action");
         }
+    }
+
+    /// Whenever rewards are claim or withdrawn, the corresponding talent earns
+    /// a small portion of that amount, proportional to the square root of its
+    /// balance when compared to the staker's, and truncated to a minimum of 1% of the reward
+    ///
+    /// @param _talent The talent token to consider
+    /// @param _stakeAmount Amount of talent tokens owned by the staker
+    /// @param _rewards Total amount of rewards to distribute
+    ///
+    /// @return the talent's address to which their share is to be sent
+    function _calculateTalentShare(
+        address _talent,
+        uint256 _stakeAmount,
+        uint256 _rewards
+    ) private view returns (uint256) {
+        address talentAddress = ITalentToken(_talent).talent();
+        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
+
+        uint256 stakeAdjustedAmount = sqrt(_stakeAmount * MUL);
+        uint256 talentAdjustedAmount = sqrt(talentBalance * MUL);
+
+        uint256 talentWeight = talentAdjustedAmount / ((stakeAdjustedAmount + talentAdjustedAmount));
+        uint256 talentRewards = (_rewards * talentWeight) / MUL;
+        uint256 minTalentRewards = _rewards / 100;
+
+        if (talentRewards < minTalentRewards) {
+            talentRewards = minTalentRewards;
+        }
+
+        return talentRewards;
     }
 
     /// mints a given amount of a given talent token

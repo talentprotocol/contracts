@@ -30,9 +30,27 @@ contract TestRewardCalculator is RewardCalculator {
     function test_calculateReward(
         uint256 _shares,
         uint256 _start,
+        uint256 _end,
+        uint256 _stakerWeight,
+        uint256 _talentWeight
+    ) public view returns (uint256, uint256) {
+        return calculateReward(_shares, _start, _end, _stakerWeight, _talentWeight);
+    }
+
+    function test_calculateTotalRewards(
+        uint256 _shares,
+        uint256 _start,
         uint256 _end
     ) public view returns (uint256) {
-        return calculateReward(_shares, _start, _end);
+        return _calculateTotalRewards(_shares, _start, _end);
+    }
+
+    function test_calculateTalentShare(
+        uint256 _rewards,
+        uint256 _stakerWeight,
+        uint256 _talentWeight
+    ) public view returns (uint256) {
+        return _calculateTalentShare(_rewards, _stakerWeight, _talentWeight);
     }
 
     function test_truncatePeriod(uint256 _start, uint256 _end) public view returns (uint256, uint256) {

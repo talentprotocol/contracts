@@ -65,10 +65,39 @@ abstract contract RewardCalculator is IRewardParameters {
     /// This will take into account the current weight of the stake in
     /// comparison to `totalShares()`, and the duration of the stake
     ///
+    /// @notice Rewards are split between staker and talent, according to the adjusted weights,
+    /// given for each of them, which should correspond to their own Talent token balance
+    ///
     /// @param _shares How many shares to be considered
     /// @param _start Timestamp to start from
     /// @param _end Timestamp to end
+    /// @param _stakerWeight The non-adjusted weight of the staker when splitting the reward
+    /// @param _talentWeight The non-adjusted weight of the talent when splitting the reward
+    /// @return stakerShare the staker's share of the reward
+    /// @return talentShare the talent's share of the reward
     function calculateReward(
+        uint256 _shares,
+        uint256 _start,
+        uint256 _end,
+        uint256 _stakerWeight,
+        uint256 _talentWeight
+    ) internal view returns (uint256, uint256) {
+        uint256 total = _calculateTotalRewards(_shares, _start, _end);
+        uint256 talentShare = _calculateTalentShare(total, _stakerWeight, _talentWeight);
+
+        return (total - talentShare, talentShare);
+    }
+
+    /// Calculates how many shares should be rewarded to a stake,
+    /// based on how many shares are staked, and a beginning timestamp
+    ///
+    /// This will take into account the current weight of the stake in
+    /// comparison to `totalShares()`, and the duration of the stake
+    ///
+    /// @param _shares How many shares to be considered
+    /// @param _start Timestamp to start from
+    /// @param _end Timestamp to end
+    function _calculateTotalRewards(
         uint256 _shares,
         uint256 _start,
         uint256 _end
@@ -84,6 +113,25 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 weight = (sqrt(_shares) * MUL) / this.totalAdjustedShares();
 
         return ((this.rewardsLeft() * percentage * weight)) / (MUL * MUL);
+    }
+
+    function _calculateTalentShare(
+        uint256 _rewards,
+        uint256 _stakerWeight,
+        uint256 _talentWeight
+    ) internal view returns (uint256) {
+        uint256 stakeAdjustedWeight = sqrt(_stakerWeight * MUL);
+        uint256 talentAdjustedWeight = sqrt(_talentWeight * MUL);
+
+        uint256 talentWeight = (talentAdjustedWeight * MUL) / ((stakeAdjustedWeight + talentAdjustedWeight));
+        uint256 talentRewards = (_rewards * talentWeight) / MUL;
+        uint256 minTalentRewards = _rewards / 100;
+
+        if (talentRewards < minTalentRewards) {
+            talentRewards = minTalentRewards;
+        }
+
+        return talentRewards;
     }
 
     /// Truncates a period to fit within the start and end date of the staking period

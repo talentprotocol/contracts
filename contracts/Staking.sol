@@ -21,7 +21,7 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   Each stake results in minting a set supply of the corresponding talent token
 ///   Talent tokens are immediately transfered to the staker, and TAL is locked into the stake
 ///   If the amount of TAL sent corresponds to an amount of Talent Token greater than
-///   `mintingAvailability` (see `TalentToken`), the stake is rejected. (TODO)
+///   `mintingAvailability` (see `TalentToken`), the stake is rejected. (TODO test this)
 ///
 /// @notice Checkpoints:
 ///   Any action on a stake triggers a checkpoint. Checkpoints accumulate

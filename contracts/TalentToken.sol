@@ -45,6 +45,8 @@ interface ITalentToken is IERC20Upgradeable {
 ///   back into the `mintingAvailability` pool /   If MAX_SUPPLY has already been
 ///   reached at some point, then future burns can no longer be minted back,
 ///   effectively making the burn permanent
+///
+/// TODO what happens if we upgrade the factory to use a new implementation? do all existing instances share it?
 contract TalentToken is
     Initializable,
     ContextUpgradeable,
@@ -75,7 +77,8 @@ contract TalentToken is
         string memory _symbol,
         uint256 _initialSupply,
         address _talent,
-        address _minter
+        address _minter,
+        address _admin
     ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -83,12 +86,11 @@ contract TalentToken is
         __AccessControl_init_unchained();
 
         talent = _talent;
-        // TODO set admin role to the same as factory's admin
 
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(ROLE_TALENT, _talent);
         _setupRole(ROLE_MINTER, _minter);
 
-        // TODO test this
         _setRoleAdmin(ROLE_TALENT, ROLE_TALENT);
 
         _mint(_talent, _initialSupply);
@@ -137,7 +139,6 @@ contract TalentToken is
     /// is the TALENT role itself, to grant the role.
     ///
     /// @param _newTalent address for the new talent's wallet
-    /// TODO test this
     function transferTalentWallet(address _newTalent) public {
         talent = _newTalent;
         grantRole(ROLE_TALENT, _newTalent);

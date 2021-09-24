@@ -39,6 +39,7 @@ describe("TalentToken", () => {
         parseUnits("1000"),
         talent.address,
         minter.address,
+        owner.address,
       ]);
 
       await expect(action).not.to.be.reverted;
@@ -52,6 +53,7 @@ describe("TalentToken", () => {
       parseUnits("123"),
       talent.address,
       minter.address,
+      owner.address,
     ]) as Promise<TalentToken>;
   }
 
@@ -85,6 +87,10 @@ describe("TalentToken", () => {
 
     it("correctly sets the talent' address", async () => {
       expect(await coin.talent()).to.equal(talent.address);
+    });
+
+    it("correctly sets the DEFAULT_ADMIN role", async () => {
+      expect(await coin.hasRole(await coin.DEFAULT_ADMIN_ROLE(), owner.address)).to.be.true;
     });
 
     it("correctly sets the TALENT role", async () => {
@@ -130,6 +136,7 @@ describe("TalentToken", () => {
         await expect(action).to.be.reverted;
       });
     });
+
     describe("burn", () => {
       it("works when called by the minter", async () => {
         const action = coin.connect(minter).burn(talent.address, parseUnits("1"));
@@ -169,6 +176,40 @@ describe("TalentToken", () => {
         const after = await coin.mintingAvailability();
 
         expect(after).to.equal(before);
+      });
+    });
+
+    describe("transferTalentWallet", () => {
+      it("is callable by the current talent wallet", async () => {
+        const result = coin.connect(talent).transferTalentWallet(investor.address);
+
+        await expect(result).not.to.be.reverted;
+      });
+
+      it("is not callable by another wallet", async () => {
+        const result = coin.connect(owner).transferTalentWallet(investor.address);
+
+        await expect(result).to.be.revertedWith(
+          `AccessControl: account ${owner.address.toLowerCase()} is missing role ${await coin.ROLE_TALENT()}`
+        );
+      });
+
+      it("transfers talent wallet to the given address", async () => {
+        await coin.connect(talent).transferTalentWallet(investor.address);
+
+        expect(await coin.talent()).to.eq(investor.address);
+      });
+
+      it("gives ROLE_TALENT to the new wallet", async () => {
+        await coin.connect(talent).transferTalentWallet(investor.address);
+
+        expect(await coin.hasRole(await coin.ROLE_TALENT(), investor.address)).to.be.true;
+      });
+
+      it("revokes ROLE_TALENT from the ol dwallet", async () => {
+        await coin.connect(talent).transferTalentWallet(investor.address);
+
+        expect(await coin.hasRole(await coin.ROLE_TALENT(), talent.address)).to.be.false;
       });
     });
   });

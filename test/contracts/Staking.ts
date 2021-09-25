@@ -503,5 +503,17 @@ describe("Staking", () => {
         expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("2"));
       });
     });
+
+    describe("stakeAvailability", () => {
+      it("calculates how much TAL is stakeable in a talent", async () => {
+        await enterPhaseTwo();
+
+        const availabilityBefore = await staking.stakeAvailability(talentToken1.address);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken1.address);
+        const availabilityAfter = await staking.stakeAvailability(talentToken1.address);
+
+        expect(availabilityAfter).to.equal(availabilityBefore.sub(parseUnits("100")));
+      });
+    });
   });
 });

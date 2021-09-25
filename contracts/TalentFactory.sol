@@ -50,6 +50,7 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
     address public minter;
 
     /// implementation template to clone
+    /// TODO ability to update implementation for new talent tokens
     address public immutable implementation;
 
     event TalentCreated(address indexed talent, address indexed token);

@@ -281,7 +281,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     /// Queries how much TAL can currently be staked on a given talent token
-    /// TODO test this
     ///
     /// @notice The limit of this value is enforced by the tokens' `mintingAvailability()`
     ///   (see `TalentToken` contract)
@@ -534,37 +533,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         }
     }
 
-    /// Whenever rewards are claim or withdrawn, the corresponding talent earns
-    /// a small portion of that amount, proportional to the square root of its
-    /// balance when compared to the staker's, and truncated to a minimum of 1% of the reward
-    ///
-    /// @param _talent The talent token to consider
-    /// @param _stakeAmount Amount of talent tokens owned by the staker
-    /// @param _rewards Total amount of rewards to distribute
-    ///
-    /// @return the talent's address to which their share is to be sent
-    function _calculateTalentShare(
-        address _talent,
-        uint256 _stakeAmount,
-        uint256 _rewards
-    ) private view returns (uint256) {
-        address talentAddress = ITalentToken(_talent).talent();
-        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
-
-        uint256 stakeAdjustedAmount = sqrt(_stakeAmount * MUL);
-        uint256 talentAdjustedAmount = sqrt(talentBalance * MUL);
-
-        uint256 talentWeight = talentAdjustedAmount / ((stakeAdjustedAmount + talentAdjustedAmount));
-        uint256 talentRedeemableRewards = (_rewards * talentWeight) / MUL;
-        uint256 minTalentRewards = _rewards / 100;
-
-        if (talentRedeemableRewards < minTalentRewards) {
-            talentRedeemableRewards = minTalentRewards;
-        }
-
-        return talentRedeemableRewards;
-    }
-
     /// mints a given amount of a given talent token
     /// to be used within a staking update (re-stake or new deposit)
     ///
@@ -574,7 +542,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address _talent,
         uint256 _amount
     ) private {
-        // TODO test a scenario where more than availableMinting is minted
         ITalentToken(_talent).mint(_owner, _amount);
     }
 

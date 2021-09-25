@@ -398,7 +398,7 @@ describe("Staking", () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferandcall(tal, investor1, staking.address, parseunits("50"), talenttoken1.address);
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);

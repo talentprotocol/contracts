@@ -156,6 +156,16 @@ describe("Staking", () => {
         expect(stake.tokenAmount).to.equal(await staking.convertUsdToToken(parseUnits("25")));
       });
 
+      it("emits the expected Stake event", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("1"));
+
+        const action = staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+
+        await expect(action)
+          .to.emit(staking, "Stake")
+          .withArgs(investor1.address, talentToken1.address, parseUnits("50"), true);
+      });
+
       it("updates totalTokensStaked", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
         await stable.connect(investor2).approve(staking.address, parseUnits("1"));
@@ -317,6 +327,16 @@ describe("Staking", () => {
             expect(stake2.tokenAmount).to.equal(parseUnits("100"));
           });
 
+          it("emits the expected Stake event", async () => {
+            await staking.setToken(tal.address);
+
+            const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+
+            await expect(action)
+              .to.emit(staking, "Stake")
+              .withArgs(investor1.address, talentToken1.address, parseUnits("50"), false);
+          });
+
           it("updates totalTokensStaked", async () => {
             await staking.setToken(tal.address);
 
@@ -389,6 +409,20 @@ describe("Staking", () => {
 
             // TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+          });
+
+          it("emits the expected Stake event", async () => {
+            await staking.setToken(tal.address);
+
+            // mint new NAPS
+            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
+
+            const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+
+            await expect(action)
+              .to.emit(staking, "Unstake")
+              .withArgs(investor1.address, talentToken1.address, parseUnits("50"));
           });
 
           it("deducts from totalTokensStaked", async () => {

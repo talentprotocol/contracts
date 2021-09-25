@@ -7,7 +7,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
-import { deployTalentToken, transferAndCall } from "../shared/utils";
+import { deployTalentToken, transferAndCall, ensureTimestamp, findEvent } from "../shared/utils";
 
 chai.use(solidity);
 
@@ -30,11 +30,18 @@ describe("Staking", () => {
   let factory: TalentFactory;
   let staking: Staking;
 
-  const start = dayjs().add(-1, "day").unix();
-  const end = dayjs().add(1, "day").unix();
-  const noRewards = parseUnits("0");
+  let start = dayjs().add(1, "day").unix();
+  let end = dayjs.unix(start).add(100, "days").unix();
+  const rewards = parseUnits("100");
+  const margin = parseUnits("0.001") as unknown as number;
 
   beforeEach(async () => {
+    const lastBlock = await ethers.provider.getBlockNumber();
+    const timestamp = (await ethers.provider.getBlock(lastBlock)).timestamp;
+
+    start = dayjs.unix(timestamp).add(1, "day").unix(); // one minute later
+    end = dayjs.unix(timestamp).add(100, "days").unix();
+
     [owner, minter, talent1, talent2, investor1, investor2] = await ethers.getSigners();
 
     stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
@@ -55,7 +62,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        noRewards,
+        rewards,
         stable.address,
         factory.address,
         parseUnits("0.02"),
@@ -69,7 +76,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        noRewards,
+        rewards,
         stable.address,
         factory.address,
         parseUnits("0"),
@@ -83,7 +90,7 @@ describe("Staking", () => {
       const action = deployContract(owner, Artifacts.Staking, [
         start,
         end,
-        noRewards,
+        rewards,
         stable.address,
         factory.address,
         parseUnits("0.5"),
@@ -98,7 +105,7 @@ describe("Staking", () => {
     return deployContract(owner, Artifacts.Staking, [
       start,
       end,
-      noRewards,
+      rewards,
       stable.address,
       factory.address,
       parseUnits("0.02"),
@@ -119,6 +126,8 @@ describe("Staking", () => {
 
       talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");
       talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");
+
+      await ensureTimestamp(start);
     });
 
     async function enterPhaseTwo() {
@@ -300,6 +309,124 @@ describe("Staking", () => {
       });
     });
 
+    describe("claimRewards", () => {
+      it("emits a RewardClaim event and updates the stake", async () => {
+        const amount = parseUnits("50");
+        await enterPhaseTwo();
+        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+        ensureTimestamp(end);
+
+        const tx = await staking.connect(investor1).claimRewards(talentToken1.address);
+
+        const event = await findEvent(tx, "RewardClaim");
+
+        expect(event?.args?.owner).to.eq(investor1.address);
+        expect(event?.args?.talentToken).to.eq(talentToken1.address);
+        expect(event?.args?.stakerReward).to.be.gt(0);
+        expect(event?.args?.talentReward).to.be.gt(0);
+
+        expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
+
+        // updates stake amount
+        const stake = await staking.stakes(investor1.address, talentToken1.address);
+        expect(stake.tokenAmount).to.eq(amount.add(event?.args?.stakerReward));
+
+        // updates talentRedeeemableShares
+        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
+        expect(talentRedeemable).to.equal(event?.args?.talentReward);
+      });
+    });
+
+    describe("withdrawRewards", () => {
+      it("sends rewards to the owner", async () => {
+        const amount = parseUnits("50");
+        await enterPhaseTwo();
+        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+        ensureTimestamp(end);
+
+        const balanceBefore = await tal.balanceOf(investor1.address);
+        const tx = await staking.connect(investor1).withdrawRewards(talentToken1.address);
+        const balanceAfter = await tal.balanceOf(investor1.address);
+
+        const event = await findEvent(tx, "RewardWithdrawal");
+
+        expect(event?.args?.owner).to.eq(investor1.address);
+        expect(event?.args?.talentToken).to.eq(talentToken1.address);
+        expect(event?.args?.stakerReward).to.be.gt(0);
+        expect(event?.args?.talentReward).to.be.gt(0);
+
+        expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
+
+        // updates owner's balance
+        expect(balanceAfter).to.eq(balanceBefore.add(event?.args?.stakerReward));
+
+        // updates talentRedeeemableShares
+        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
+        expect(talentRedeemable).to.equal(event?.args?.talentReward);
+      });
+    });
+
+    describe("withdrawTalentRewards", () => {
+      it("allows talent to withdraw his redeemable share", async () => {
+        const amount = parseUnits("50");
+        await enterPhaseTwo();
+        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+        ensureTimestamp(end);
+
+        const tx = await staking.connect(investor1).withdrawRewards(talentToken1.address);
+
+        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
+        expect(talentRedeemable).to.be.gt(0);
+
+        // updates talentRedeeemableShares
+        const balanceBefore = await tal.balanceOf(talent1.address);
+        await staking.connect(talent1).withdrawTalentRewards(talentToken1.address);
+        const balanceAfter = await tal.balanceOf(talent1.address);
+
+        expect(balanceAfter).to.eq(balanceBefore.add(talentRedeemable));
+      });
+
+      it("does not allows talent to withdraw another talent's redeemable share", async () => {
+        await enterPhaseTwo();
+
+        const action = staking.connect(talent2).withdrawTalentRewards(talentToken1.address);
+
+        await expect(action).to.be.revertedWith("only the talent can withdraw their own shares");
+      });
+    });
+
+    describe("stakingAvailability", () => {
+      it("shows how much TAL can be staked in a token", async () => {
+        await enterPhaseTwo();
+
+        const amount = parseUnits("50");
+        const amountBefore = await staking.stakeAvailability(talentToken1.address);
+        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+        const amountAfter = await staking.stakeAvailability(talentToken1.address);
+
+        expect(amountAfter).to.equal(amountBefore.sub(amount));
+
+        expect(amountAfter).to.eq(await staking.convertTalentToToken(await talentToken1.mintingAvailability()));
+      });
+
+      it.only("corresponds to the talent token amount converted to TAL according to the rate", async () => {
+        await enterPhaseTwo();
+
+        const amount = parseUnits("50");
+
+        const amountBefore = await staking.stakeAvailability(talentToken1.address);
+        expect(amountBefore).to.eq(await staking.convertTalentToToken(await talentToken1.mintingAvailability()));
+
+        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+        const amountAfter = await staking.stakeAvailability(talentToken1.address);
+        expect(amountAfter).to.eq(await staking.convertTalentToToken(await talentToken1.mintingAvailability()));
+      });
+    });
+
     describe("ERC1363Receiver", () => {
       describe("onTransferReceived", () => {
         describe("TAL stakes", () => {
@@ -436,7 +563,7 @@ describe("Staking", () => {
             await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
             const totalAfter = await staking.totalTokensStaked();
 
-            expect(totalAfter).to.equal(totalBefore.sub(parseUnits("25")));
+            expect(totalAfter).to.be.closeTo(totalBefore.sub(parseUnits("25")), margin);
           });
 
           it("performs a checkpoint and keeps a stake with the remainder", async () => {

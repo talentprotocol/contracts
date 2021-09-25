@@ -7,7 +7,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
-import { deployTalentToken, transferAndCall } from "../shared/utils";
+import { deployTalentToken, transferAndCall, ensureTimestamp } from "../shared/utils";
 
 chai.use(solidity);
 
@@ -79,10 +79,6 @@ describe("Staking", () => {
     await tal.connect(owner).transfer(investor2.address, parseUnits("100000"));
     await tal.connect(owner).transfer(investor3.address, parseUnits("100000"));
   });
-
-  function ensureTimestamp(timestamp: number): Promise<unknown> {
-    return network.provider.send("evm_setNextBlockTimestamp", [timestamp]);
-  }
 
   async function enterPhaseTwo() {
     await staking.setToken(tal.address);

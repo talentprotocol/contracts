@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractReceipt, ContractTransaction, Event } from "ethers";
@@ -59,4 +59,8 @@ export function sqrt(value: BigNumber): BigNumber {
     z = x.div(z).add(z).div(TWO);
   }
   return y;
+}
+
+export function ensureTimestamp(timestamp: number): Promise<unknown> {
+  return network.provider.send("evm_setNextBlockTimestamp", [timestamp]);
 }

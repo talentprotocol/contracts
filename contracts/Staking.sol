@@ -140,13 +140,15 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     event Stake(address indexed owner, address indexed talentToken, uint256 talAmount, bool stable);
 
     // emitte when stake rewards are reinvested into the stake
-    event RewardClaim(address indexed owner, address indexed talentToken, uint256 reward);
+    event RewardClaim(address indexed owner, address indexed talentToken, uint256 stakerReward, uint256 talentReward);
 
     // emitted when stake rewards are withdrawn
-    event RewardWithdrawal(address indexed owner, address indexed talentToken, uint256 reward);
-
-    // emitted when a talent's share of stake rewards is reserved for later withdrawal
-    event TalentRewardReservation(address indexed owner, address indexed talentToken, uint256 reward);
+    event RewardWithdrawal(
+        address indexed owner,
+        address indexed talentToken,
+        uint256 stakerReward,
+        uint256 talentReward
+    );
 
     // emitted when a talent withdraws his share of rewards
     event TalentRewardWithdrawal(address indexed talentToken, address indexed talentTokenWallet, uint256 reward);
@@ -221,12 +223,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
     /// TODO test this
-    function claimRewards(address _talent)
-        public
-        stablePhaseOnly
-        updatesAdjustedShares(msg.sender, _talent)
-        returns (bool)
-    {
+    function claimRewards(address _talent) public updatesAdjustedShares(msg.sender, _talent) returns (bool) {
         _checkpoint(msg.sender, _talent, RewardAction.RESTAKE);
 
         return true;
@@ -239,7 +236,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// TODO test this
     function withdrawRewards(address _talent)
         public
-        stablePhaseOnly
+        tokenPhaseOnly
         updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
@@ -256,7 +253,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return true if operation succeeds
     /// TODO test this
-    function claimTalentRewards(address _talent) public stablePhaseOnly returns (bool) {
+    function withdrawTalentRewards(address _talent) public stablePhaseOnly returns (bool) {
         // only the talent himself can redeem their own rewards
         require(msg.sender == ITalentToken(_talent).talent());
 
@@ -518,12 +515,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         // TODO test this
         talentRedeemableRewards[_talent] += talentRewards;
 
-        emit TalentRewardReservation(_owner, _talent, talentRewards);
-
         if (_action == RewardAction.WITHDRAW) {
             IERC20(token).transfer(_owner, stakerRewards);
 
-            emit RewardWithdrawal(_owner, _talent, stakerRewards);
+            emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
         } else if (_action == RewardAction.RESTAKE) {
             // truncate rewards to stake to the maximum stake availability
             // TODO test this
@@ -533,7 +528,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // TODO test this
             _stake(_owner, _talent, rewardsToStake);
 
-            emit RewardClaim(_owner, _talent, rewardsToStake);
+            emit RewardClaim(_owner, _talent, rewardsToStake, talentRewards);
         } else {
             revert("Unrecognized checkpoint action");
         }

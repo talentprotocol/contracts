@@ -119,7 +119,7 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 _rewards,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 stakeAdjustedWeight = sqrt(_stakerWeight * MUL);
         uint256 talentAdjustedWeight = sqrt(_talentWeight * MUL);
 

@@ -50,7 +50,7 @@ describe("TalentFactory", () => {
 
       const action = factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
 
-      expect(action).to.be.reverted;
+      await expect(action).to.be.reverted;
     });
   });
 

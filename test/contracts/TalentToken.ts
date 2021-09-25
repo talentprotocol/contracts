@@ -16,7 +16,7 @@ const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
 describe("TalentToken", () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let talent: SignerWithAddress;
   let minter: SignerWithAddress;
   let investor: SignerWithAddress;
@@ -25,7 +25,7 @@ describe("TalentToken", () => {
   let coin: TalentToken;
 
   beforeEach(async () => {
-    [owner, talent, minter, investor] = await ethers.getSigners();
+    [admin, talent, minter, investor] = await ethers.getSigners();
 
     // deploy template
     TalentTokenFactory = await ethers.getContractFactory("TalentToken");
@@ -39,7 +39,7 @@ describe("TalentToken", () => {
         parseUnits("1000"),
         talent.address,
         minter.address,
-        owner.address,
+        admin.address,
       ]);
 
       await expect(action).not.to.be.reverted;
@@ -53,7 +53,7 @@ describe("TalentToken", () => {
       parseUnits("123"),
       talent.address,
       minter.address,
-      owner.address,
+      admin.address,
     ]) as Promise<TalentToken>;
   }
 
@@ -90,7 +90,7 @@ describe("TalentToken", () => {
     });
 
     it("correctly sets the DEFAULT_ADMIN role", async () => {
-      expect(await coin.hasRole(await coin.DEFAULT_ADMIN_ROLE(), owner.address)).to.be.true;
+      expect(await coin.hasRole(await coin.DEFAULT_ADMIN_ROLE(), admin.address)).to.be.true;
     });
 
     it("correctly sets the TALENT role", async () => {
@@ -151,7 +151,7 @@ describe("TalentToken", () => {
         await expect(action).to.be.reverted;
       });
 
-      it("cannot burn tokens if owner doesn't have enough", async () => {
+      it("cannot burn tokens if admin doesn't have enough", async () => {
         const action = coin.connect(minter).burn(investor.address, parseUnits("1"));
 
         await expect(action).to.be.reverted;
@@ -187,10 +187,10 @@ describe("TalentToken", () => {
       });
 
       it("is not callable by another wallet", async () => {
-        const result = coin.connect(owner).transferTalentWallet(investor.address);
+        const result = coin.connect(admin).transferTalentWallet(investor.address);
 
         await expect(result).to.be.revertedWith(
-          `AccessControl: account ${owner.address.toLowerCase()} is missing role ${await coin.ROLE_TALENT()}`
+          `AccessControl: account ${admin.address.toLowerCase()} is missing role ${await coin.ROLE_TALENT()}`
         );
       });
 

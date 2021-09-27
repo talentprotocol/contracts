@@ -412,7 +412,7 @@ describe("Staking", () => {
         expect(amountAfter).to.eq(await staking.convertTalentToToken(await talentToken1.mintingAvailability()));
       });
 
-      it.only("corresponds to the talent token amount converted to TAL according to the rate", async () => {
+      it("corresponds to the talent token amount converted to TAL according to the rate", async () => {
         await enterPhaseTwo();
 
         const amount = parseUnits("50");

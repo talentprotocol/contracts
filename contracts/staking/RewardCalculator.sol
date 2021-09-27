@@ -69,20 +69,20 @@ abstract contract RewardCalculator is IRewardParameters {
     /// given for each of them, which should correspond to their own Talent token balance
     ///
     /// @param _shares How many shares to be considered
-    /// @param _start Timestamp to start from
-    /// @param _end Timestamp to end
+    /// @param _stakerS S value at last checkpoint made by staker
+    /// @param _currentS current S value
     /// @param _stakerWeight The non-adjusted weight of the staker when splitting the reward
     /// @param _talentWeight The non-adjusted weight of the talent when splitting the reward
     /// @return stakerShare the staker's share of the reward
     /// @return talentShare the talent's share of the reward
     function calculateReward(
         uint256 _shares,
-        uint256 _start,
-        uint256 _end,
+        uint256 _stakerS,
+        uint256 _currentS,
         uint256 _stakerWeight,
         uint256 _talentWeight
     ) internal view returns (uint256, uint256) {
-        uint256 total = _calculateTotalRewards(_shares, _start, _end);
+        uint256 total = (sqrt(_shares) * (_currentS - _stakerS)) / MUL;
         uint256 talentShare = _calculateTalentShare(total, _stakerWeight, _talentWeight);
 
         return (total - talentShare, talentShare);
@@ -94,7 +94,7 @@ abstract contract RewardCalculator is IRewardParameters {
 
         uint256 percentage = _curvePercentage(startPercent, endPercent);
 
-        return (percentage * this.rewardsMax()) / (MUL);
+        return ((percentage * this.rewardsMax()));
     }
 
     /// Calculates how many shares should be rewarded to a stake,
@@ -128,7 +128,7 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 _rewards,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) internal view returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 stakeAdjustedWeight = sqrt(_stakerWeight * MUL);
         uint256 talentAdjustedWeight = sqrt(_talentWeight * MUL);
 

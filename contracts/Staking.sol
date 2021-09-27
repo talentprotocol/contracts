@@ -227,9 +227,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///
     /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    /// TODO test this
-    function claimRewards(address _talent) public updatesAdjustedShares(msg.sender, _talent) returns (bool) {
-        _updateS();
+    function claimRewards(address _talent)
+        public
+        tokenPhaseOnly
+        updatesAdjustedShares(msg.sender, _talent)
+        returns (bool)
+    {
         _checkpoint(msg.sender, _talent, RewardAction.RESTAKE);
 
         return true;
@@ -239,14 +242,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///
     /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    /// TODO test this
     function withdrawRewards(address _talent)
         public
         tokenPhaseOnly
         updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
-        _updateS();
         _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
 
         return true;
@@ -259,10 +260,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return true if operation succeeds
-    /// TODO test this
-    function withdrawTalentRewards(address _talent) public stablePhaseOnly returns (bool) {
+    function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
         // only the talent himself can redeem their own rewards
-        require(msg.sender == ITalentToken(_talent).talent());
+        require(msg.sender == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
 
         uint256 amount = talentRedeemableRewards[_talent];
 
@@ -383,6 +383,26 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         return rewardsMax - rewardsGiven;
     }
 
+    // TODO move this up
+    bool disabled;
+
+    // TODO setup admin role
+    function disable() public onlyRole(...) {
+        _updateS();
+        disabled = true;
+    }
+
+    function availableAfterDisable() public view returns (uint256) {
+        if(!disabled) {
+            return 0;
+        }
+
+        uint256 reservedTAL = (sqrt(totalTokensStaked - rewardsGiven) * (S - 0)) / MUL;
+        uint256 availableTAL = this.rewardsMax() - reservedTAL;
+
+        return availableTAL;
+    }
+
     //
     // End: IRewardParameters
     //
@@ -449,7 +469,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.tokenAmount -= tokenAmount;
         totalTokensStaked -= tokenAmount;
 
-        _updateS();
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
 
@@ -479,13 +498,20 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         totalTokensStaked += _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
-        _updateS();
+    }
+
+    struct CheckpointCalc {
+        uint256 mintingFinishedAt;
+        uint256 rewardsUnit;
+        uint256 rewardsTotal;
+        uint256 stakerRewards;
+        uint256 talentBalance;
+        uint256 talentReward;
     }
 
     /// Performs a new checkpoint for a given stake
     ///
     /// Calculates all pending rewards since the last checkpoint, and accumulates them
-    /// TODO test this
     /// @param _owner Owner of the stake
     /// @param _talent Talent token staked
     /// @param _action Whether to withdraw or restake rewards
@@ -496,62 +522,81 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ) private updatesAdjustedShares(_owner, _talent) {
         StakeData storage stake = stakes[_owner][_talent];
 
+        _updateS();
+
+        CheckpointCalc memory calc;
+
         // if the talent token has been fully minted, rewards can only be
         // considered up until that timestamp so end date of reward is
         // truncated in that case
         //
         // this will enforce that rewards past this checkpoint will always be
         // 0, effectively ending the stake
-        uint256 mintingFinishedAt = ITalentToken(_talent).mintingFinishedAt();
-        uint256 rewardsUntil = (mintingFinishedAt > 0) ? mintingFinishedAt : block.timestamp;
+        calc.mintingFinishedAt = ITalentToken(_talent).mintingFinishedAt();
+        // calc.rewardsUntil = (calc.mintingFinishedAt > 0) ? calc.mintingFinishedAt : block.timestamp;
 
         // calculate rewards since last checkpoint
         address talentAddress = ITalentToken(_talent).talent();
-        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
+        calc.talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
-        // (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
-        //     stake.tokenAmount,
-        //     stake.lastCheckpointAt,
-        //     rewardsUntil,
-        //     stake.talentAmount,
-        //     talentBalance
-        // );
+        (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
+            stake.tokenAmount,
+            stake.S,
+            S,
+            stake.talentAmount,
+            calc.talentBalance
+        );
 
-        uint256 rewardsTotal = stake.tokenAmount * (S - stake.S);
-        stake.S = S;
-
-        uint256 stakerRewards = rewardsTotal;
-        uint256 talentRewards = 0;
 
         rewardsGiven += stakerRewards + talentRewards;
         stake.lastCheckpointAt = block.timestamp;
+        stake.S = S;
 
-        // TODO test this
         talentRedeemableRewards[_talent] += talentRewards;
 
         if (_action == RewardAction.WITHDRAW) {
             IERC20(token).transfer(_owner, stakerRewards);
-
             emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
         } else if (_action == RewardAction.RESTAKE) {
             // truncate rewards to stake to the maximum stake availability
-            // TODO test this
             uint256 availability = stakeAvailability(_talent);
             uint256 rewardsToStake = (availability > stakerRewards) ? stakerRewards : availability;
+            uint256 rewardsToWithdraw = stakerRewards - rewardsToStake;
 
-            // TODO test this
             _stake(_owner, _talent, rewardsToStake);
-
             emit RewardClaim(_owner, _talent, rewardsToStake, talentRewards);
+
+            // TODO test
+            if (rewardsToStake > 0) {
+                IERC20(token).transfer(_owner, stakerRewards);
+                emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
+            }
         } else {
             revert("Unrecognized checkpoint action");
         }
     }
 
     function _updateS() private {
-        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalTokensStaked;
+        if (disabled) {
+            return;
+        }
+
+        if (totalTokensStaked == 0) {
+            return;
+        }
+
+        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalAdjustedShares;
         SAt = block.timestamp;
     }
+
+    // function disable() {
+    //     _updateS();
+    //     disable = true;
+    //     totalSharesWhenDisable = totalTokensStaked;
+
+    //     reservedTAL = (sqrt(totalSharesWhenDisable) * (S - 0)) / MUL;
+    //     availableTAL = rewardsMax() - reservedTAL;
+    // }
 
     /// mints a given amount of a given talent token
     /// to be used within a staking update (re-stake or new deposit)

@@ -53,7 +53,7 @@ contract TestRewardCalculator is RewardCalculator {
         uint256 _rewards,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return _calculateTalentShare(_rewards, _stakerWeight, _talentWeight);
     }
 

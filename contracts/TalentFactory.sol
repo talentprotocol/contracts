@@ -9,7 +9,7 @@ import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {TalentToken} from "./TalentToken.sol";
 
 interface ITalentFactory {
-    /// Returns true is a given address corresponds to a registered Talent Token
+    /// Returns true if a given address corresponds to a registered Talent Token
     ///
     /// @param addr address of the token to find
     /// @return true if the address corresponds to a talent token
@@ -20,6 +20,12 @@ interface ITalentFactory {
     /// @param symbol Symbol of the token to find
     /// @return true if the symbol corresponds to an existing talent token
     function isSymbol(string memory symbol) external view returns (bool);
+
+    /// Returns the token address for a given talent address
+    ///
+    /// @param addr address of the talent
+    /// @return the token address for the given talent if one exists
+    function talentToToken(address addr) external view returns (address);
 }
 
 /// @title Factory in charge of deploying Talent Token contracts
@@ -93,6 +99,7 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
 
         symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
+        talentsToTokens[_talent] = token;
 
         emit TalentCreated(_talent, token);
 
@@ -127,6 +134,10 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
 
     function isSymbol(string memory _symbol) public view override(ITalentFactory) returns (bool) {
         return symbolsToTokens[_symbol] != address(0x0);
+    }
+
+    function talentToToken(address addr) public view override(ITalentFactory) returns (address) {
+        return talentsToTokens[addr];
     }
 
     //

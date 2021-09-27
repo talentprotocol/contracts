@@ -517,7 +517,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         //     talentBalance
         // );
 
-        uint256 stakerRewards = stake.tokenAmount * (S - stake.S);
+        uint256 rewardsTotal = stake.tokenAmount * (S - stake.S);
+        stake.S = S;
+
+        uint256 stakerRewards = rewardsTotal;
         uint256 talentRewards = 0;
 
         rewardsGiven += stakerRewards + talentRewards;
@@ -546,7 +549,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     function _updateS() private {
-        S = S + calculateGlobalReward(SAt, block.timestamp);
+        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalTokensStaked;
         SAt = block.timestamp;
     }
 

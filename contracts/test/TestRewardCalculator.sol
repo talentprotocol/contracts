@@ -27,6 +27,10 @@ contract TestRewardCalculator is RewardCalculator {
         totalAdjustedShares = _totalAdjustedShares;
     }
 
+    function test_calculateGlobalReward(uint256 _start, uint256 _end) public view returns (uint256) {
+        return calculateGlobalReward(_start, _end);
+    }
+
     function test_calculateReward(
         uint256 _shares,
         uint256 _start,

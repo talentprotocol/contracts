@@ -27,12 +27,13 @@ describe("RewardCalculator", () => {
     const mul = 1e10;
     const start = 100;
     const end = 200;
+    const max = parseUnits("100");
 
     async function builder(totalShares: BigNumber, totalAdjustedShares: BigNumber): Promise<TestRewardCalculator> {
       return (await deployContract(owner, Artifacts.TestRewardCalculator, [
         start,
         end,
-        parseUnits("100"),
+        max,
         parseUnits("0"),
         totalShares,
         totalAdjustedShares,
@@ -172,6 +173,27 @@ describe("RewardCalculator", () => {
           .div("3");
 
         expect(await calculator.test_integralAt(x)).to.equal(y);
+      });
+    });
+
+    describe("calculateGlobalReward", () => {
+      it("returns 100% of the reward for the total period", async () => {
+        expect(await calculator.test_calculateGlobalReward(start, end)).to.equal(max);
+      });
+
+      it("returns 0 if outside of the period", async () => {
+        expect(await calculator.test_calculateGlobalReward(start - 1, start)).to.equal(0);
+      });
+
+      it("returns more than 50% for the first half", async () => {
+        expect(await calculator.test_calculateGlobalReward(start, (start + end) / 2)).to.be.gt(max.div(2));
+      });
+
+      it("totals to 100% if two adjacet periods are given", async () => {
+        const firstHalf = await calculator.test_calculateGlobalReward(start, (start + end) / 2);
+        const secondHalf = await calculator.test_calculateGlobalReward((start + end) / 2, end);
+
+        expect(firstHalf.add(secondHalf)).to.be.closeTo(max, parseUnits("0.000001") as unknown as number);
       });
     });
 

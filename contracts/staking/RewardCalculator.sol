@@ -88,6 +88,15 @@ abstract contract RewardCalculator is IRewardParameters {
         return (total - talentShare, talentShare);
     }
 
+    function calculateGlobalReward(uint256 _start, uint256 _end) internal view returns (uint256) {
+        (uint256 start, uint256 end) = _truncatePeriod(_start, _end);
+        (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
+
+        uint256 percentage = _curvePercentage(startPercent, endPercent);
+
+        return (percentage * this.rewardsMax()) / (MUL);
+    }
+
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp
     ///

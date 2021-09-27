@@ -70,6 +70,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         /// calculated from this moment forward. Anything past it should already
         /// be accounted for in `tokenAmount`
         uint256 lastCheckpointAt;
+        uint256 S;
     }
 
     /// Possible actions when a checkpoint is being triggered
@@ -129,6 +130,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
 
+    uint256 public S;
+    uint256 public SAt;
+
     /// re-entrancy guard for `updatesAdjustedShares`
     bool private isAlreadyUpatingAdjustedShares;
 
@@ -185,6 +189,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         factory = _factory;
         tokenPrice = _tokenPrice;
         talentPrice = _talentPrice;
+        SAt = _start;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -224,6 +229,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// @return true if operation succeeds
     /// TODO test this
     function claimRewards(address _talent) public updatesAdjustedShares(msg.sender, _talent) returns (bool) {
+        _updateS();
         _checkpoint(msg.sender, _talent, RewardAction.RESTAKE);
 
         return true;
@@ -240,6 +246,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
+        _updateS();
         _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
 
         return true;
@@ -442,6 +449,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.tokenAmount -= tokenAmount;
         totalTokensStaked -= tokenAmount;
 
+        _updateS();
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
 
@@ -471,6 +479,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         totalTokensStaked += _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
+        _updateS();
     }
 
     /// Performs a new checkpoint for a given stake
@@ -500,13 +509,16 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         address talentAddress = ITalentToken(_talent).talent();
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
-        (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
-            stake.tokenAmount,
-            stake.lastCheckpointAt,
-            rewardsUntil,
-            stake.talentAmount,
-            talentBalance
-        );
+        // (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
+        //     stake.tokenAmount,
+        //     stake.lastCheckpointAt,
+        //     rewardsUntil,
+        //     stake.talentAmount,
+        //     talentBalance
+        // );
+
+        uint256 stakerRewards = stake.tokenAmount * (S - stake.S);
+        uint256 talentRewards = 0;
 
         rewardsGiven += stakerRewards + talentRewards;
         stake.lastCheckpointAt = block.timestamp;
@@ -531,6 +543,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         } else {
             revert("Unrecognized checkpoint action");
         }
+    }
+
+    function _updateS() private {
+        S = S + calculateGlobalReward(SAt, block.timestamp);
+        SAt = block.timestamp;
     }
 
     /// mints a given amount of a given talent token

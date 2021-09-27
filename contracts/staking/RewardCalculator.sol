@@ -81,7 +81,7 @@ abstract contract RewardCalculator is IRewardParameters {
         uint256 _currentS,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) internal view returns (uint256, uint256) {
+    ) internal pure returns (uint256, uint256) {
         uint256 total = (sqrt(_shares) * (_currentS - _stakerS)) / MUL;
         uint256 talentShare = _calculateTalentShare(total, _stakerWeight, _talentWeight);
 

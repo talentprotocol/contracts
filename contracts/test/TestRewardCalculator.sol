@@ -27,7 +27,7 @@ contract TestRewardCalculator is RewardCalculator {
         totalAdjustedShares = _totalAdjustedShares;
     }
 
-    function test_MUL() public view returns (uint256) {
+    function test_MUL() public pure returns (uint256) {
         return MUL;
     }
 
@@ -41,7 +41,7 @@ contract TestRewardCalculator is RewardCalculator {
         uint256 _end,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) public view returns (uint256, uint256) {
+    ) public pure returns (uint256, uint256) {
         return calculateReward(_shares, _start, _end, _stakerWeight, _talentWeight);
     }
 

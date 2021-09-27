@@ -95,6 +95,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// Talent's share of rewards, to be redeemable by each individual talent
     mapping(address => uint256) public talentRedeemableRewards;
 
+    // Ability for admins to disable further stakes and rewards
+    bool disabled;
+
     /// The Talent Token Factory contract (ITalentFactory)
     address public factory;
 
@@ -383,17 +386,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         return rewardsMax - rewardsGiven;
     }
 
-    // TODO move this up
-    bool disabled;
-
     // TODO setup admin role
-    function disable() public onlyRole(...) {
+    function disable() public {
         _updateS();
         disabled = true;
     }
 
     function availableAfterDisable() public view returns (uint256) {
-        if(!disabled) {
+        if (!disabled) {
             return 0;
         }
 
@@ -546,7 +546,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             stake.talentAmount,
             calc.talentBalance
         );
-
 
         rewardsGiven += stakerRewards + talentRewards;
         stake.lastCheckpointAt = block.timestamp;

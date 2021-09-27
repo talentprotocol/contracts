@@ -178,7 +178,7 @@ describe("RewardCalculator", () => {
 
     describe("calculateGlobalReward", () => {
       it("returns 100% of the reward for the total period", async () => {
-        expect(await calculator.test_calculateGlobalReward(start, end)).to.equal(max);
+        expect(await calculator.test_calculateGlobalReward(start, end)).to.equal(max.mul(await calculator.test_MUL()));
       });
 
       it("returns 0 if outside of the period", async () => {
@@ -193,7 +193,10 @@ describe("RewardCalculator", () => {
         const firstHalf = await calculator.test_calculateGlobalReward(start, (start + end) / 2);
         const secondHalf = await calculator.test_calculateGlobalReward((start + end) / 2, end);
 
-        expect(firstHalf.add(secondHalf)).to.be.closeTo(max, parseUnits("0.000001") as unknown as number);
+        expect(firstHalf.add(secondHalf)).to.be.closeTo(
+          max.mul(await calculator.test_MUL()),
+          parseUnits("0.0001").mul(await calculator.test_MUL()) as unknown as number
+        );
       });
     });
 
@@ -265,37 +268,5 @@ describe("RewardCalculator", () => {
         totalAdjustedShares,
       ])) as TestRewardCalculator;
     }
-
-    describe("calculateTotalRewards", () => {
-      describe("single staker with 1 TAL staked", () => {
-        const ownerShares = parseUnits("1");
-        const otherShares: BigNumber[] = [];
-
-        beforeEach(async () => {
-          calculator = await builder(start, end, ownerShares, otherShares);
-        });
-
-        it("stays from 0% to 100%, receives 100% of the reward", async () => {
-          const rewards = await calculator.test_calculateTotalRewards(ownerShares, start, end);
-          expect(rewards).to.eq(totalRewards);
-        });
-
-        it("stays from 0% to 50%, receives more than 50% of the reward", async () => {
-          const firstHalf = await calculator.test_calculateTotalRewards(ownerShares, start, start + duration * 0.5);
-          const secondHalf = await calculator.test_calculateTotalRewards(ownerShares, start + duration * 0.5, end);
-
-          expect(firstHalf).to.be.gt(secondHalf);
-        });
-      });
-
-      describe("two stakes with the same amount", () => {
-        const ownerShares = parseUnits("1");
-        const otherShares: BigNumber[] = [parseUnits("1")];
-
-        beforeEach(async () => {
-          calculator = await builder(start, end, ownerShares, otherShares);
-        });
-      });
-    });
   });
 });

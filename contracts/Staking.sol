@@ -133,11 +133,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
 
+    // Continuously growing value used to compute reward distributions
     uint256 public S;
+
+    // Timestamp at which S was last updated
     uint256 public SAt;
 
     /// re-entrancy guard for `updatesAdjustedShares`
-    bool private isAlreadyUpatingAdjustedShares;
+    bool private isAlreadyUpdatingAdjustedShares;
 
     //
     // Begin: Events
@@ -627,12 +630,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     modifier updatesAdjustedShares(address _owner, address _talent) {
-        if (isAlreadyUpatingAdjustedShares) {
+        if (isAlreadyUpdatingAdjustedShares) {
             // works like a re-entrancy guard, to prevent sqrt calculations
             // from happening twice
             _;
         } else {
-            isAlreadyUpatingAdjustedShares = true;
+            isAlreadyUpdatingAdjustedShares = true;
             // calculate current adjusted shares for this stake
             // we don't deduct it directly because other computations wrapped by this modifier depend on the original value
             // (e.g. reward calculation)
@@ -646,7 +649,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // excluding the previously computed amount to be deducted
             // (replaced by the new one)
             totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
-            isAlreadyUpatingAdjustedShares = false;
+            isAlreadyUpdatingAdjustedShares = false;
         }
     }
 

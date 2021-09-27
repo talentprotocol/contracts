@@ -192,8 +192,7 @@ describe("Staking", () => {
     expect(talentReward3).to.be.closeTo(parseUnits("2.0833"), margin);
   });
 
-  it("three stakers, one larger than the others", async () => {
-    // we stake the same amount as each talent himself owns, to keep the split 50-50
+  it("disable", async () => {
     const amount = await staking.convertTalentToToken(parseUnits("1000"));
     await enterPhaseTwo();
 
@@ -275,5 +274,28 @@ describe("Staking", () => {
 
     expect(sBefore).to.eq(sAfter);
     expect(stakeBefore.tokenAmount).to.eq(stakeAfter.tokenAmount);
+  });
+
+  it("calculates the estimated rewards without claiming them", async () => {
+    const amount = await staking.convertTalentToToken(parseUnits("1000"));
+    await enterPhaseTwo();
+
+    await ensureTimestamp(start);
+
+    await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+    // travel to the end of staking
+    ensureTimestamp(end);
+
+    const result = await staking.calculateEstimatedReturns(investor1.address, talentToken1.address, end);
+
+    await staking.connect(investor1).claimRewards(talentToken1.address);
+
+    const stake1 = await staking.stakes(investor1.address, talentToken1.address);
+    const reward1 = stake1.tokenAmount.sub(amount);
+    const talentReward1 = await staking.talentRedeemableRewards(talentToken1.address);
+
+    expect(result.stakerRewards).to.eq(reward1)
+    expect(result.talentRewards).to.eq(talentReward1)
   });
 });

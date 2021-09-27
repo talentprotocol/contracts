@@ -7,7 +7,7 @@ import type { ContractFactory } from "ethers";
 
 import { ERC165 } from "../shared";
 
-import { TalentToken } from "../../typechain";
+import { TalentToken, TalentTokenV2 } from "../../typechain";
 
 chai.use(solidity);
 
@@ -211,6 +211,22 @@ describe("TalentToken", () => {
 
         expect(await coin.hasRole(await coin.ROLE_TALENT(), talent.address)).to.be.false;
       });
+    });
+  });
+
+  describe("upgradeability", () => {
+    beforeEach(async () => {
+      coin = await builder();
+    });
+
+    it("can be upgraded while keeping the state", async () => {
+      const TalentTokenV2Factory = await ethers.getContractFactory("TalentTokenV2");
+
+      await coin.connect(talent).transfer(minter.address, 1);
+      const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory)) as TalentTokenV2;
+
+      expect(await coin2.isV2()).to.be.true;
+      expect(await coin2.balanceOf(minter.address)).to.eq(1);
     });
   });
 });

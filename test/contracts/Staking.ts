@@ -309,95 +309,6 @@ describe("Staking", () => {
       });
     });
 
-    describe("claimRewards", () => {
-      it("emits a RewardClaim event and updates the stake", async () => {
-        const amount = parseUnits("50");
-        await enterPhaseTwo();
-        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
-
-        ensureTimestamp(end);
-
-        const tx = await staking.connect(investor1).claimRewards(talentToken1.address);
-
-        const event = await findEvent(tx, "RewardClaim");
-
-        expect(event?.args?.owner).to.eq(investor1.address);
-        expect(event?.args?.talentToken).to.eq(talentToken1.address);
-        expect(event?.args?.stakerReward).to.be.gt(0);
-        expect(event?.args?.talentReward).to.be.gt(0);
-
-        expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
-
-        // updates stake amount
-        const stake = await staking.stakes(investor1.address, talentToken1.address);
-        expect(stake.tokenAmount).to.eq(amount.add(event?.args?.stakerReward));
-
-        // updates talentRedeeemableShares
-        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
-        expect(talentRedeemable).to.equal(event?.args?.talentReward);
-      });
-    });
-
-    describe("withdrawRewards", () => {
-      it("sends rewards to the owner", async () => {
-        const amount = parseUnits("50");
-        await enterPhaseTwo();
-        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
-
-        ensureTimestamp(end);
-
-        const balanceBefore = await tal.balanceOf(investor1.address);
-        const tx = await staking.connect(investor1).withdrawRewards(talentToken1.address);
-        const balanceAfter = await tal.balanceOf(investor1.address);
-
-        const event = await findEvent(tx, "RewardWithdrawal");
-
-        expect(event?.args?.owner).to.eq(investor1.address);
-        expect(event?.args?.talentToken).to.eq(talentToken1.address);
-        expect(event?.args?.stakerReward).to.be.gt(0);
-        expect(event?.args?.talentReward).to.be.gt(0);
-
-        expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
-
-        // updates owner's balance
-        expect(balanceAfter).to.eq(balanceBefore.add(event?.args?.stakerReward));
-
-        // updates talentRedeeemableShares
-        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
-        expect(talentRedeemable).to.equal(event?.args?.talentReward);
-      });
-    });
-
-    describe("withdrawTalentRewards", () => {
-      it("allows talent to withdraw his redeemable share", async () => {
-        const amount = parseUnits("50");
-        await enterPhaseTwo();
-        await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
-
-        ensureTimestamp(end);
-
-        const tx = await staking.connect(investor1).withdrawRewards(talentToken1.address);
-
-        const talentRedeemable = await staking.talentRedeemableRewards(talentToken1.address);
-        expect(talentRedeemable).to.be.gt(0);
-
-        // updates talentRedeeemableShares
-        const balanceBefore = await tal.balanceOf(talent1.address);
-        await staking.connect(talent1).withdrawTalentRewards(talentToken1.address);
-        const balanceAfter = await tal.balanceOf(talent1.address);
-
-        expect(balanceAfter).to.eq(balanceBefore.add(talentRedeemable));
-      });
-
-      it("does not allows talent to withdraw another talent's redeemable share", async () => {
-        await enterPhaseTwo();
-
-        const action = staking.connect(talent2).withdrawTalentRewards(talentToken1.address);
-
-        await expect(action).to.be.revertedWith("only the talent can withdraw their own shares");
-      });
-    });
-
     describe("stakingAvailability", () => {
       it("shows how much TAL can be staked in a token", async () => {
         await enterPhaseTwo();
@@ -535,21 +446,24 @@ describe("Staking", () => {
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("0"));
 
             // TAL is returned
-            expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+            expect(await tal.balanceOf(investor1.address)).to.be.closeTo(
+              investorTalBalanceBefore.add(parseUnits("50")),
+              margin
+            );
           });
 
-          it("emits the expected Stake event", async () => {
-            await staking.setToken(tal.address);
+          it("emits the expected Unstake event", async () => {
+            await enterPhaseTwo();
+
+            const amount = parseUnits("50");
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
-            await expect(action)
-              .to.emit(staking, "Unstake")
-              .withArgs(investor1.address, talentToken1.address, parseUnits("50"));
+            await expect(action).to.emit(staking, "Unstake");
           });
 
           it("deducts from totalTokensStaked", async () => {
@@ -577,11 +491,14 @@ describe("Staking", () => {
             await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
 
             // proportional amount of TAL is returned
-            expect(await tal.balanceOf(investor1.address)).to.equal(investorTalBalanceBefore.add(parseUnits("50")));
+            expect(await tal.balanceOf(investor1.address)).to.be.closeTo(
+              investorTalBalanceBefore.add(parseUnits("50")),
+              margin
+            );
 
             // remaining TAL is still staked
             const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
-            expect(stakeAfter.tokenAmount).to.equal(parseUnits("50"));
+            expect(stakeAfter.tokenAmount).to.be.closeTo(parseUnits("50"), margin);
           });
         });
       });

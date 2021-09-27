@@ -45,8 +45,6 @@ interface ITalentToken is IERC20Upgradeable {
 ///   back into the `mintingAvailability` pool /   If MAX_SUPPLY has already been
 ///   reached at some point, then future burns can no longer be minted back,
 ///   effectively making the burn permanent
-///
-/// TODO what happens if we upgrade the factory to use a new implementation? do all existing instances share it?
 contract TalentToken is
     Initializable,
     ContextUpgradeable,

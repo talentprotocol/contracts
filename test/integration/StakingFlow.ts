@@ -65,7 +65,7 @@ describe("Staking", () => {
       stable.address,
       factory.address,
       parseUnits("0.02"),
-      parseUnits("50"),
+      parseUnits("5"),
     ])) as Staking;
 
     await factory.setMinter(staking.address);
@@ -90,7 +90,7 @@ describe("Staking", () => {
   }
 
   it("single staker, full period, same weight as talent", async () => {
-    const amount = await staking.convertTalentToToken(parseUnits("1000"));
+    const amount = await staking.convertTalentToToken(parseUnits("2000"));
     await enterPhaseTwo();
 
     await ensureTimestamp(start);
@@ -135,7 +135,7 @@ describe("Staking", () => {
     await staking.connect(owner).swapStableForToken(amount);
 
     // NAPS can now be refunded for the same TAL amount
-    const action = transferAndCall(talentToken1, investor1, staking.address, amount, null);
+    const action = transferAndCall(talentToken1, investor1, staking.address, amount.mul(10), null);
 
     // // investor's balance should increase by `amount`, and Unstake event emited
     const balanceBefore = await tal.balanceOf(investor1.address);
@@ -147,7 +147,8 @@ describe("Staking", () => {
 
   it("three stakers, one longer than the others", async () => {
     // we stake the same amount as each talent himself owns, to keep the split 50-50
-    const amount = await staking.convertTalentToToken(parseUnits("1000"));
+    const amount = await staking.convertTalentToToken(parseUnits("2000"));
+
     await enterPhaseTwo();
 
     await ensureTimestamp(start);
@@ -193,7 +194,7 @@ describe("Staking", () => {
   });
 
   it("disable", async () => {
-    const amount = await staking.convertTalentToToken(parseUnits("1000"));
+    const amount = await staking.convertTalentToToken(parseUnits("2000"));
     await enterPhaseTwo();
 
     await ensureTimestamp(start);
@@ -277,7 +278,7 @@ describe("Staking", () => {
   });
 
   it("calculates the estimated rewards without claiming them", async () => {
-    const amount = await staking.convertTalentToToken(parseUnits("1000"));
+    const amount = await staking.convertTalentToToken(parseUnits("2000"));
     await enterPhaseTwo();
 
     await ensureTimestamp(start);

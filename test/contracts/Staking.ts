@@ -682,7 +682,7 @@ describe("Staking", () => {
       it("decrements if a full refund is requested", async () => {
         await enterPhaseTwo();
 
-        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
         expect(await staking.activeStakes()).to.equal(1);
         await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
         expect(await staking.activeStakes()).to.equal(0);
@@ -691,7 +691,7 @@ describe("Staking", () => {
       it("does not decrement if a partial refund is requested", async () => {
         await enterPhaseTwo();
 
-        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
         expect(await staking.activeStakes()).to.equal(1);
         await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
         expect(await staking.activeStakes()).to.equal(1);

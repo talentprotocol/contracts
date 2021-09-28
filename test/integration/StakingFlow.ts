@@ -199,7 +199,6 @@ describe("Staking", () => {
 
     await ensureTimestamp(start);
 
-    console.log("staking");
     await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
 
     // travel to the middle of staking
@@ -277,7 +276,7 @@ describe("Staking", () => {
     expect(stakeBefore.tokenAmount).to.eq(stakeAfter.tokenAmount);
   });
 
-  it("calculates the estimated rewards without claiming them", async () => {
+  it("calculates the estimated rewards available before claiming them", async () => {
     const amount = await staking.convertTalentToToken(parseUnits("2000"));
     await enterPhaseTwo();
 

@@ -2,9 +2,15 @@
 
 pragma solidity ^0.8.7;
 
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IAccessControlEnumerable, AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import {IAccessControlEnumerableUpgradeable, AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 
 import {TalentToken} from "./TalentToken.sol";
 
@@ -30,7 +36,17 @@ interface ITalentFactory {
 ///   A minter role defines who is allowed to deploy talent tokens. Deploying
 ///   a talent token grants you the right to mint that talent token, meaning the
 ///   same deployer will be granted that role
-contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
+///
+/// @notice beacon:
+///   TalentTokens are implemented with BeaconProxies, allowing an update of
+///   the underlying beacon, to target all existing talent tokens.
+contract TalentFactory is
+    Initializable,
+    ContextUpgradeable,
+    ERC165Upgradeable,
+    AccessControlEnumerableUpgradeable,
+    ITalentFactory
+{
     /// creator role
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
@@ -50,15 +66,20 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
     address public minter;
 
     /// implementation template to clone
-    /// TODO ability to update implementation for new talent tokens
-    address public immutable implementation;
+    address public implementationBeacon;
 
     event TalentCreated(address indexed talent, address indexed token);
 
-    constructor() {
+    function initialize() public virtual initializer {
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        implementation = address(new TalentToken());
+        UpgradeableBeacon _beacon = new UpgradeableBeacon(address(new TalentToken()));
+        _beacon.transferOwnership(msg.sender);
+        implementationBeacon = address(_beacon);
     }
 
     function setMinter(address _minter) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -81,15 +102,29 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
         require(!isSymbol(_symbol), "talent token with this symbol already exists");
         require(_isMinterSet(), "minter not yet set");
 
-        address token = Clones.clone(implementation);
-        TalentToken(token).initialize(
-            _name,
-            _symbol,
-            INITIAL_SUPPLY,
-            _talent,
-            minter,
-            getRoleMember(DEFAULT_ADMIN_ROLE, 0)
+        BeaconProxy proxy = new BeaconProxy(
+            implementationBeacon,
+            abi.encodeWithSelector(
+                TalentToken(address(0x0)).initialize.selector,
+                _name,
+                _symbol,
+                INITIAL_SUPPLY,
+                _talent,
+                minter,
+                getRoleMember(DEFAULT_ADMIN_ROLE, 0)
+            )
         );
+        // address token = ClonesUpgradeable.clone(implementation);
+        // TalentToken(token).initialize(
+        //     _name,
+        //     _symbol,
+        //     INITIAL_SUPPLY,
+        //     _talent,
+        //     minter,
+        //     getRoleMember(DEFAULT_ADMIN_ROLE, 0)
+        // );
+
+        address token = address(proxy);
 
         symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
@@ -103,14 +138,14 @@ contract TalentFactory is ERC165, AccessControlEnumerable, ITalentFactory {
     // Begin: ERC165
     //
 
-    /// @inheritdoc ERC165
+    /// @inheritdoc ERC165Upgradeable
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC165, AccessControlEnumerable)
+        override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
         returns (bool)
     {
-        return AccessControlEnumerable.supportsInterface(interfaceId);
+        return AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
     }
 
     //

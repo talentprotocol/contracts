@@ -1,5 +1,5 @@
 import chai from "chai";
-import { ethers, waffle } from "hardhat";
+import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
@@ -54,7 +54,9 @@ describe("Staking", () => {
     await tal.connect(owner).transfer(investor1.address, parseUnits("1000"));
     await tal.connect(owner).transfer(investor2.address, parseUnits("1000"));
 
-    factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
+    // factory is deployed as a proxy already, to ensure `initialize` is called
+    const FactoryFactory = await ethers.getContractFactory("TalentFactory");
+    factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
   });
 
   describe("constructor", () => {

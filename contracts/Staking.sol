@@ -55,6 +55,18 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   given based on the logic from `RewardCalculator`, which
 ///   relies on a continuous `totalAdjustedShares` being updated on every
 ///   stake/withdraw. Seel `RewardCalculator` for more details
+///
+/// @notice Disabling staking:
+///   The team reserves the ability to halt staking & reward accumulation,
+///   to use if the tokenomics model or contracts don't work as expected, and need to be rethough.
+///   In this event, any pending rewards must still be valid and redeemable by stakers.
+///   New stakes must not be allowed, and existing stakes will not accumulate new rewards past the disabling block
+///
+/// @notice Withdrawing remaining rewards:
+///   If staking is disabled, or if the end timestamp has been reached, the team can then
+///   intervene on stakes to accumulate their rewards on their behalf, in order to reach an `activeStakes` count of 0.
+///   Once 0 is reached, since no more claims will ever be made,
+///   the remaining TAL from the reward pool can be safely withdrawn back to the team
 contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     //
     // Begin: Declarations

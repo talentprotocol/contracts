@@ -224,14 +224,14 @@ describe("Staking", () => {
         const stake1Before = await staking.stakes(investor1.address, talentToken1.address);
 
         await staking.connect(investor1).stakeStable(talentToken2.address, parseUnits("25"));
-        const stake1After = await staking.stakes(investor1.address, talentToken2.address);
+        const stake1After = await staking.stakes(investor1.address, talentToken1.address);
 
         const stake2 = await staking.stakes(investor1.address, talentToken1.address);
 
         expect(stake1After.talentAmount).to.equal(stake2.talentAmount);
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
-        expect(stake1After.lastCheckpointAt).to.eq(0);
+        expect(stake1After.lastCheckpointAt).to.eq(stake1Before.lastCheckpointAt);
       });
 
       it("fails if stake exceeds mintingAvailability", async () => {

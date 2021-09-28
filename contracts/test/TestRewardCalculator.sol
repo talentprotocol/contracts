@@ -27,6 +27,10 @@ contract TestRewardCalculator is RewardCalculator {
         totalAdjustedShares = _totalAdjustedShares;
     }
 
+    function test_MUL() public pure returns (uint256) {
+        return MUL;
+    }
+
     function test_calculateGlobalReward(uint256 _start, uint256 _end) public view returns (uint256) {
         return calculateGlobalReward(_start, _end);
     }
@@ -37,16 +41,8 @@ contract TestRewardCalculator is RewardCalculator {
         uint256 _end,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) public view returns (uint256, uint256) {
+    ) public pure returns (uint256, uint256) {
         return calculateReward(_shares, _start, _end, _stakerWeight, _talentWeight);
-    }
-
-    function test_calculateTotalRewards(
-        uint256 _shares,
-        uint256 _start,
-        uint256 _end
-    ) public view returns (uint256) {
-        return _calculateTotalRewards(_shares, _start, _end);
     }
 
     function test_calculateTalentShare(

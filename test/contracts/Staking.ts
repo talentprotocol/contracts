@@ -132,7 +132,7 @@ describe("Staking", () => {
 
     async function enterPhaseTwo() {
       await staking.setToken(tal.address);
-      await tal.connect(owner).transfer(staking.address, parseUnits("400"));
+      await tal.connect(owner).transfer(staking.address, rewards);
     }
 
     describe("stakeStable", () => {
@@ -224,14 +224,14 @@ describe("Staking", () => {
         const stake1Before = await staking.stakes(investor1.address, talentToken1.address);
 
         await staking.connect(investor1).stakeStable(talentToken2.address, parseUnits("25"));
-        const stake1After = await staking.stakes(investor1.address, talentToken2.address);
+        const stake1After = await staking.stakes(investor1.address, talentToken1.address);
 
         const stake2 = await staking.stakes(investor1.address, talentToken1.address);
 
         expect(stake1After.talentAmount).to.equal(stake2.talentAmount);
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
         expect(stake1After.tokenAmount).to.equal(stake2.tokenAmount);
-        expect(stake1After.lastCheckpointAt).to.be.gt(stake1Before.lastCheckpointAt);
+        expect(stake1After.lastCheckpointAt).to.eq(stake1Before.lastCheckpointAt);
       });
 
       it("fails if stake exceeds mintingAvailability", async () => {
@@ -634,6 +634,150 @@ describe("Staking", () => {
     describe("convertUsdToTalent", () => {
       it("converts a USD value to a talent token based on both given rates", async () => {
         expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("2"));
+      });
+    });
+
+    describe("activeStakes", () => {
+      it("increments with a stable coin stake", async () => {
+        console.log("stake 1");
+        await stable.connect(investor1).approve(staking.address, parseUnits("25"));
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+
+        expect(await staking.activeStakes()).to.equal(1);
+
+        console.log("stake 2");
+        await stable.connect(investor2).approve(staking.address, parseUnits("25"));
+        await staking.connect(investor2).stakeStable(talentToken1.address, parseUnits("25"));
+
+        expect(await staking.activeStakes()).to.equal(2);
+      });
+
+      it("increments with a TAL stake", async () => {
+        await enterPhaseTwo();
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(tal, investor2, staking.address, parseUnits("50"), talentToken2.address);
+        expect(await staking.activeStakes()).to.equal(2);
+      });
+
+      it("does not count duplicates if same stake is reinforced", async () => {
+        await staking.setToken(tal.address);
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+      });
+
+      it("counts twice duplicates if same investor stakes in two talents", async () => {
+        await staking.setToken(tal.address);
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken2.address);
+        expect(await staking.activeStakes()).to.equal(2);
+      });
+
+      it("decrements if a full refund is requested", async () => {
+        await enterPhaseTwo();
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+        expect(await staking.activeStakes()).to.equal(0);
+      });
+
+      it("does not decrement if a partial refund is requested", async () => {
+        await enterPhaseTwo();
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
+        expect(await staking.activeStakes()).to.equal(1);
+
+        // refundind the remaining 50% decrements
+        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
+        expect(await staking.activeStakes()).to.equal(0);
+      });
+    });
+
+    describe("disable", () => {
+      it("disables staking", async () => {
+        await staking.disable();
+
+        expect(await staking.disabled());
+      });
+
+      it("is only callable by an admin", async () => {
+        const action = staking.connect(investor1).disable();
+
+        expect(action).to.be.reverted;
+      });
+
+      it("prevents further stakes", async () => {
+        await enterPhaseTwo();
+        await staking.disable();
+
+        const action = transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+
+        await expect(action).to.be.revertedWith("staking has been disabled");
+      });
+
+      it("allows withdraws from existing stakes", async () => {
+        await enterPhaseTwo();
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+
+        const action = transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
+
+        expect(action).not.to.be.reverted;
+      });
+    });
+
+    describe("adminWithdraw", () => {
+      it("withdraws all remaining rewards", async () => {
+        await enterPhaseTwo();
+        await staking.disable();
+
+        const rewards = await staking.rewardsLeft();
+
+        const balanceBefore = await tal.balanceOf(owner.address);
+        await staking.adminWithdraw();
+        const balanceAfter = await tal.balanceOf(owner.address);
+
+        expect(rewards).to.be.gt(0);
+        expect(balanceAfter).to.equal(balanceBefore.add(rewards));
+        expect(await tal.balanceOf(staking.address)).to.equal(0);
+        expect(await staking.rewardsLeft()).to.equal(0);
+      });
+
+      it("is only callable by an admin", async () => {
+        const action = staking.connect(investor1).adminWithdraw();
+
+        expect(action).to.be.reverted;
+      });
+
+      it("is not callable if there's nothing to withdraw", async () => {
+        await enterPhaseTwo();
+        await staking.disable();
+        await staking.adminWithdraw();
+
+        const action = staking.adminWithdraw();
+
+        await expect(action).to.be.revertedWith("nothing left to withdraw");
+      });
+
+      it("is not callable if there is an active stake", async () => {
+        await enterPhaseTwo();
+        await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+        await staking.disable();
+
+        const action = staking.adminWithdraw();
+
+        await expect(action).to.be.revertedWith(
+          "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them"
+        );
       });
     });
   });

@@ -55,6 +55,18 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   given based on the logic from `RewardCalculator`, which
 ///   relies on a continuous `totalAdjustedShares` being updated on every
 ///   stake/withdraw. Seel `RewardCalculator` for more details
+///
+/// @notice Disabling staking:
+///   The team reserves the ability to halt staking & reward accumulation,
+///   to use if the tokenomics model or contracts don't work as expected, and need to be rethough.
+///   In this event, any pending rewards must still be valid and redeemable by stakers.
+///   New stakes must not be allowed, and existing stakes will not accumulate new rewards past the disabling block
+///
+/// @notice Withdrawing remaining rewards:
+///   If staking is disabled, or if the end timestamp has been reached, the team can then
+///   intervene on stakes to accumulate their rewards on their behalf, in order to reach an `activeStakes` count of 0.
+///   Once 0 is reached, since no more claims will ever be made,
+///   the remaining TAL from the reward pool can be safely withdrawn back to the team
 contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     //
     // Begin: Declarations
@@ -71,6 +83,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         /// be accounted for in `tokenAmount`
         uint256 lastCheckpointAt;
         uint256 S;
+        bool finishedAccumulating;
     }
 
     /// Possible actions when a checkpoint is being triggered
@@ -92,8 +105,17 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// List of all stakes (investor => talent => Stake)
     mapping(address => mapping(address => StakeData)) public stakes;
 
+    // How many stakes are there in total
+    uint256 public activeStakes;
+
+    // How many stakes have finished accumulating rewards
+    uint256 finishedAccumulatingStakeCount;
+
     /// Talent's share of rewards, to be redeemable by each individual talent
     mapping(address => uint256) public talentRedeemableRewards;
+
+    // Ability for admins to disable further stakes and rewards
+    bool public disabled;
 
     /// The Talent Token Factory contract (ITalentFactory)
     address public factory;
@@ -114,6 +136,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     // How much TAL is currently staked (not including rewards)
     uint256 public totalTokensStaked;
 
+    // How many has been withdrawn by the admin at the end of staking
+    uint256 rewardsAdminWithdrawn;
+
     /// Sum of sqrt(tokenAmount) for each stake
     /// Used to compute adjusted reward values
     uint256 public override(IRewardParameters) totalAdjustedShares;
@@ -130,11 +155,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// End date for staking period
     uint256 public immutable override(IRewardParameters) end;
 
+    // Continuously growing value used to compute reward distributions
     uint256 public S;
+
+    // Timestamp at which S was last updated
     uint256 public SAt;
 
     /// re-entrancy guard for `updatesAdjustedShares`
-    bool private isAlreadyUpatingAdjustedShares;
+    bool private isAlreadyUpdatingAdjustedShares;
 
     //
     // Begin: Events
@@ -209,6 +237,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         returns (bool)
     {
         require(_amount > 0, "amount cannot be zero");
+        require(!disabled, "staking has been disabled");
 
         uint256 tokenAmount = convertUsdToToken(_amount);
 
@@ -227,13 +256,23 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///
     /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    function claimRewards(address _talent)
+    function claimRewards(address _talent) public returns (bool) {
+        claimRewardsOnBehalf(msg.sender, _talent);
+
+        return true;
+    }
+
+    /// Redeems rewards for a given staker, and reinvests them in the stake
+    ///
+    /// @param _owner owner of the stake to process
+    /// @param _talent talent token of the stake to process
+    /// @return true if operation succeeds
+    function claimRewardsOnBehalf(address _owner, address _talent)
         public
-        tokenPhaseOnly
-        updatesAdjustedShares(msg.sender, _talent)
+        updatesAdjustedShares(_owner, _talent)
         returns (bool)
     {
-        _checkpoint(msg.sender, _talent, RewardAction.RESTAKE);
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
 
         return true;
     }
@@ -333,6 +372,8 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         bytes calldata data
     ) external override(IERC1363Receiver) onlyWhileStakingEnabled returns (bytes4) {
         if (_isToken(msg.sender)) {
+            require(!disabled, "staking has been disabled");
+
             // if input is TAL, this is a stake since TAL deposits are enabled when
             // `setToken` is called, no additional check for `tokenPhaseOnly` is
             // necessary here
@@ -380,27 +421,31 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
-        return rewardsMax - rewardsGiven;
+        return rewardsMax - rewardsGiven - rewardsAdminWithdrawn;
     }
 
-    // TODO move this up
-    bool disabled;
+    /// Panic button, if we decide to halt the staking process for some reason
+    ///
+    /// @notice This feature should halt further accumulation of rewards, and prevent new stakes from occuring
+    /// Existing stakes will still be able to perform all usual operations on existing stakes.
+    /// They just won't accumulate new TAL rewards (i.e.: they can still restake rewards and mint new talent tokens)
+    function disable() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(!disabled, "already disabled");
 
-    // TODO setup admin role
-    function disable() public onlyRole(...) {
         _updateS();
         disabled = true;
     }
 
-    function availableAfterDisable() public view returns (uint256) {
-        if(!disabled) {
-            return 0;
-        }
+    /// Allows the admin to withdraw whatever is left of the reward pool
+    function adminWithdraw() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(disabled || block.timestamp < end, "not disabled, and not end of staking either");
+        require(activeStakes == 0, "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them");
 
-        uint256 reservedTAL = (sqrt(totalTokensStaked - rewardsGiven) * (S - 0)) / MUL;
-        uint256 availableTAL = this.rewardsMax() - reservedTAL;
+        uint256 amount = rewardsLeft();
+        require(amount > 0, "nothing left to withdraw");
 
-        return availableTAL;
+        IERC20(token).transfer(msg.sender, amount);
+        rewardsAdminWithdrawn += amount;
     }
 
     //
@@ -439,7 +484,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     ///   the caller function or via `ERC1363Receiver` or `stableStake`
     ///
     /// @param _owner Owner of the stake
-    /// @param _talent Talent token to unstake from
+    /// @param _talent Talent token to uliasnstake from
     /// @param _talentAmount Talent token amount to unstake
     function _checkpointAndUnstake(
         address _owner,
@@ -469,6 +514,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         stake.tokenAmount -= tokenAmount;
         totalTokensStaked -= tokenAmount;
 
+        // if stake is over, it has finished accumulating
+        if (stake.tokenAmount == 0 && !stake.finishedAccumulating) {
+            stake.finishedAccumulating = true;
+
+            // also decrease the counter
+            activeStakes -= 1;
+        }
+
         _burnTalent(_talent, _talentAmount);
         _withdrawToken(_owner, tokenAmount);
 
@@ -492,6 +545,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         StakeData storage stake = stakes[_owner][_talent];
 
+        // if it's a new stake, increase stake count
+        if (stake.tokenAmount == 0) {
+            activeStakes += 1;
+        }
+
         stake.tokenAmount += _tokenAmount;
         stake.talentAmount += talentAmount;
 
@@ -500,6 +558,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         _mintTalent(_owner, _talent, talentAmount);
     }
 
+    // TODO review this
     struct CheckpointCalc {
         uint256 mintingFinishedAt;
         uint256 rewardsUnit;
@@ -507,6 +566,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 stakerRewards;
         uint256 talentBalance;
         uint256 talentReward;
+        uint256 previousS;
     }
 
     /// Performs a new checkpoint for a given stake
@@ -521,10 +581,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         RewardAction _action
     ) private updatesAdjustedShares(_owner, _talent) {
         StakeData storage stake = stakes[_owner][_talent];
+        CheckpointCalc memory calc;
 
         _updateS();
-
-        CheckpointCalc memory calc;
 
         // if the talent token has been fully minted, rewards can only be
         // considered up until that timestamp so end date of reward is
@@ -547,12 +606,24 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             calc.talentBalance
         );
 
-
         rewardsGiven += stakerRewards + talentRewards;
-        stake.lastCheckpointAt = block.timestamp;
         stake.S = S;
+        stake.lastCheckpointAt = block.timestamp;
 
         talentRedeemableRewards[_talent] += talentRewards;
+
+        // if staking is disabled, set token to finishedAccumulating, and decrease activeStakes
+        // this forces admins to finish accumulation of all stakes, via `claimRewardsOnBehalf`
+        // before withdrawing any remaining TAL from the reward pool
+        if (disabled && !stake.finishedAccumulating) {
+            stake.finishedAccumulating = true;
+            activeStakes -= 1;
+        }
+
+        // no need to proceed if there's no rewards yet
+        if (stakerRewards == 0) {
+            return;
+        }
 
         if (_action == RewardAction.WITHDRAW) {
             IERC20(token).transfer(_owner, stakerRewards);
@@ -567,9 +638,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             emit RewardClaim(_owner, _talent, rewardsToStake, talentRewards);
 
             // TODO test
-            if (rewardsToStake > 0) {
-                IERC20(token).transfer(_owner, stakerRewards);
-                emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
+            // TODO the !!token part as well
+            if (rewardsToWithdraw > 0 && token != address(0x0)) {
+                IERC20(token).transfer(_owner, rewardsToWithdraw);
+                emit RewardWithdrawal(_owner, _talent, rewardsToWithdraw, 0);
             }
         } else {
             revert("Unrecognized checkpoint action");
@@ -628,12 +700,12 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     }
 
     modifier updatesAdjustedShares(address _owner, address _talent) {
-        if (isAlreadyUpatingAdjustedShares) {
+        if (isAlreadyUpdatingAdjustedShares) {
             // works like a re-entrancy guard, to prevent sqrt calculations
             // from happening twice
             _;
         } else {
-            isAlreadyUpatingAdjustedShares = true;
+            isAlreadyUpdatingAdjustedShares = true;
             // calculate current adjusted shares for this stake
             // we don't deduct it directly because other computations wrapped by this modifier depend on the original value
             // (e.g. reward calculation)
@@ -647,7 +719,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             // excluding the previously computed amount to be deducted
             // (replaced by the new one)
             totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
-            isAlreadyUpatingAdjustedShares = false;
+            isAlreadyUpdatingAdjustedShares = false;
         }
     }
 

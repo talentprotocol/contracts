@@ -654,6 +654,33 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         SAt = block.timestamp;
     }
 
+    function calculateEstimatedReturns(
+        address _owner,
+        address _talent,
+        uint256 _currentTime
+    ) public view returns (uint256 stakerRewards, uint256 talentRewards) {
+        StakeData storage stake = stakes[_owner][_talent];
+        uint256 newS;
+
+        if(maxSForTalent[_talent] > 0) {
+            newS = maxSForTalent[_talent];
+        } else {
+            newS = S + (calculateGlobalReward(SAt, _currentTime)) / totalAdjustedShares;
+        }
+        address talentAddress = ITalentToken(_talent).talent();
+        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
+
+        (uint256 sRewards, uint256 tRewards) = calculateReward(
+            stake.tokenAmount,
+            stake.S,
+            newS,
+            stake.talentAmount,
+            talentBalance
+        );
+
+        return (sRewards, tRewards);
+    }
+
     // function disable() {
     //     _updateS();
     //     disable = true;

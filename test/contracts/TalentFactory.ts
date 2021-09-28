@@ -93,7 +93,7 @@ describe("TalentFactory", () => {
         const event = await findEvent(tx, "TalentCreated");
 
         const token = TalentToken__factory.connect(event?.args?.token, creator);
-        expect(await token.balanceOf(talent1.address)).to.eq(parseUnits("1000"));
+        expect(await token.balanceOf(talent1.address)).to.eq(parseUnits("2000"));
       });
 
       it("can deploy two independent talent tokens", async () => {
@@ -109,11 +109,11 @@ describe("TalentFactory", () => {
         const naps = TalentToken__factory.connect(event1?.args?.token, creator);
         const leal = TalentToken__factory.connect(event2?.args?.token, creator);
 
-        expect(await naps.balanceOf(talent1.address)).to.eq(parseUnits("1000"));
+        expect(await naps.balanceOf(talent1.address)).to.eq(parseUnits("2000"));
         expect(await naps.balanceOf(talent2.address)).to.eq(parseUnits("0"));
 
         expect(await leal.balanceOf(talent1.address)).to.eq(parseUnits("0"));
-        expect(await leal.balanceOf(talent2.address)).to.eq(parseUnits("1000"));
+        expect(await leal.balanceOf(talent2.address)).to.eq(parseUnits("2000"));
       });
     });
 

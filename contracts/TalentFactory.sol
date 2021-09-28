@@ -51,7 +51,7 @@ contract TalentFactory is
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
     /// initial supply of each new token minted
-    uint256 public constant INITIAL_SUPPLY = 1000 ether;
+    uint256 public constant INITIAL_SUPPLY = 2000 ether;
 
     /// maps each talent's address to their talent token
     mapping(address => address) public talentsToTokens;

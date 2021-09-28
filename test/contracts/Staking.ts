@@ -639,13 +639,11 @@ describe("Staking", () => {
 
     describe("activeStakes", () => {
       it("increments with a stable coin stake", async () => {
-        console.log("stake 1");
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));
         await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
 
         expect(await staking.activeStakes()).to.equal(1);
 
-        console.log("stake 2");
         await stable.connect(investor2).approve(staking.address, parseUnits("25"));
         await staking.connect(investor2).stakeStable(talentToken1.address, parseUnits("25"));
 

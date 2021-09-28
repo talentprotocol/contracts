@@ -558,17 +558,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         _mintTalent(_owner, _talent, talentAmount);
     }
 
-    // TODO review this
-    struct CheckpointCalc {
-        uint256 mintingFinishedAt;
-        uint256 rewardsUnit;
-        uint256 rewardsTotal;
-        uint256 stakerRewards;
-        uint256 talentBalance;
-        uint256 talentReward;
-        uint256 previousS;
-    }
-
     /// Performs a new checkpoint for a given stake
     ///
     /// Calculates all pending rewards since the last checkpoint, and accumulates them
@@ -581,7 +570,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         RewardAction _action
     ) private updatesAdjustedShares(_owner, _talent) {
         StakeData storage stake = stakes[_owner][_talent];
-        CheckpointCalc memory calc;
 
         _updateS();
 
@@ -591,19 +579,19 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         //
         // this will enforce that rewards past this checkpoint will always be
         // 0, effectively ending the stake
-        calc.mintingFinishedAt = ITalentToken(_talent).mintingFinishedAt();
+        // TODO
+        // uint256 mintingFinishedAt = ITalentToken(_talent).mintingFinishedAt();
         // calc.rewardsUntil = (calc.mintingFinishedAt > 0) ? calc.mintingFinishedAt : block.timestamp;
 
         // calculate rewards since last checkpoint
         address talentAddress = ITalentToken(_talent).talent();
-        calc.talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
         (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
             stake.tokenAmount,
             stake.S,
             S,
             stake.talentAmount,
-            calc.talentBalance
+            IERC20(_talent).balanceOf(talentAddress)
         );
 
         rewardsGiven += stakerRewards + talentRewards;

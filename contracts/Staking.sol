@@ -576,19 +576,16 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
 
         _updateS();
 
+        // calculate rewards since last checkpoint
+        address talentAddress = ITalentToken(_talent).talent();
+
         // if the talent token has been fully minted, rewards can only be
-        // considered up until that timestamp so end date of reward is
+        // considered up until that timestamp (or S, according to the math)
+        // so end date of reward is
         // truncated in that case
         //
         // this will enforce that rewards past this checkpoint will always be
         // 0, effectively ending the stake
-        // TODO
-        // uint256 mintingFinishedAt = ITalentToken(_talent).mintingFinishedAt();
-        // calc.rewardsUntil = (calc.mintingFinishedAt > 0) ? calc.mintingFinishedAt : block.timestamp;
-
-        // calculate rewards since last checkpoint
-        address talentAddress = ITalentToken(_talent).talent();
-
         uint256 maxS = (maxSForTalent[_talent] > 0) ? maxSForTalent[_talent] : S;
 
         (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
@@ -662,7 +659,7 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         StakeData storage stake = stakes[_owner][_talent];
         uint256 newS;
 
-        if(maxSForTalent[_talent] > 0) {
+        if (maxSForTalent[_talent] > 0) {
             newS = maxSForTalent[_talent];
         } else {
             newS = S + (calculateGlobalReward(SAt, _currentTime)) / totalAdjustedShares;

@@ -63,7 +63,7 @@ contract TalentToken is
     /// Minter role
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
-    uint256 public constant MAX_SUPPLY = 100000 ether;
+    uint256 public constant MAX_SUPPLY = 1000000 ether;
 
     // amount available to be minted
     uint256 public override(ITalentToken) mintingAvailability;

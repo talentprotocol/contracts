@@ -68,7 +68,7 @@ describe("Staking", () => {
         stable.address,
         factory.address,
         parseUnits("0.02"),
-        parseUnits("50"),
+        parseUnits("5"),
       ]);
 
       await expect(action).not.to.be.reverted;
@@ -111,7 +111,7 @@ describe("Staking", () => {
       stable.address,
       factory.address,
       parseUnits("0.02"),
-      parseUnits("50"),
+      parseUnits("5"),
     ]) as Promise<Staking>;
   };
 
@@ -215,8 +215,8 @@ describe("Staking", () => {
 
         expect(stakeAfter.lastCheckpointAt).to.be.gt(stakeBefore.lastCheckpointAt);
 
-        expect(stakeBefore.talentAmount).to.equal(parseUnits("25"));
-        expect(stakeAfter.talentAmount).to.equal(parseUnits("50"));
+        expect(stakeBefore.talentAmount).to.equal(parseUnits("250"));
+        expect(stakeAfter.talentAmount).to.equal(parseUnits("500"));
       });
 
       it("staking twice in different talents does not go through a checkpoint", async () => {
@@ -527,7 +527,7 @@ describe("Staking", () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
@@ -538,7 +538,7 @@ describe("Staking", () => {
 
             // TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.be.closeTo(
-              investorTalBalanceBefore.add(parseUnits("50")),
+              investorTalBalanceBefore.add(parseUnits("5")),
               margin
             );
           });
@@ -546,7 +546,7 @@ describe("Staking", () => {
           it("emits the expected Unstake event", async () => {
             await enterPhaseTwo();
 
-            const amount = parseUnits("50");
+            const amount = parseUnits("5");
 
             // mint new NAPS
             await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
@@ -561,21 +561,21 @@ describe("Staking", () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("50"), talentToken1.address);
+            await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("1"));
 
             const totalBefore = await staking.totalTokensStaked();
             await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
             const totalAfter = await staking.totalTokensStaked();
 
-            expect(totalAfter).to.be.closeTo(totalBefore.sub(parseUnits("25")), margin);
+            expect(totalAfter).to.be.closeTo(totalBefore.sub(parseUnits("2.5")), margin);
           });
 
           it("performs a checkpoint and keeps a stake with the remainder", async () => {
             await enterPhaseTwo();
 
             // mint new NAPS
-            await transferAndCall(tal, investor1, staking.address, parseUnits("100"), talentToken1.address);
+            await transferAndCall(tal, investor1, staking.address, parseUnits("10"), talentToken1.address);
             expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("2"));
 
             const investorTalBalanceBefore = await tal.balanceOf(investor1.address);
@@ -583,13 +583,13 @@ describe("Staking", () => {
 
             // proportional amount of TAL is returned
             expect(await tal.balanceOf(investor1.address)).to.be.closeTo(
-              investorTalBalanceBefore.add(parseUnits("50")),
+              investorTalBalanceBefore.add(parseUnits("5")),
               margin
             );
 
             // remaining TAL is still staked
             const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
-            expect(stakeAfter.tokenAmount).to.be.closeTo(parseUnits("50"), margin);
+            expect(stakeAfter.tokenAmount).to.be.closeTo(parseUnits("5"), margin);
           });
         });
       });
@@ -623,19 +623,19 @@ describe("Staking", () => {
 
     describe("convertTokenToTalent", () => {
       it("converts a TAL value to a talent token based on a given rate", async () => {
-        expect(await staking.convertTokenToTalent(parseUnits("50"))).to.equal(parseUnits("1"));
+        expect(await staking.convertTokenToTalent(parseUnits("5"))).to.equal(parseUnits("1"));
       });
     });
 
     describe("convertTalentToToken", () => {
       it("converts a Talent token value to TAL based on a given rate", async () => {
-        expect(await staking.convertTalentToToken(parseUnits("1"))).to.equal(parseUnits("50"));
+        expect(await staking.convertTalentToToken(parseUnits("1"))).to.equal(parseUnits("5"));
       });
     });
 
     describe("convertUsdToTalent", () => {
       it("converts a USD value to a talent token based on both given rates", async () => {
-        expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("2"));
+        expect(await staking.convertUsdToTalent(parseUnits("2"))).to.equal(parseUnits("20"));
       });
     });
 

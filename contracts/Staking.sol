@@ -114,6 +114,9 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// Talent's share of rewards, to be redeemable by each individual talent
     mapping(address => uint256) public talentRedeemableRewards;
 
+    /// Max S for a given talent, to halt rewards after minting is over
+    mapping(address => uint256) public maxSForTalent;
+
     // Ability for admins to disable further stakes and rewards
     bool public disabled;
 
@@ -586,16 +589,18 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         // calculate rewards since last checkpoint
         address talentAddress = ITalentToken(_talent).talent();
 
+        uint256 maxS = (maxSForTalent[_talent] > 0) ? maxSForTalent[_talent] : S;
+
         (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
             stake.tokenAmount,
             stake.S,
-            S,
+            maxS,
             stake.talentAmount,
             IERC20(_talent).balanceOf(talentAddress)
         );
 
         rewardsGiven += stakerRewards + talentRewards;
-        stake.S = S;
+        stake.S = maxS;
         stake.lastCheckpointAt = block.timestamp;
 
         talentRedeemableRewards[_talent] += talentRewards;
@@ -668,6 +673,10 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         uint256 _amount
     ) private {
         ITalentToken(_talent).mint(_owner, _amount);
+
+        if (maxSForTalent[_talent] == 0 && ITalentToken(_talent).mintingFinishedAt() > 0) {
+            maxSForTalent[_talent] = S;
+        }
     }
 
     /// burns a given amount of a given talent token

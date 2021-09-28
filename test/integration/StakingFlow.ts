@@ -1,5 +1,5 @@
 import chai from "chai";
-import { ethers, network, waffle } from "hardhat";
+import { ethers, network, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
@@ -53,7 +53,10 @@ describe("Staking", () => {
 
     tal = (await deployContract(owner, Artifacts.TalentProtocol, [])) as TalentProtocol;
 
-    factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
+    // factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
+    // factory is deployed as a proxy already, to ensure `initialize` is called
+    const FactoryFactory = await ethers.getContractFactory("TalentFactory");
+    factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
     staking = (await deployContract(owner, Artifacts.Staking, [
       start,
@@ -234,5 +237,43 @@ describe("Staking", () => {
     expect(talentReward1).to.be.closeTo(parseUnits("20.710"), margin);
     expect(talentReward2).to.be.closeTo(parseUnits("17.157"), margin);
     expect(talentReward3).to.be.closeTo(parseUnits("17.157"), margin);
+  });
+
+  it("no rewards are accumulated after minting is over", async () => {
+    const availability = await talentToken1.mintingAvailability();
+    const firstAmount = await staking.convertTalentToToken(availability.sub(parseUnits("1")));
+    const secondAmount = await staking.convertTalentToToken(parseUnits("1"));
+    await tal.transfer(investor1.address, firstAmount);
+
+    await enterPhaseTwo();
+    await ensureTimestamp(start);
+
+    await transferAndCall(tal, investor1, staking.address, firstAmount, talentToken1.address);
+
+    expect(await talentToken1.mintingAvailability()).to.equal(parseUnits("1"));
+
+    // go to 50%, and mint the rest
+    await ensureTimestamp(start + (end - start) * 0.5);
+    await transferAndCall(tal, investor2, staking.address, secondAmount, talentToken1.address);
+
+    expect(await talentToken1.mintingAvailability()).to.equal(parseUnits("0"));
+
+    // both claim rewards
+    await staking.connect(investor1).claimRewards(talentToken1.address);
+    await staking.connect(investor2).claimRewards(talentToken1.address);
+
+    const sBefore = await staking.maxSForTalent(talentToken1.address);
+
+    await ensureTimestamp(end);
+
+    const stakeBefore = await staking.stakes(investor1.address, talentToken1.address);
+    await staking.connect(investor1).claimRewards(talentToken1.address);
+    await staking.connect(investor2).claimRewards(talentToken1.address);
+    const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+
+    const sAfter = await staking.maxSForTalent(talentToken1.address);
+
+    expect(sBefore).to.eq(sAfter);
+    expect(stakeBefore.tokenAmount).to.eq(stakeAfter.tokenAmount);
   });
 });

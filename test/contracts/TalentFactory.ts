@@ -3,9 +3,10 @@ import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import type { ContractFactory } from "ethers";
 
-import type { TalentFactory } from "../../typechain";
-import { TalentToken__factory } from "../../typechain";
+import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain";
+import { TalentToken__factory, TalentTokenV2__factory, TalentFactoryV2__factory } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
@@ -23,8 +24,12 @@ describe("TalentFactory", () => {
   let talent2: SignerWithAddress;
   let factory: TalentFactory;
 
+  let TalentFactoryFactory: ContractFactory;
+
   beforeEach(async () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
+
+    TalentFactoryFactory = await ethers.getContractFactory("TalentFactory");
   });
 
   describe("constructor", () => {
@@ -36,7 +41,8 @@ describe("TalentFactory", () => {
   });
 
   const builder = async (): Promise<TalentFactory> => {
-    return deployContract(creator, Artifacts.TalentFactory, []) as Promise<TalentFactory>;
+    return upgrades.deployProxy(TalentFactoryFactory, []) as Promise<TalentFactory>;
+    // return deployContract(creator, Artifacts.TalentFactory, []) as Promise<TalentFactory>;
   };
 
   describe("behaviour", () => {
@@ -56,7 +62,7 @@ describe("TalentFactory", () => {
 
   describe("functions", () => {
     beforeEach(async () => {
-      factory = (await deployContract(creator, Artifacts.TalentFactory, [])) as TalentFactory;
+      factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
     });

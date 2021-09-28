@@ -12,6 +12,9 @@ import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
+// import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
 
 interface ITalentToken is IERC20Upgradeable {
@@ -51,6 +54,7 @@ contract TalentToken is
     ERC165Upgradeable,
     AccessControlUpgradeable,
     ERC1363Upgradeable,
+    UUPSUpgradeable,
     ITalentToken
 {
     /// Talent role
@@ -94,6 +98,12 @@ contract TalentToken is
         _mint(_talent, _initialSupply);
         mintingAvailability = MAX_SUPPLY - _initialSupply;
     }
+
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override(UUPSUpgradeable)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
 
     /// Mints new supply
     ///

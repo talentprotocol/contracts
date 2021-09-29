@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 import type { BigNumber } from "ethers";
-import type { TalentProtocol, TalentFactory, Staking } from "../typechain";
+import type { TalentProtocol, TalentFactory, Staking, USDTMock } from "../typechain";
 
 export async function deployToken(): Promise<TalentProtocol> {
   const TalentProtocol = await ethers.getContractFactory("TalentProtocol");
@@ -36,4 +36,13 @@ export async function deployStaking(
   await staking.deployed();
 
   return staking as Staking;
+}
+
+export async function deployTestStable(): Promise<USDTMock> {
+  const CUSD = await ethers.getContractFactory("USDTMock");
+
+  const cusd = await CUSD.deploy();
+  await cusd.deployed();
+
+  return cusd as USDTMock;
 }

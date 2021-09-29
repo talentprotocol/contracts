@@ -1,6 +1,4 @@
-import { deployToken, deployFactory, deployStaking } from "./shared";
-
-import type { TalentProtocol__factory } from "../typechain";
+import { deployToken } from "./shared";
 
 const { exit } = process;
 
@@ -16,8 +14,8 @@ async function main() {
 }
 
 main()
-  .then(() => exit(0))
+  .then(() => process.exit(0))
   .catch((error) => {
     console.error(error);
-    exit(1);
+    process.exit(1);
   });

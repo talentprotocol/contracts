@@ -625,8 +625,6 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
             _stake(_owner, _talent, rewardsToStake);
             emit RewardClaim(_owner, _talent, rewardsToStake, talentRewards);
 
-            // TODO test
-            // TODO the !!token part as well
             if (rewardsToWithdraw > 0 && token != address(0x0)) {
                 IERC20(token).transfer(_owner, rewardsToWithdraw);
                 emit RewardWithdrawal(_owner, _talent, rewardsToWithdraw, 0);

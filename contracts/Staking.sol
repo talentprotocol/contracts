@@ -5,8 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC1363Receiver} from "@openzeppelin/contracts/interfaces/IERC1363Receiver.sol";
 import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-import "hardhat/console.sol";
-
 import {StableThenToken} from "./staking/StableThenToken.sol";
 import {IRewardParameters, RewardCalculator} from "./staking/RewardCalculator.sol";
 import {ITalentToken} from "./TalentToken.sol";
@@ -780,6 +778,14 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
     /// @return The converted Talent token amount
     function convertUsdToTalent(uint256 _usd) public view returns (uint256) {
         return convertTokenToTalent(convertUsdToToken(_usd));
+    }
+
+    /// Converts a given TAL amount to USD
+    ///
+    /// @param _tal The amount of TAL to convert
+    /// @return The converted USD amount
+    function convertTokenToUsd(uint256 _tal) public view returns (uint256) {
+        return (_tal * tokenPrice) / 1 ether;
     }
 
     /// Converts a byte sequence to address

@@ -295,7 +295,74 @@ describe("Staking", () => {
     const reward1 = stake1.tokenAmount.sub(amount);
     const talentReward1 = await staking.talentRedeemableRewards(talentToken1.address);
 
-    expect(result.stakerRewards).to.eq(reward1)
-    expect(result.talentRewards).to.eq(talentReward1)
+    expect(result.stakerRewards).to.eq(reward1);
+    expect(result.talentRewards).to.eq(talentReward1);
+  });
+
+  it("claiming rewards past minting availability results in a partial withdrawal and partial claim", async () => {
+    const availability = await talentToken1.mintingAvailability();
+    const amount = await staking.convertTalentToToken(availability.div(2));
+    await tal.transfer(investor1.address, amount);
+    await tal.transfer(investor2.address, amount);
+
+    await enterPhaseTwo();
+    await ensureTimestamp(start);
+
+    await transferAndCall(tal, investor1, staking.address, amount, talentToken1.address);
+
+    // go to 50%, and mint the rest, leaving just 1 talent token
+    await ensureTimestamp(start + (end - start) * 0.5);
+
+    // mint the rest, leaving just 1 talent token left
+    await transferAndCall(tal, investor2, staking.address, amount.sub(parseUnits("1")), talentToken1.address);
+
+    // go to 50%, and mint the rest, leaving just 1 talent token
+    await ensureTimestamp(end);
+
+    // claim rewards
+    const stakeBefore = await staking.stakes(investor1.address, talentToken1.address);
+    const balanceBefore = await tal.balanceOf(investor1.address);
+
+    await staking.connect(investor1).claimRewards(talentToken1.address);
+
+    const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+    const balanceAfter = await tal.balanceOf(investor1.address);
+
+    expect(stakeAfter.tokenAmount).to.be.gt(stakeBefore.tokenAmount);
+    expect(balanceAfter).to.be.gt(balanceBefore);
+  });
+
+  it("claiming rewards past minting availability while TAL doesn't exist still works", async () => {
+    const availability = await talentToken1.mintingAvailability();
+    const amount = await staking.convertTokenToUsd(await staking.convertTalentToToken(availability.div(2)));
+    await stable.transfer(investor1.address, amount);
+    await stable.transfer(investor2.address, amount);
+
+    await ensureTimestamp(start);
+
+    await stable.connect(investor1).approve(staking.address, amount);
+    await staking.connect(investor1).stakeStable(talentToken1.address, amount);
+
+    // go to 50%, and mint the rest, leaving just 1 talent token
+    await ensureTimestamp(start + (end - start) * 0.5);
+
+    // mint the rest, leaving just 1 talent token left
+    await stable.connect(investor1).approve(staking.address, amount);
+    await staking.connect(investor1).stakeStable(talentToken1.address, amount.sub(parseUnits("1")));
+
+    // go to 50%, and mint the rest, leaving just 1 talent token
+    await ensureTimestamp(end);
+
+    // claim rewards
+    const stakeBefore = await staking.stakes(investor1.address, talentToken1.address);
+    const balanceBefore = await tal.balanceOf(investor1.address);
+
+    await staking.connect(investor1).claimRewards(talentToken1.address);
+
+    const stakeAfter = await staking.stakes(investor1.address, talentToken1.address);
+    const balanceAfter = await tal.balanceOf(investor1.address);
+
+    expect(stakeAfter.tokenAmount).to.be.gt(stakeBefore.tokenAmount);
+    expect(balanceAfter).to.be.gt(balanceBefore);
   });
 });

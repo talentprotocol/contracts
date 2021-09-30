@@ -639,6 +639,12 @@ describe("Staking", () => {
       });
     });
 
+    describe("convertTokentToUsd", () => {
+      it("converts a TAL value to USD based on the given rate", async () => {
+        expect(await staking.convertTokenToUsd(parseUnits("50"))).to.equal(parseUnits("1"));
+      });
+    });
+
     describe("activeStakes", () => {
       it("increments with a stable coin stake", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("25"));

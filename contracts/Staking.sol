@@ -439,6 +439,11 @@ contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Re
         disabled = true;
     }
 
+    /// Allows an admin to change the token price during the stable phase
+    function setTokenPrice(uint256 _tokenPrice) public onlyRole(DEFAULT_ADMIN_ROLE) stablePhaseOnly {
+        tokenPrice = _tokenPrice;
+    }
+
     /// Allows the admin to withdraw whatever is left of the reward pool
     function adminWithdraw() public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(disabled || block.timestamp < end, "not disabled, and not end of staking either");

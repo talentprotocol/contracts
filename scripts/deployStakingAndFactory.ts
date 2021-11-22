@@ -55,8 +55,8 @@ async function main() {
     ethers.utils.parseUnits("400000000"),
     config.usdStableCoinContract,
     factory.address,
-    parseUnits("0.02"),
-    parseUnits("5"),
+    parseUnits(config.talPriceInUsd), // how much cUSD must be spent for 1 TAL
+    parseUnits(config.talentPriceInTal), // how much TAL must be spent for 1 Talent Token
   ])) as Staking;
 
 

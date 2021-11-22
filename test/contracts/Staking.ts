@@ -188,6 +188,19 @@ describe("Staking", () => {
         expect(await staking.totalTokensStaked()).to.equal(parseUnits("100"));
       });
 
+      it("updates totalTokensStaked, after changing token price", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("1"));
+        await stable.connect(investor2).approve(staking.address, parseUnits("1"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+        expect(await staking.totalTokensStaked()).to.equal(parseUnits("50"));
+
+        await staking.connect(owner).setTokenPrice(parseUnits("0.025"))
+
+        await staking.connect(investor2).stakeStable(talentToken2.address, parseUnits("1"));
+        expect(await staking.totalTokensStaked()).to.equal(parseUnits("90"));
+      });
+
       it("does not accept stable coin stakes while in phase2", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
         await staking.setToken(tal.address);
@@ -619,6 +632,12 @@ describe("Staking", () => {
       it("converts a USD value to TAL based on given rate", async () => {
         expect(await staking.convertUsdToToken(parseUnits("1"))).to.equal(parseUnits("50"));
       });
+
+      it("converts correctly after changing the token price", async () => {
+        expect(await staking.convertUsdToToken(parseUnits("1"))).to.equal(parseUnits("50"));
+        await staking.connect(owner).setTokenPrice(parseUnits("0.025"));
+        expect(await staking.convertUsdToToken(parseUnits("1"))).to.equal(parseUnits("40"));
+      });
     });
 
     describe("convertTokenToTalent", () => {
@@ -734,6 +753,20 @@ describe("Staking", () => {
         expect(action).not.to.be.reverted;
       });
     });
+
+    describe("setTokenPrice", () => {
+      it("allows an admin to change the price", async () => {
+        const action = staking.connect(owner).setTokenPrice(parseUnits("0.025"));
+
+        expect(action).not.to.be.reverted;
+      });
+
+      it("does not allow a non-admin to change the price", async () => {
+        const action = staking.connect(investor1).setTokenPrice(parseUnits("0.025"));
+
+        expect(action).to.be.reverted;
+      });
+    })
 
     describe("adminWithdraw", () => {
       it("withdraws all remaining rewards", async () => {

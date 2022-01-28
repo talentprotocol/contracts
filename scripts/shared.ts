@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 import type { BigNumber } from "ethers";
-import type { TalentProtocol, TalentFactory, Staking } from "../typechain";
+import type { TalentProtocol, TalentFactory, Staking, CommunityLevelOne } from "../typechain";
 
 export async function deployToken(): Promise<TalentProtocol> {
   const TalentProtocol = await ethers.getContractFactory("TalentProtocol");
@@ -19,6 +19,15 @@ export async function deployFactory(): Promise<TalentFactory> {
   await factory.deployed();
 
   return factory as TalentFactory;
+}
+
+export async function deployLevelOne(owner: string): Promise<CommunityLevelOne> {
+  const CommunityLevelOneDeployer = await ethers.getContractFactory("CommunityLevelOne");
+
+  const community = await CommunityLevelOneDeployer.deploy(owner);
+  await community.deployed();
+
+  return community as CommunityLevelOne;
 }
 
 export async function deployStaking(

@@ -3,6 +3,7 @@ import TalentFactory from "../../artifacts/contracts/TalentFactory.sol/TalentFac
 import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
 import RewardCalculator from "../../artifacts/contracts/staking/RewardCalculator.sol/RewardCalculator.json";
 import CommunityLevelOne from "../../artifacts/contracts/CommunityLevelOne.sol/CommunityLevelOne.json";
+import PerksFactory from "../../artifacts/contracts/PerksFactory.sol/PerksFactory.json";
 
 // test-only contracts
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
@@ -24,4 +25,5 @@ export {
   InterfaceIDs,
   TestRewardCalculator,
   CommunityLevelOne,
+  PerksFactory
 };

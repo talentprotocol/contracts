@@ -31,6 +31,17 @@ contract CommunityLevelOne is ERC721, ERC721Enumerable, AccessControl {
         }
     }
 
+    function mint(address _to) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _tokenIds.increment();
+        uint256 id = _tokenIds.current();
+
+        _safeMint(_to, id);
+    }
+
+    function burn(uint256 _id) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _burn(_id);
+    }
+
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseURIExtended;
     }

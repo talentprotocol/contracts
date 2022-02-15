@@ -13,7 +13,7 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("TalentProtocol", () => {
+describe("CommunityLevelOne", () => {
   let creator: SignerWithAddress;
   let addr1: SignerWithAddress;
   let addr2: SignerWithAddress;
@@ -25,9 +25,7 @@ describe("TalentProtocol", () => {
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, Artifacts.CommunityLevelOne, [
-      creator.address
-    ]);
+    const action = deployContract(creator, Artifacts.CommunityLevelOne, []);
 
     await expect(action).not.to.be.reverted;
   });

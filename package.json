@@ -1,8 +1,8 @@
 {
   "name": "talentprotocol-contracts",
   "version": "0.1.0",
-  "description": "Talent Protocol dApp",
-  "author": "andreas@talentprotocol.com",
+  "description": "Talent Protocol Smart Contracts",
+  "author": "Talent Protocol",
   "dependencies": {
     "@ethersproject/abi": "^5.0.0",
     "@ethersproject/bytes": "^5.0.0",
@@ -21,6 +21,7 @@
     "hardhat": "^2.1.2",
     "hardhat-gas-reporter": "^1.0.4",
     "lodash": "^4.17.15",
+    "nft.storage": "^5.2.2",
     "openzeppelin-solidity": "^4.2.0",
     "solhint": "^3.3.6",
     "solidity-docgen": "^0.5.13",

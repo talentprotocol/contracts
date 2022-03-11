@@ -3,24 +3,28 @@ import { NFTStorage, File } from 'nft.storage'
 
 const token = process.env.NFT_STORAGE_API_KEY || 'API_KEY'
 
-function main() {
-
+async function uploadImage() {
   const storage = new NFTStorage({ token })
 
-  const data = await fs.promises.readFile(args.image);
+  const data = await fs.promises.readFile("images/User_NFT02.jpg");
 
   const metadata = await storage.store({
-    name: 'Talent Protocol Community Level One',
-    description: 'Talent Protocol Community Level One NFT badge',
+    name: 'Talent Protocol Community User NFT',
+    description: 'Talent Protocol Community User level NFT. Owners of this NFT are considered users of Talent Protocol',
     image: new File(
       [
         data
       ],
-      'community_level_one.jpg',
+      'User_NFT01.jpg',
       { type: 'image/jpg' }
     ),
+    properties: {
+      type: "image",
+      season: "01",
+    }
   })
-  console.log(metadata.url)
+  console.log('NFT data stored!')
+  console.log('Metadata URI: ', metadata.url)
 }
 
-main()
+await uploadImage()

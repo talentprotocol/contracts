@@ -21,10 +21,10 @@ export async function deployFactory(): Promise<TalentFactory> {
   return factory as TalentFactory;
 }
 
-export async function deployLevelOne(owner: string): Promise<CommunityUser> {
+export async function deployLevelOne(owner: string, ticker: string): Promise<CommunityUser> {
   const CommunityUserDeployer = await ethers.getContractFactory("CommunityUser");
 
-  const community = await CommunityUserDeployer.deploy(owner);
+  const community = await CommunityUserDeployer.deploy(owner, ticker);
   await community.deployed();
 
   return community as CommunityUser;

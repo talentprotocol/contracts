@@ -11,11 +11,13 @@ async function main() {
 
   console.log(`Owner will be ${creator.address}`);
 
-  const levelOne = await deployLevelOne(creator.address);
+  const levelOne = await deployLevelOne(creator.address, "TALUSERS2");
 
   console.log(`CommunityUser Address: ${levelOne.address}`);
 
   console.log("Setting base URI");
+
+  console.log(`ImageURI: ${imageURI}`);
 
   // Set base URI
   await levelOne.connect(creator).setBaseURI(imageURI);

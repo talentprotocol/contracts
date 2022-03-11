@@ -1,8 +1,8 @@
 {
   "name": "talentprotocol-contracts",
   "version": "0.1.0",
-  "description": "Talent Protocol dApp",
-  "author": "andreas@talentprotocol.com",
+  "description": "Talent Protocol Smart Contracts",
+  "author": "Talent Protocol",
   "dependencies": {
     "@ethersproject/abi": "^5.0.0",
     "@ethersproject/bytes": "^5.0.0",

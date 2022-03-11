@@ -39,6 +39,11 @@ const config: HardhatUserConfig = {
       chainId: 44787,
       gasPrice: 0.5 * 10 ** 9,
       gas: 8000000,
+    },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: deployer,
+      chainId: 42220,
     }
   },
   gasReporter: {

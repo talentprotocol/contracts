@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import type { CommunityLevelOne } from "../../typechain";
+import type { CommunityUser } from "../../typechain";
 import { Artifacts } from "../shared";
 
 chai.use(solidity);
@@ -13,27 +13,27 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("CommunityLevelOne", () => {
+describe("CommunityUser", () => {
   let creator: SignerWithAddress;
   let addr1: SignerWithAddress;
   let addr2: SignerWithAddress;
 
-  let communityCollection: CommunityLevelOne;
+  let communityCollection: CommunityUser;
 
   beforeEach(async () => {
     [creator, addr1, addr2] = await ethers.getSigners();
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, Artifacts.CommunityLevelOne, []);
+    const action = deployContract(creator, Artifacts.CommunityUser, []);
 
     await expect(action).not.to.be.reverted;
   });
 
   const builder = async () => {
-    return deployContract(creator, Artifacts.CommunityLevelOne, [
+    return deployContract(creator, Artifacts.CommunityUser, [
       creator.address
-    ]) as Promise<CommunityLevelOne>;
+    ]) as Promise<CommunityUser>;
   };
 
   describe("functions", () => {

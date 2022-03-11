@@ -13,7 +13,7 @@ async function main() {
 
   const levelOne = await deployLevelOne(creator.address);
 
-  console.log(`CommunityLevelOne Address: ${levelOne.address}`);
+  console.log(`CommunityUser Address: ${levelOne.address}`);
 
   console.log("Setting base URI");
 

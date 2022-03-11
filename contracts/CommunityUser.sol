@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract CommunityLevelOne is ERC721, ERC721Enumerable, AccessControl {
+contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 

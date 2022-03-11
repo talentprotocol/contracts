@@ -2,7 +2,7 @@ import TalentProtocol from "../../artifacts/contracts/TalentProtocol.sol/TalentP
 import TalentFactory from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
 import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
 import RewardCalculator from "../../artifacts/contracts/staking/RewardCalculator.sol/RewardCalculator.json";
-import CommunityLevelOne from "../../artifacts/contracts/CommunityLevelOne.sol/CommunityLevelOne.json";
+import CommunityUser from "../../artifacts/contracts/CommunityUser.sol/CommunityUser.json";
 import PerksFactory from "../../artifacts/contracts/PerksFactory.sol/PerksFactory.json";
 
 // test-only contracts
@@ -24,6 +24,6 @@ export {
   TestStableThenToken,
   InterfaceIDs,
   TestRewardCalculator,
-  CommunityLevelOne,
+  CommunityUser,
   PerksFactory
 };

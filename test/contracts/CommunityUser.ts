@@ -25,14 +25,18 @@ describe("CommunityUser", () => {
   });
 
   it("can be deployed", async () => {
-    const action = deployContract(creator, Artifacts.CommunityUser, []);
+    const action = deployContract(creator, Artifacts.CommunityUser, [
+      creator.address,
+      "TALUSERS1"
+    ]);
 
     await expect(action).not.to.be.reverted;
   });
 
   const builder = async () => {
     return deployContract(creator, Artifacts.CommunityUser, [
-      creator.address
+      creator.address,
+      "TALUSERS1"
     ]) as Promise<CommunityUser>;
   };
 
@@ -42,8 +46,8 @@ describe("CommunityUser", () => {
     });
 
     it("has the given name and symbol", async () => {
-      expect(await communityCollection.name()).to.eq("Talent Protocol Community Level One");
-      expect(await communityCollection.symbol()).to.eq("TALCLEVELONE");
+      expect(await communityCollection.name()).to.eq("Talent Protocol Community User");
+      expect(await communityCollection.symbol()).to.eq("TALUSERS1");
     });
 
     it("starts with an empty collection", async () => {
@@ -58,6 +62,16 @@ describe("CommunityUser", () => {
       expect(await communityCollection.ownerOf(1)).to.eq(creator.address);
       expect(await communityCollection.ownerOf(2)).to.eq(addr1.address);
       expect(await communityCollection.ownerOf(3)).to.eq(addr2.address);
-    })
+    });
+
+    it("does not allow a token to be transfered", async () => {
+      await communityCollection.connect(creator).airdrop([creator.address, addr1.address, addr2.address])
+
+      // Verify everyone got a token
+      expect(await communityCollection.ownerOf(1)).to.eq(creator.address);
+
+      const action = communityCollection.transferFrom(creator.address, addr1.address, 1);
+      await expect(action).to.be.revertedWith("Community user NFT is non-transferable");
+    });
   });
 });

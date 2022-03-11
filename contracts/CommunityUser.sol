@@ -12,7 +12,7 @@ contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
     string private _baseURIExtended;
     mapping (uint256 => string) _tokenURIs;
 
-    constructor(address _owner) ERC721("Talent Protocol Community Level One", "TALCLEVELONE") {
+    constructor(address _owner, string memory _ticker) ERC721("Talent Protocol Community User", _ticker) {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
@@ -62,6 +62,26 @@ contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
         require(bytes(base).length != 0, "Base URI not set");
 
         return base;
+    }
+
+    // Disable transfering this NFT
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) public override {
+        require(false, "Community user NFT is non-transferable");
+    }
+
+
+    // Disable transfering this NFT
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override {
+        require(false, "Community user NFT is non-transferable");
     }
 
     function supportsInterface(bytes4 interfaceId)

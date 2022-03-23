@@ -3,6 +3,7 @@ import TalentFactory from "../../artifacts/contracts/TalentFactory.sol/TalentFac
 import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
 import RewardCalculator from "../../artifacts/contracts/staking/RewardCalculator.sol/RewardCalculator.json";
 import CommunityUser from "../../artifacts/contracts/CommunityUser.sol/CommunityUser.json";
+import CommunityMember from "../../artifacts/contracts/CommunityMember.sol/CommunityMember.json";
 
 // test-only contracts
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
@@ -23,5 +24,6 @@ export {
   TestStableThenToken,
   InterfaceIDs,
   TestRewardCalculator,
-  CommunityUser
+  CommunityUser,
+  CommunityMember
 };

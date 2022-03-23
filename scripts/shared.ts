@@ -30,6 +30,15 @@ export async function deployLevelOne(owner: string, ticker: string): Promise<Com
   return community as CommunityUser;
 }
 
+export async function deployMemberLevelOne(owner: string, ticker: string): Promise<CommunityUser> {
+  const CommunityMemberDeployer = await ethers.getContractFactory("CommunityMember");
+
+  const community = await CommunityMemberDeployer.deploy(owner, ticker);
+  await community.deployed();
+
+  return community as CommunityUser;
+}
+
 export async function deployStaking(
   start: number,
   end: number,

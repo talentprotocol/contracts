@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 
 import type { BigNumber } from "ethers";
 import type { TalentProtocol, TalentFactory, Staking, CommunityUser } from "../typechain";
@@ -48,9 +48,11 @@ export async function deployStaking(
   protocolPrice: BigNumber,
   talentPrice: BigNumber
 ): Promise<Staking> {
+
+
   const Staking = await ethers.getContractFactory("Staking");
 
-  const staking = await Staking.deploy(start, end, rewardMax, stableCoin, factory, protocolPrice, talentPrice);
+  const staking = (await upgrades.deployProxy(Staking, [start, end, rewardMax, stableCoin, factory, protocolPrice, talentPrice]))
   await staking.deployed();
 
   return staking as Staking;

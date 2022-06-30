@@ -2,16 +2,8 @@
 pragma solidity ^0.8.7;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import {
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import {
-    IERC1363ReceiverUpgradeable
-} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
+import {IERC1363Receiver} from "@openzeppelin/contracts/interfaces/IERC1363Receiver.sol";
+import {IAccessControl, AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "hardhat/console.sol";
 
@@ -75,15 +67,7 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   intervene on stakes to accumulate their rewards on their behalf, in order to reach an `activeStakes` count of 0.
 ///   Once 0 is reached, since no more claims will ever be made,
 ///   the remaining TAL from the reward pool can be safely withdrawn back to the team
-
-contract Staking is 
-    Initializable,
-    ContextUpgradeable,
-    ERC165Upgradeable,
-    AccessControlEnumerableUpgradeable,
-    StableThenToken,
-    RewardCalculator,
-    IERC1363ReceiverUpgradeable {
+contract Staking is AccessControl, StableThenToken, RewardCalculator, IERC1363Receiver {
     //
     // Begin: Declarations
     //
@@ -163,16 +147,16 @@ contract Staking is
     uint256 public override(IRewardParameters) totalAdjustedShares;
 
     // How much TAL is to be given in rewards
-    uint256 public override(IRewardParameters) rewardsMax;
+    uint256 public immutable override(IRewardParameters) rewardsMax;
 
     // How much TAL has already been given/reserved in rewards
     uint256 public override(IRewardParameters) rewardsGiven;
 
     /// Start date for staking period
-    uint256 public override(IRewardParameters) start;
+    uint256 public immutable override(IRewardParameters) start;
 
     /// End date for staking period
-    uint256 public override(IRewardParameters) end;
+    uint256 public immutable override(IRewardParameters) end;
 
     // Continuously growing value used to compute reward distributions
     uint256 public S;
@@ -218,24 +202,17 @@ contract Staking is
     /// @param _factory ITalentFactory instance
     /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
     /// @param _talentPrice The price of a talent token in TAL (50 means 1 Talent Token = 50 TAL)
-
-    function initialize(uint256 _start,
+    constructor(
+        uint256 _start,
         uint256 _end,
         uint256 _rewardsMax,
         address _stableCoin,
         address _factory,
         uint256 _tokenPrice,
         uint256 _talentPrice
-    ) public virtual initializer {
+    ) StableThenToken(_stableCoin) {
         require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
-
-        __Context_init_unchained();
-        __ERC165_init_unchained();
-        __AccessControlEnumerable_init_unchained();
-
-        __StableThenToken_init(_stableCoin);
-        __RewardCalculator_init();
 
         start = _start;
         end = _end;
@@ -247,22 +224,6 @@ contract Staking is
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
-
-    //
-    // Begin: ERC165
-    //
-
-    /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
-        returns (bool)
-    {
-        return AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
-    }
-
-
 
     /// Creates a new stake from an amount of stable coin.
     /// The USD amount will be converted to the equivalent amount in TAL, according to the pre-determined rate
@@ -412,7 +373,7 @@ contract Staking is
         address _sender,
         uint256 _amount,
         bytes calldata data
-    ) external override(IERC1363ReceiverUpgradeable) onlyWhileStakingEnabled returns (bytes4) {
+    ) external override(IERC1363Receiver) onlyWhileStakingEnabled returns (bytes4) {
         if (_isToken(msg.sender)) {
             require(!disabled, "staking has been disabled");
 
@@ -490,10 +451,6 @@ contract Staking is
         rewardsAdminWithdrawn += amount;
     }
 
-    function setTokenPrice(uint256 _price) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        tokenPrice = _price;
-    }
-
     //
     // End: IRewardParameters
     //
@@ -539,22 +496,9 @@ contract Staking is
     ) private updatesAdjustedShares(_owner, _talent) returns (uint256) {
         require(_isTalentToken(_talent), "not a valid talent token");
 
+        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
+
         StakeData storage stake = stakes[_owner][_talent];
-
-        // full refund is being requested
-        bool isFullRefund = stake.talentAmount == _talentAmount;
-
-        // if we're dealing with a full refund then we must do a
-        // withdraw instead of restake because otherwise we'll
-        // send talent tokens back to the _owner and we're unable to
-        // collect them and match the records
-        if (isFullRefund) {
-            _checkpoint(_owner, _talent, RewardAction.WITHDRAW);
-        } else {
-            _checkpoint(_owner, _talent, RewardAction.RESTAKE);
-        }
-
-        stake = stakes[_owner][_talent];
 
         require(stake.lastCheckpointAt > 0, "stake does not exist");
         require(stake.talentAmount >= _talentAmount);
@@ -607,12 +551,10 @@ contract Staking is
         // if it's a new stake, increase stake count
         if (stake.tokenAmount == 0) {
             activeStakes += 1;
-            stake.finishedAccumulating = false;
         }
 
         stake.tokenAmount += _tokenAmount;
         stake.talentAmount += talentAmount;
-
 
         totalTokensStaked += _tokenAmount;
 
@@ -813,7 +755,7 @@ contract Staking is
     /// @param _usd The amount of USD, in cents, to convert
     /// @return The converted TAL amount
     function convertUsdToToken(uint256 _usd) public view returns (uint256) {
-        return (_usd * 1 ether) / tokenPrice;
+        return (_usd / tokenPrice) * 1 ether;
     }
 
     /// Converts a given TAL amount to a Talent Token amount
@@ -821,7 +763,7 @@ contract Staking is
     /// @param _tal The amount of TAL to convert
     /// @return The converted Talent Token amount
     function convertTokenToTalent(uint256 _tal) public view returns (uint256) {
-        return (_tal * 1 ether) / talentPrice;
+        return (_tal / talentPrice) * 1 ether;
     }
 
     /// Converts a given Talent Token amount to TAL

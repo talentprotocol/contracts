@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "hardhat/console.sol";
 
 interface IRewardParameters {
@@ -54,13 +53,11 @@ interface IRewardParameters {
 ///   e.g.: if two stakes exist, Alice with 1 TAL, and Bob with 2 TAL, adjusted weights are:
 ///     Alice: sqrt(1) / (sqrt(1) + sqrt(2)) ~= 41.42%
 ///     Bob:   sqrt(2) / (sqrt(1) + sqrt(2)) ~= 58.57%
-abstract contract RewardCalculator is Initializable, IRewardParameters {
+abstract contract RewardCalculator is IRewardParameters {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result
     /// after calculations is divided by mul again to retrieve a real value
     uint256 internal constant MUL = 1e10;
-
-    function __RewardCalculator_init() public initializer {}
 
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp

@@ -4,7 +4,9 @@ pragma solidity ^0.8.7;
 import {StableThenToken} from "../staking/StableThenToken.sol";
 
 contract TestStableThenToken is StableThenToken {
-    constructor(address _stableCoin) StableThenToken(_stableCoin) {}
+    function initialize(address _stableCoin) public virtual initializer {
+        __StableThenToken_init(_stableCoin);
+    }
 
     function test_stablePhaseOnly() public view stablePhaseOnly {}
 

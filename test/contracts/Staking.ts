@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, TalentFactoryV2, StakingV2, Staking, TalentToken } from "../../typechain";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall, ensureTimestamp, findEvent } from "../shared/utils";
@@ -62,7 +62,8 @@ describe("Staking", () => {
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const action = deployContract(owner, Artifacts.Staking, [
+      const StakingContract = await ethers.getContractFactory("Staking");
+      const action = upgrades.deployProxy(StakingContract, [
         start,
         end,
         rewards,
@@ -76,7 +77,8 @@ describe("Staking", () => {
     });
 
     it("fails if tokenPrice is 0", async () => {
-      const action = deployContract(owner, Artifacts.Staking, [
+      const StakingContract = await ethers.getContractFactory("Staking");
+      const action = upgrades.deployProxy(StakingContract, [
         start,
         end,
         rewards,
@@ -90,7 +92,8 @@ describe("Staking", () => {
     });
 
     it("fails if talentPrice is 0", async () => {
-      const action = deployContract(owner, Artifacts.Staking, [
+      const StakingContract = await ethers.getContractFactory("Staking");
+      const action = upgrades.deployProxy(StakingContract, [
         start,
         end,
         rewards,
@@ -105,7 +108,8 @@ describe("Staking", () => {
   });
 
   const builder = async (): Promise<Staking> => {
-    return deployContract(owner, Artifacts.Staking, [
+    const StakingContract = await ethers.getContractFactory("Staking");
+    const staking = await upgrades.deployProxy(StakingContract, [
       start,
       end,
       rewards,
@@ -113,7 +117,10 @@ describe("Staking", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-    ]) as Promise<Staking>;
+    ]);
+    await staking.deployed();
+
+    return staking as Staking;
   };
 
   describe("behaviour", () => {
@@ -121,8 +128,43 @@ describe("Staking", () => {
     ERC165.supportsInterfaces(builder, ["IERC165", "IAccessControl"]);
   });
 
+  describe("upgradabled", ()=> {
+    beforeEach(async () => {
+      const StakingContract = await ethers.getContractFactory("Staking");
+      staking = (await upgrades.deployProxy(StakingContract, [
+        start,
+        end,
+        rewards,
+        stable.address,
+        factory.address,
+        parseUnits("0.02"),
+        parseUnits("5"),
+      ])) as Staking;
+
+      await staking.deployed();
+    });
+
+    it("allows upgrading the factory itself", async () => {
+      const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+      const factory2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
+
+      expect(await factory2.isV2()).to.eq(true);
+    });
+
+    it("allows upgrading the staking contract", async () => {
+      const StakingV2Factory = await ethers.getContractFactory("StakingV2");
+      const staking2 = (await upgrades.upgradeProxy(staking, StakingV2Factory)) as StakingV2;
+
+      expect(await staking2.isV2()).to.eq(true);
+    });
+  });
+
   describe("functions", () => {
     beforeEach(async () => {
+      const lastBlock = await ethers.provider.getBlockNumber();
+      const timestamp = (await ethers.provider.getBlock(lastBlock)).timestamp;
+      start = dayjs.unix(timestamp).add(1, "day").unix(); // one minute later
+
       staking = await builder();
 
       await factory.setMinter(staking.address);
@@ -152,6 +194,25 @@ describe("Staking", () => {
 
         const talentBalance = await talentToken1.balanceOf(investor1.address);
         const expectedBalance = await staking.convertUsdToTalent(parseUnits("25"));
+
+        // NAPS is credited
+        expect(talentBalance).to.equal(expectedBalance);
+        expect(talentBalance).not.to.equal(parseUnits("0"));
+      });
+
+      it("accepts stable coin stakes with decimals", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("0.0099"));
+
+        const investorStableBalanceBefore = await stable.balanceOf(investor1.address);
+        const action = staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("0.0099"));
+
+        await expect(action).not.to.be.reverted;
+
+        // USDT is deducted
+        expect(await stable.balanceOf(investor1.address)).to.eq(investorStableBalanceBefore.sub(parseUnits("0.0099")));
+
+        const talentBalance = await talentToken1.balanceOf(investor1.address);
+        const expectedBalance = await staking.convertUsdToTalent(parseUnits("0.0099"));
 
         // NAPS is credited
         expect(talentBalance).to.equal(expectedBalance);
@@ -189,6 +250,14 @@ describe("Staking", () => {
         expect(await staking.totalTokensStaked()).to.equal(parseUnits("100"));
       });
 
+      it("does not allow other accounts to set the token", async () => {
+        const action = staking.connect(investor1).setToken(tal.address);
+
+        await expect(action).to.be.revertedWith(
+          `AccessControl: account ${investor1.address.toLowerCase()} is missing role ${await staking.DEFAULT_ADMIN_ROLE()}`
+        );
+      });
+
       it("does not accept stable coin stakes while in phase2", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
         await staking.setToken(tal.address);
@@ -216,8 +285,8 @@ describe("Staking", () => {
 
         expect(stakeAfter.lastCheckpointAt).to.be.gt(stakeBefore.lastCheckpointAt);
 
-        expect(stakeBefore.talentAmount).to.equal(parseUnits("250"));
-        expect(stakeAfter.talentAmount).to.equal(parseUnits("500"));
+        expect(stakeBefore.talentAmount).to.eq(parseUnits("250"));
+        expect(stakeAfter.talentAmount).to.be.closeTo(parseUnits("500"), margin);
       });
 
       it("staking twice in different talents does not go through a checkpoint", async () => {
@@ -689,16 +758,33 @@ describe("Staking", () => {
         expect(await staking.activeStakes()).to.equal(0);
       });
 
+      it("decrements if two full refunds are requested", async () => {
+        await enterPhaseTwo();
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+        expect(await staking.activeStakes()).to.equal(0);
+
+        await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
+        expect(await staking.activeStakes()).to.equal(1);
+        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("1"), null);
+        expect(await staking.activeStakes()).to.equal(0);
+      });
+
       it("does not decrement if a partial refund is requested", async () => {
         await enterPhaseTwo();
 
         await transferAndCall(tal, investor1, staking.address, parseUnits("5"), talentToken1.address);
+
         expect(await staking.activeStakes()).to.equal(1);
         await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
         expect(await staking.activeStakes()).to.equal(1);
 
         // refundind the remaining 50% decrements
-        await transferAndCall(talentToken1, investor1, staking.address, parseUnits("0.5"), null);
+        const balance = await talentToken1.balanceOf(investor1.address)
+
+        await transferAndCall(talentToken1, investor1, staking.address, balance, null);
         expect(await staking.activeStakes()).to.equal(0);
       });
     });
@@ -781,5 +867,35 @@ describe("Staking", () => {
         );
       });
     });
+
+    describe("setTokenPrice", () => {
+      it("is callable by an admin", async () => {
+        const action = await staking.connect(owner).setTokenPrice(parseUnits("1"));
+        
+        expect(await staking.tokenPrice()).to.eq(parseUnits("1"));
+      })
+
+      it("is not callable by a random user", async () => {
+        const action = staking.connect(investor1).setTokenPrice(parseUnits("1"));
+
+        await expect(action).to.be.revertedWith(
+          `AccessControl: account ${investor1.address.toLowerCase()} is missing role ${await staking.DEFAULT_ADMIN_ROLE()}`
+        );
+      })
+
+      it("changes the token price", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("1"));
+
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+        expect(await talentToken1.balanceOf(investor1.address)).to.equal(parseUnits("10"));
+
+        await staking.connect(owner).setTokenPrice(parseUnits("0.2"));
+
+        await stable.connect(investor2).approve(staking.address, parseUnits("1"));
+
+        await staking.connect(investor2).stakeStable(talentToken1.address, parseUnits("1"));
+        expect(await talentToken1.balanceOf(investor2.address)).to.equal(parseUnits("1"));
+      })
+    })
   });
 });

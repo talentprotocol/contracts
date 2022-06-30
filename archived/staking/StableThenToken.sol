@@ -3,14 +3,6 @@ pragma solidity ^0.8.7;
 
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {
-    IAccessControlEnumerableUpgradeable,
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-
 
 /// @title A two-phase contract, starting with a stable coin and proceeding to
 //    a alternative token once possible.
@@ -18,29 +10,27 @@ import {
 /// @notice Since the first phase of staking will be done in a USD-pegged
 ///   stable-coin, we need a mechanism to later /   switch to the TAL token, while
 ///   also converting any initial USD stakes to TAL, given a pre-determined rate
-abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgradeable {
+abstract contract StableThenToken {
     using ERC165Checker for address;
 
     /// stable coin to use
-    address public stableCoin;
+    address public immutable stableCoin;
 
     /// the token to stake
     address public token;
 
     /// @param _stableCoin The USD-pegged stable-coin contract to use
-    function __StableThenToken_init(address _stableCoin) public virtual initializer {
+    constructor(address _stableCoin) {
         // USDT does not implement ERC165, so we can't do much more than this
         require(_stableCoin != address(0), "stable-coin address must be valid");
 
         stableCoin = _stableCoin;
-
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /// Sets the TAL token address
     ///
     /// @param _token ERC20 address of the TAL token. Must be a valid ERC20 token with the symbol "TAL";
-    function setToken(address _token) public onlyRole(DEFAULT_ADMIN_ROLE) stablePhaseOnly {
+    function setToken(address _token) public stablePhaseOnly {
         require(_token != address(0x0), "Address must be set");
         require(_token.supportsInterface(type(IERC20).interfaceId), "not a valid ERC20 token");
         // require(ERC165(_token).supportsInterface(type(IERC20).interfaceId), "not a valid ERC20 token");

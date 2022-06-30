@@ -59,14 +59,15 @@ describe("Staking", () => {
     const FactoryFactory = await ethers.getContractFactory("TalentFactory");
     factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
-    staking = (await deployContract(owner, Artifacts.Staking, [
+    const StakingContract = await ethers.getContractFactory("Staking");
+    staking = (await upgrades.deployProxy(StakingContract, [
       start,
       end,
       rewards,
       stable.address,
       factory.address,
       parseUnits("0.02"),
-      parseUnits("5"),
+      parseUnits("5")
     ])) as Staking;
 
     await factory.setMinter(staking.address);

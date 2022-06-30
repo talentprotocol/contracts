@@ -1,4 +1,5 @@
 import TalentProtocol from "../../artifacts/contracts/TalentProtocol.sol/TalentProtocol.json";
+import TalentProtocolV2 from "../../artifacts/contracts/test/TalentProtocolV2.sol/TalentProtocolV2.json";
 import TalentFactory from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
 import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
 import RewardCalculator from "../../artifacts/contracts/staking/RewardCalculator.sol/RewardCalculator.json";
@@ -15,6 +16,7 @@ import TestRewardCalculator from "../../artifacts/contracts/test/TestRewardCalcu
 
 export {
   TalentProtocol,
+  TalentProtocolV2,
   TalentFactory,
   Staking,
   RewardCalculator,

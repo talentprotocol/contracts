@@ -51,7 +51,8 @@ describe("Staking", () => {
 
     stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
 
-    tal = (await deployContract(owner, Artifacts.TalentProtocol, [])) as TalentProtocol;
+    const TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
+    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("100000000")])) as TalentProtocol;
 
     // factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
     // factory is deployed as a proxy already, to ensure `initialize` is called
@@ -134,11 +135,11 @@ describe("Staking", () => {
     await tal.connect(owner).approve(staking.address, talAmount);
     await staking.connect(owner).swapStableForToken(amount);
 
+    const balanceBefore = await tal.balanceOf(investor1.address);
     // NAPS can now be refunded for the same TAL amount
     const action = transferAndCall(talentToken1, investor1, staking.address, amount.mul(10), null);
 
     // // investor's balance should increase by `amount`, and Unstake event emited
-    const balanceBefore = await tal.balanceOf(investor1.address);
     await expect(action).to.emit(staking, "Unstake");
     const balanceAfter = await tal.balanceOf(investor1.address);
 

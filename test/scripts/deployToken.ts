@@ -20,6 +20,6 @@ describe("deployToken", () => {
   it("deploys a TAL instance", async () => {
     const tal = await deployToken();
 
-    expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("1000000000"));
+    expect(await tal.balanceOf(creator.address)).to.eq(parseUnits("0"));
   });
 });

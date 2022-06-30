@@ -73,6 +73,10 @@ describe("TalentProtocol", () => {
       const talv2 = (await upgrades.upgradeProxy(tal, TalentProtocolFactoryV2)) as TalentProtocolV2;
 
       expect(await talv2.isV2()).to.eq(true);
+
+      await talv2.connect(creator).adminMint(parseUnits("100"));
+
+      expect(await talv2.balanceOf(creator.address)).to.eq(parseUnits("100"));
     });
   });
 });

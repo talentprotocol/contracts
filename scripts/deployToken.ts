@@ -1,18 +1,17 @@
-import { deployToken, deployFactory, deployStaking } from "./shared";
+import { ethers, network, upgrades, waffle } from "hardhat";
+import type { TalentProtocol } from "../typechain";
 
-import type { TalentProtocol__factory } from "../typechain";
 
 const { exit } = process;
 
 async function main() {
-  const { address } = await deployToken();
+  const [creator] = await ethers.getSigners();
+  console.log(creator.address);
 
-  console.log(`
-  TAL Token: ${address}
-  `);
+  const TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
+  const tal = (await upgrades.deployProxy(TalentProtocolFactory, [0])) as TalentProtocol;
 
-  // set staking TAL
-  // send TAL to staking
+  console.log("TAL address is: ", tal.address);
 }
 
 main()

@@ -27,6 +27,7 @@ describe("TalentProtocol", () => {
 
     TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
     TalentProtocolFactoryV2 = await ethers.getContractFactory("TalentProtocolV2");
+    upgrades.silenceWarnings()
   });
 
   it("can be deployed", async () => {
@@ -36,7 +37,7 @@ describe("TalentProtocol", () => {
   });
 
   const builder = async (): Promise<TalentProtocol> => {
-    return upgrades.deployProxy(TalentProtocolFactory, [0]) as Promise<TalentProtocol>;
+    return upgrades.deployProxy(TalentProtocolFactory, [0], {unsafeAllow: ['delegatecall']}) as Promise<TalentProtocol>;
   };
 
   describe("behaviour", () => {
@@ -70,7 +71,7 @@ describe("TalentProtocol", () => {
     });
 
     it("allows TAL to be upgraded", async () => {
-      const talv2 = (await upgrades.upgradeProxy(tal, TalentProtocolFactoryV2)) as TalentProtocolV2;
+      const talv2 = (await upgrades.upgradeProxy(tal, TalentProtocolFactoryV2, {unsafeAllow: ['delegatecall']})) as TalentProtocolV2;
 
       expect(await talv2.isV2()).to.eq(true);
 

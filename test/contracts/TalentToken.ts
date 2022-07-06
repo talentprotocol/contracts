@@ -29,32 +29,41 @@ describe("TalentToken", () => {
 
     // deploy template
     TalentTokenFactory = await ethers.getContractFactory("TalentToken");
+    upgrades.silenceWarnings()
   });
 
   describe("initialize", () => {
     it("can be deployed as a proxy", async () => {
-      const action = upgrades.deployProxy(TalentTokenFactory, [
-        "FooBar",
-        "FOO",
-        parseUnits("1000"),
-        talent.address,
-        minter.address,
-        admin.address,
-      ]);
+      const action = upgrades.deployProxy(
+        TalentTokenFactory,
+        [
+          "FooBar",
+          "FOO",
+          parseUnits("1000"),
+          talent.address,
+          minter.address,
+          admin.address,
+        ],
+        {unsafeAllow: ['delegatecall']}
+      );
 
       await expect(action).not.to.be.reverted;
     });
   });
 
   async function builder(): Promise<TalentToken> {
-    return upgrades.deployProxy(TalentTokenFactory, [
-      "FooBar",
-      "FOO",
-      parseUnits("123"),
-      talent.address,
-      minter.address,
-      admin.address,
-    ]) as Promise<TalentToken>;
+    return upgrades.deployProxy(
+      TalentTokenFactory,
+      [
+        "FooBar",
+        "FOO",
+        parseUnits("123"),
+        talent.address,
+        minter.address,
+        admin.address,
+      ],
+      {unsafeAllow: ['delegatecall']}
+    ) as Promise<TalentToken>;
   }
 
   describe("behaviour", () => {
@@ -187,10 +196,11 @@ describe("TalentToken", () => {
       });
 
       it("is not callable by another wallet", async () => {
+        const coinRoleTalent = await coin.ROLE_TALENT()
         const result = coin.connect(admin).transferTalentWallet(investor.address);
 
         await expect(result).to.be.revertedWith(
-          `AccessControl: account ${admin.address.toLowerCase()} is missing role ${await coin.ROLE_TALENT()}`
+          `AccessControl: account ${admin.address.toLowerCase()} is missing role ${coinRoleTalent}`
         );
       });
 
@@ -223,7 +233,7 @@ describe("TalentToken", () => {
       const TalentTokenV2Factory = await ethers.getContractFactory("TalentTokenV2");
 
       await coin.connect(talent).transfer(minter.address, 1);
-      const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory)) as TalentTokenV2;
+      const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory, {unsafeAllow: ['delegatecall']})) as TalentTokenV2;
 
       expect(await coin2.isV2()).to.be.true;
       expect(await coin2.balanceOf(minter.address)).to.eq(1);

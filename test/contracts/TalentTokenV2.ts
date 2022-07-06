@@ -40,6 +40,7 @@ describe("TalentFactory", () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
 
     TalentFactoryFactory = await ethers.getContractFactory("TalentFactory");
+    upgrades.silenceWarnings()
   });
 
   describe("upgrades implementation beacon", () => {
@@ -108,11 +109,10 @@ describe("TalentFactory", () => {
 
       await beacon.upgradeTo(talentTokenV2.address);
       const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
+      const defaultAdminRole = await napsv2.DEFAULT_ADMIN_ROLE()
 
-      const action = napsv2.connect(talent1).removeMinter(minter.address);
-
-      await expect(action).to.be.revertedWith(
-        `AccessControl: account ${talent1.address.toLowerCase()} is missing role ${await napsv2.DEFAULT_ADMIN_ROLE()}`
+      await expect(napsv2.connect(talent1).removeMinter(minter.address)).to.be.revertedWith(
+        `AccessControl: account ${talent1.address.toLowerCase()} is missing role ${defaultAdminRole}`
       );
 
       await expect(napsv2.connect(creator).removeMinter(minter.address)).not.to.be.reverted;

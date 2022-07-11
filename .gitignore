@@ -25,5 +25,6 @@ yarn-error.log*
 artifacts/
 cache/
 typechain/
+typechain-types/
 docs/
 .openzeppelin/

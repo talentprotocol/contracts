@@ -14,7 +14,6 @@ contract TalentFactoryV2 is TalentFactory {
         revokeRole(ROLE_MINTER, minter);
 
         minter = _newMinter;
-        // grantRole(ROLE_MINTER, _newMinter);
         _setupRole(ROLE_MINTER, _newMinter);
     }
 }

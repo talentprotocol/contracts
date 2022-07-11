@@ -7,8 +7,8 @@ const { exit } = process;
 async function main() {
   const [owner, secondary] = await ethers.getSigners();
 
-  console.log("francisco: ", owner.address);
-  console.log("fred: ", secondary.address);
+  console.log("owner: ", owner.address);
+  console.log("secondary: ", secondary.address);
   
   const provider =  new ethers.providers.JsonRpcProvider("https://forno.celo.org");
 

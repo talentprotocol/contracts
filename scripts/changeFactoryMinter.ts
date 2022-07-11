@@ -8,10 +8,10 @@ import type { TalentFactory, TalentFactoryV2 } from "../typechain";
 const { exit } = process;
 
 async function main() {
-  const [francisco, fred] = await ethers.getSigners();
+  const [owner1, owner2] = await ethers.getSigners();
 
-  console.log("francisco: ", francisco.address);
-  console.log("fred: ", fred.address);
+  console.log("owner1: ", owner1.address);
+  console.log("owner2: ", owner2.address);
   
   const provider =  new ethers.providers.JsonRpcProvider("https://alfajores-forno.celo-testnet.org");
 
@@ -21,7 +21,7 @@ async function main() {
   const factory = new ethers.Contract(
     "0x8ee4f3044Ef0166A6DB12b0e9Eeb1735f1Fc7cc9",
     FactoryArtifactV2.abi,
-    francisco
+    owner1
   );
   
   console.log("Factory v2: ", await factory.isV2());
@@ -29,11 +29,11 @@ async function main() {
   console.log("Factory minter is: ", await factory.ROLE_MINTER());
   console.log("Factory Signer: ", await factory.signer.getAddress());
 
-  const TalentFactoryFactory = await ethers.getContractFactory("TalentFactory", fred);
+  const TalentFactoryFactory = await ethers.getContractFactory("TalentFactory", owner2);
 
   console.log("Got deployed factory");
   
-  const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2", fred);
+  const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2", owner2);
   const factory2 = await TalentFactoryV2Factory.deploy();
   await factory2.deployed();
 
@@ -67,7 +67,7 @@ async function main() {
 
   // console.log("Attached");
 
-  await factoryV2.connect(francisco).transferMinter("0xfc35754091D1540cE605Db87e5284369D766F0bF");
+  await factoryV2.connect(owner1).transferMinter("0xfc35754091D1540cE605Db87e5284369D766F0bF");
 
   console.log("Transferred minter");
   

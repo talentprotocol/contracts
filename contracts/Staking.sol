@@ -613,7 +613,6 @@ contract Staking is
         stake.tokenAmount += _tokenAmount;
         stake.talentAmount += talentAmount;
 
-
         totalTokensStaked += _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);

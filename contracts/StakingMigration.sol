@@ -81,12 +81,3 @@ contract StakingMigration is Staking {
     emit RewardClaim(_owner, _talentToken, _stakerReward, _talentReward);
   }
 }
-
-// abstract contract StakingV2 is Staking {
-//   function transferStakeOwner(address _oldOwner, address _newOwner) public {
-//     require(_oldOwner == msg.sender, "The current owner must be the caller.");
-
-//     // change stake state
-//     // what happens if I change to a wallet that already has stakes
-//   }
-// }

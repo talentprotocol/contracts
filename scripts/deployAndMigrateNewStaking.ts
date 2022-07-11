@@ -156,7 +156,17 @@ async function main() {
 
   console.log("Processing events");
 
+  let txIndex = 0;
+  let stakeEventsEmmited = 0;
+  let rewardsClaimEmmited = 0;
+  let txStakeEventsEmmited = 0;
+  let txRewardsClaimEmmited = 0;
+  const txTotal = allTX.length;
+
   for (const tx of allTX) {
+    txStakeEventsEmmited = 0;
+    txRewardsClaimEmmited = 0;
+
     const transaction = await provider.getTransactionReceipt(tx);
 
     const logs = transaction.logs.map((log: any) => {
@@ -175,6 +185,8 @@ async function main() {
       for await (const item of stakeLogs) {
         console.log("Stake event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
         await newStaking.connect(owner).emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
+        stakeEventsEmmited += 1;
+        txStakeEventsEmmited += 1;
       }
     }
 
@@ -186,8 +198,13 @@ async function main() {
       for await (const item of rewardClaimLogs) {
         console.log("Reward claim event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
         await newStaking.connect(owner).emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
+        rewardsClaimEmmited += 1;
+        txRewardsClaimEmmited += 1;
       }
     }
+
+    console.log(`Migrated Transaction (${txIndex}/${txTotal}) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`);
+    txIndex += 1;
   }
 }
 

@@ -8,11 +8,11 @@ import "hardhat-gas-reporter";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
-// const deployer = {
-//   mnemonic:
-//     process.env.MNEMONIC ||
-//     "test test test test test test test test test test test junk"
-// };
+const deployer = {
+  mnemonic:
+    process.env.MNEMONIC ||
+    "test test test test test test test test test test test junk"
+};
 
 // const deployer = [""];
 

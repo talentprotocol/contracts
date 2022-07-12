@@ -42,8 +42,7 @@ describe("TalentToken", () => {
           talent.address,
           minter.address,
           admin.address,
-        ],
-        {unsafeAllow: ['delegatecall']}
+        ]
       );
 
       await expect(action).not.to.be.reverted;
@@ -60,8 +59,7 @@ describe("TalentToken", () => {
         talent.address,
         minter.address,
         admin.address,
-      ],
-      {unsafeAllow: ['delegatecall']}
+      ]
     ) as Promise<TalentToken>;
   }
 
@@ -232,7 +230,7 @@ describe("TalentToken", () => {
       const TalentTokenV2Factory = await ethers.getContractFactory("TalentTokenV2");
 
       await coin.connect(talent).transfer(minter.address, 1);
-      const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory, {unsafeAllow: ['delegatecall']})) as TalentTokenV2;
+      const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory)) as TalentTokenV2;
 
       expect(await coin2.isV2()).to.be.true;
       expect(await coin2.balanceOf(minter.address)).to.eq(1);

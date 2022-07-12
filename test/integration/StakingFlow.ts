@@ -52,7 +52,7 @@ describe("Staking", () => {
     stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
 
     const TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
-    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("100000000")], {unsafeAllow: ['delegatecall']})) as TalentProtocol;
+    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("100000000")])) as TalentProtocol;
 
     // factory = (await deployContract(owner, Artifacts.TalentFactory, [])) as TalentFactory;
     // factory is deployed as a proxy already, to ensure `initialize` is called

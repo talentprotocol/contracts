@@ -50,7 +50,7 @@ describe("Staking", () => {
     await stable.connect(owner).transfer(investor2.address, parseUnits("10000"));
 
     const TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
-    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("1000000000")], {unsafeAllow: ['delegatecall']})) as TalentProtocol;
+    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("1000000000")])) as TalentProtocol;
 
     await tal.connect(owner).transfer(investor1.address, parseUnits("1000"));
     await tal.connect(owner).transfer(investor2.address, parseUnits("1000"));

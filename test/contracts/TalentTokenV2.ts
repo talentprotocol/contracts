@@ -5,7 +5,7 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken } from "../../typechain-types";
+import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain-types";
 import {
   TalentToken__factory,
   TalentTokenV2__factory,
@@ -15,6 +15,7 @@ import {
 
 import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 
+import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
@@ -31,6 +32,9 @@ describe("TalentFactory", () => {
   let factory: TalentFactory;
 
   let TalentFactoryFactory: ContractFactory;
+  let naps: TalentToken;
+  let TalentFactoryV2Factory: TalentFactoryV2__factory;
+  let TalentTokenV2Factory: TalentTokenV2__factory;
 
   beforeEach(async () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
@@ -41,6 +45,7 @@ describe("TalentFactory", () => {
   describe("upgrades implementation beacon", () => {
     let naps: TalentToken;
     let TalentFactoryV2Factory: TalentFactoryV2__factory;
+    let TalentTokenV2Factory: TalentTokenV2__factory;
 
     beforeEach(async () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
@@ -53,17 +58,15 @@ describe("TalentFactory", () => {
       naps.connect(talent1).transfer(creator.address, parseUnits("1"));
 
       naps.connect(talent1).transfer(creator.address, parseUnits("1.42"));
-
-      TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
     });
 
     it("allows owner to beacon implementation", async () => {
-      const v2 = await deployContract(creator, TalentTokenV2Artifact, []);
+      const talentTokenV2 = await deployContract(creator, TalentTokenV2Artifact, []);
 
       const beaconAddr = await factory.implementationBeacon();
       const beacon = UpgradeableBeacon__factory.connect(beaconAddr, creator);
 
-      await beacon.upgradeTo(v2.address);
+      await beacon.upgradeTo(talentTokenV2.address);
 
       // naps is automatically upgraded
       const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
@@ -79,11 +82,39 @@ describe("TalentFactory", () => {
       expect(await leal.isV2()).to.be.true;
     });
 
-    it("allows upgrading the factory itself", async () => {
-      const factory2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
+    it("allows creator to change the minter", async () => {
+      const talentTokenV2 = await deployContract(creator, TalentTokenV2Artifact, []);
 
-      const tx = await factory2.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
-      const event = await findEvent(tx, "TalentCreated");
+      const beaconAddr = await factory.implementationBeacon();
+      const beacon = UpgradeableBeacon__factory.connect(beaconAddr, creator);
+
+      await beacon.upgradeTo(talentTokenV2.address);
+      const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
+
+      expect(await napsv2.hasRole(await naps.ROLE_MINTER(), minter.address)).to.eq(true);
+
+      await napsv2.connect(creator).removeMinter(minter.address);
+      await napsv2.connect(creator).addNewMinter(talent1.address);
+
+      expect(await napsv2.hasRole(await naps.ROLE_MINTER(), minter.address)).to.eq(false);
+      expect(await napsv2.hasRole(await naps.ROLE_MINTER(), talent1.address)).to.eq(true);
+    });
+
+    it("only allows the creator to remove the minter role", async () => {
+      const talentTokenV2 = await deployContract(creator, TalentTokenV2Artifact, []);
+
+      const beaconAddr = await factory.implementationBeacon();
+      const beacon = UpgradeableBeacon__factory.connect(beaconAddr, creator);
+
+      await beacon.upgradeTo(talentTokenV2.address);
+      const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
+      const defaultAdminRole = await napsv2.DEFAULT_ADMIN_ROLE()
+
+      await expect(napsv2.connect(talent1).removeMinter(minter.address)).to.be.revertedWith(
+        `AccessControl: account ${talent1.address.toLowerCase()} is missing role ${defaultAdminRole}`
+      );
+
+      await expect(napsv2.connect(creator).removeMinter(minter.address)).not.to.be.reverted;
     });
   });
 });

@@ -6,7 +6,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import type { ContractFactory } from "ethers";
 
-import { TalentProtocol, TalentProtocolV2 } from "../../typechain";
+import { TalentProtocol, TalentProtocolV2 } from "../../typechain-types";
 import { ERC165, Artifacts } from "../shared";
 
 chai.use(solidity);

@@ -15,8 +15,8 @@ import {
 
 import "hardhat/console.sol";
 
-import {StableThenToken} from "./staking/StableThenToken.sol";
-import {IRewardParameters, RewardCalculator} from "./staking/RewardCalculator.sol";
+import {StableThenToken} from "./staking_helpers/StableThenToken.sol";
+import {IRewardParameters, RewardCalculator} from "./staking_helpers/RewardCalculator.sol";
 import {ITalentToken} from "./TalentToken.sol";
 import {ITalentFactory} from "./TalentFactory.sol";
 

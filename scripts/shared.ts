@@ -1,7 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 
 import type { BigNumber } from "ethers";
-import type { TalentProtocol, TalentFactory, Staking, CommunityUser } from "../typechain";
+import type { TalentProtocol, TalentFactory, Staking, CommunityUser } from "../typechain-types";
 
 export async function deployToken(): Promise<TalentProtocol> {
   const TalentProtocol = await ethers.getContractFactory("TalentProtocol");

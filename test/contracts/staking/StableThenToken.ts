@@ -2,7 +2,7 @@ import chai from "chai";
 import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
-import type { ERC20, TestStableThenToken } from "../../../typechain";
+import type { ERC20, TestStableThenToken } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {IRewardParameters, RewardCalculator} from "../staking/RewardCalculator.sol";
+import {IRewardParameters, RewardCalculator} from "../staking_helpers/RewardCalculator.sol";
 
 contract TestRewardCalculator is RewardCalculator {
     uint256 public override(IRewardParameters) start;

@@ -5,17 +5,16 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain";
+import type { TalentFactory, TalentFactoryV2, TalentToken } from "../../typechain-types";
 import {
   TalentToken__factory,
   TalentTokenV2__factory,
   TalentFactoryV2__factory,
   UpgradeableBeacon__factory,
-} from "../../typechain";
+} from "../../typechain-types";
 
 import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 
-import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
@@ -32,9 +31,6 @@ describe("TalentFactory", () => {
   let factory: TalentFactory;
 
   let TalentFactoryFactory: ContractFactory;
-  let naps: TalentToken;
-  let TalentFactoryV2Factory: TalentFactoryV2__factory;
-  let TalentTokenV2Factory: TalentTokenV2__factory;
 
   beforeEach(async () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
@@ -45,7 +41,6 @@ describe("TalentFactory", () => {
   describe("upgrades implementation beacon", () => {
     let naps: TalentToken;
     let TalentFactoryV2Factory: TalentFactoryV2__factory;
-    let TalentTokenV2Factory: TalentTokenV2__factory;
 
     beforeEach(async () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
@@ -59,7 +54,7 @@ describe("TalentFactory", () => {
 
       naps.connect(talent1).transfer(creator.address, parseUnits("1.42"));
 
-      TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+      TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
     });
 
     it("allows owner to beacon implementation", async () => {
@@ -89,7 +84,6 @@ describe("TalentFactory", () => {
 
       const tx = await factory2.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
       const event = await findEvent(tx, "TalentCreated");
-      const leal = TalentTokenV2__factory.connect(event?.args?.token, creator);
     });
   });
 });

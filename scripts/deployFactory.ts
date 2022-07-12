@@ -1,5 +1,5 @@
 import { ethers, upgrades } from "hardhat";
-import type { TalentFactory, TalentFactoryV2 } from "../typechain";
+import type { TalentFactory, TalentFactoryV2 } from "../typechain-types";
 
 
 const { exit } = process;

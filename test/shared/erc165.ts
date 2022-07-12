@@ -4,7 +4,7 @@ import { ethers, waffle } from "hardhat";
 const { expect } = chai;
 const { deployContract } = waffle;
 
-import type { InterfaceIDs } from "../../typechain";
+import type { InterfaceIDs } from "../../typechain-types";
 import { Artifacts } from "../shared";
 
 export function behavesAsERC165(builder: () => Promise<any>): void {

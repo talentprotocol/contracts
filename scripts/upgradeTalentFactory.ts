@@ -2,7 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { getImplementationAddress } from '@openzeppelin/upgrades-core';
 import * as FactoryArtifact from "../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
 import * as FactoryArtifactV2 from "../artifacts/contracts/TalentFactoryV2.sol/TalentFactoryV2.json";
-import type { TalentFactory, TalentFactoryV2 } from "../typechain";
+import type { TalentFactory, TalentFactoryV2 } from "../typechain-types";
 
 
 const { exit } = process;

@@ -2,7 +2,7 @@ import { ethers, network, upgrades, waffle } from "hardhat";
 import * as StakingArtifact from "../artifacts/contracts/Staking.sol/Staking.json";
 import * as StakingMigrationArtifact from "../artifacts/contracts/StakingMigration.sol/StakingMigration.json";
 import dayjs from "dayjs";
-import type { TalentFactory, Staking, StakingMigration } from "../typechain";
+import type { TalentFactory, Staking, StakingMigration } from "../typechain-types";
 
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;

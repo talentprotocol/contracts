@@ -1,5 +1,5 @@
 import { ethers, network, upgrades, waffle } from "hardhat";
-import type { TalentProtocol } from "../typechain";
+import type { TalentProtocol } from "../typechain-types";
 
 
 const { exit } = process;

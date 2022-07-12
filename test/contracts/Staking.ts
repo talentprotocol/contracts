@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, TalentFactoryV2, StakingV2, Staking, TalentToken } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, TalentFactoryV2, StakingV2, Staking, TalentToken, TalentFactoryV2__factory } from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall, ensureTimestamp, findEvent } from "../shared/utils";
@@ -146,7 +146,7 @@ describe("Staking", () => {
     });
 
     it("allows upgrading the factory itself", async () => {
-      const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+      const TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
       const factory2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
 
       expect(await factory2.isV2()).to.eq(true);

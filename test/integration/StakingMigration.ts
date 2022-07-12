@@ -4,16 +4,16 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken, TalentFactoryV2, StakingMigration } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken, TalentFactoryV2, StakingMigration, TalentFactoryV2__factory } from "../../typechain-types";
 
 import {
   TalentTokenV2__factory,
   UpgradeableBeacon__factory,
-} from "../../typechain";
+} from "../../typechain-types";
 import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 
-import { ERC165, Artifacts } from "../shared";
-import { deployTalentToken, transferAndCall, ensureTimestamp, findEvent } from "../shared/utils";
+import { Artifacts } from "../shared";
+import { deployTalentToken, ensureTimestamp, findEvent } from "../shared/utils";
 
 chai.use(solidity);
 
@@ -135,7 +135,7 @@ describe("StakingMigration", () => {
     await stakingv2.deployed();
 
     // upgrade the factory
-    const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+    const TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
     const factoryv2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
 
     await factoryv2.connect(owner).transferMinter(stakingv2.address);
@@ -231,7 +231,7 @@ describe("StakingMigration", () => {
     await stakingv2.deployed();
 
     // upgrade the factory
-    const TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+    const TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
     const factoryv2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
 
     await factoryv2.connect(owner).transferMinter(stakingv2.address);

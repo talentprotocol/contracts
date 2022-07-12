@@ -7,7 +7,7 @@ import type { ContractFactory } from "ethers";
 
 import { ERC165 } from "../shared";
 
-import { TalentToken, TalentTokenV2 } from "../../typechain";
+import { TalentToken, TalentTokenV2 } from "../../typechain-types";
 
 chai.use(solidity);
 

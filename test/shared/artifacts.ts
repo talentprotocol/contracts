@@ -2,7 +2,7 @@ import TalentProtocol from "../../artifacts/contracts/TalentProtocol.sol/TalentP
 import TalentProtocolV2 from "../../artifacts/contracts/test/TalentProtocolV2.sol/TalentProtocolV2.json";
 import TalentFactory from "../../artifacts/contracts/TalentFactory.sol/TalentFactory.json";
 import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
-import RewardCalculator from "../../artifacts/contracts/staking/RewardCalculator.sol/RewardCalculator.json";
+import RewardCalculator from "../../artifacts/contracts/staking_helpers/RewardCalculator.sol/RewardCalculator.json";
 import CommunityUser from "../../artifacts/contracts/CommunityUser.sol/CommunityUser.json";
 import CommunityMember from "../../artifacts/contracts/CommunityMember.sol/CommunityMember.json";
 import StakingMigration from "../../artifacts/contracts/StakingMigration.sol/StakingMigration.json";

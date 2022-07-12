@@ -5,13 +5,13 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain";
+import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain-types";
 import {
   TalentToken__factory,
   TalentTokenV2__factory,
   TalentFactoryV2__factory,
   UpgradeableBeacon__factory,
-} from "../../typechain";
+} from "../../typechain-types";
 
 import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 

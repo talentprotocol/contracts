@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {StableThenToken} from "../staking/StableThenToken.sol";
+import {StableThenToken} from "../staking_helpers/StableThenToken.sol";
 
 contract TestStableThenToken is StableThenToken {
     function initialize(address _stableCoin) public virtual initializer {

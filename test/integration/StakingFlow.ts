@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain";
+import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall, ensureTimestamp } from "../shared/utils";

@@ -1,7 +1,7 @@
 import { ethers, upgrades, waffle } from "hardhat";
 import * as FactoryArtifactV2 from "../artifacts/contracts/TalentFactoryV2.sol/TalentFactoryV2.json";
 import * as TalentTokenArtifactV2 from "../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
-import { UpgradeableBeacon__factory } from "../typechain";
+import { UpgradeableBeacon__factory } from "../typechain-types";
 
 const { exit } = process;
 const { deployContract } = waffle;

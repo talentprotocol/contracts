@@ -5,26 +5,17 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain";
+import type { TalentFactory, TalentFactoryV2, TalentToken } from "../../typechain-types";
 import {
-  TalentToken__factory,
   TalentTokenV2__factory,
   TalentFactoryV2__factory,
-  UpgradeableBeacon__factory,
-} from "../../typechain";
-
-import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
-
-import { ERC165, Artifacts } from "../shared";
-import { findEvent } from "../shared/utils";
+} from "../../typechain-types";
 
 chai.use(solidity);
 
 const { expect } = chai;
-const { parseUnits } = ethers.utils;
-const { deployContract } = waffle;
 
-describe("TalentFactory", () => {
+describe("TalentFactoryV2", () => {
   let creator: SignerWithAddress;
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
@@ -32,9 +23,6 @@ describe("TalentFactory", () => {
   let factory: TalentFactory;
 
   let TalentFactoryFactory: ContractFactory;
-  let naps: TalentToken;
-  let TalentFactoryV2Factory: TalentFactoryV2__factory;
-  let TalentTokenV2Factory: TalentTokenV2__factory;
 
   beforeEach(async () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
@@ -43,15 +31,13 @@ describe("TalentFactory", () => {
   });
 
   describe("upgrades implementation beacon", () => {
-    let naps: TalentToken;
     let TalentFactoryV2Factory: TalentFactoryV2__factory;
-    let TalentTokenV2Factory: TalentTokenV2__factory;
 
     beforeEach(async () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
       await factory.setMinter(minter.address);
 
-      TalentFactoryV2Factory = await ethers.getContractFactory("TalentFactoryV2");
+      TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
     });
 
     it("allows upgrading the factory itself", async () => {

@@ -27,7 +27,6 @@ describe("TalentProtocol", () => {
 
     TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
     TalentProtocolFactoryV2 = await ethers.getContractFactory("TalentProtocolV2");
-    upgrades.silenceWarnings()
   });
 
   it("can be deployed", async () => {

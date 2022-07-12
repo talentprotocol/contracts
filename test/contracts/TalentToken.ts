@@ -29,7 +29,6 @@ describe("TalentToken", () => {
 
     // deploy template
     TalentTokenFactory = await ethers.getContractFactory("TalentToken");
-    upgrades.silenceWarnings()
   });
 
   describe("initialize", () => {

@@ -40,7 +40,6 @@ describe("TalentFactory", () => {
     [creator, minter, talent1, talent2] = await ethers.getSigners();
 
     TalentFactoryFactory = await ethers.getContractFactory("TalentFactory");
-    upgrades.silenceWarnings()
   });
 
   describe("upgrades implementation beacon", () => {

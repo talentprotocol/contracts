@@ -58,7 +58,6 @@ describe("Staking", () => {
     // factory is deployed as a proxy already, to ensure `initialize` is called
     const FactoryFactory = await ethers.getContractFactory("TalentFactory");
     factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
-    upgrades.silenceWarnings()
   });
 
   describe("constructor", () => {

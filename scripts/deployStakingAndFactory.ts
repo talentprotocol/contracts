@@ -1,7 +1,7 @@
 import { ethers, network, upgrades, waffle } from "hardhat";
 import * as StakingArtifact from "../artifacts/contracts/Staking.sol/Staking.json";
 import dayjs from "dayjs";
-import type { TalentFactory, Staking } from "../typechain";
+import type { TalentFactory, Staking } from "../typechain-types";
 
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;

@@ -7,7 +7,7 @@ import type { ContractFactory } from "ethers";
 
 import { ERC165 } from "../shared";
 
-import { TalentToken, TalentTokenV2 } from "../../typechain";
+import { TalentToken, TalentTokenV2 } from "../../typechain-types";
 
 chai.use(solidity);
 
@@ -33,28 +33,34 @@ describe("TalentToken", () => {
 
   describe("initialize", () => {
     it("can be deployed as a proxy", async () => {
-      const action = upgrades.deployProxy(TalentTokenFactory, [
-        "FooBar",
-        "FOO",
-        parseUnits("1000"),
-        talent.address,
-        minter.address,
-        admin.address,
-      ]);
+      const action = upgrades.deployProxy(
+        TalentTokenFactory,
+        [
+          "FooBar",
+          "FOO",
+          parseUnits("1000"),
+          talent.address,
+          minter.address,
+          admin.address,
+        ]
+      );
 
       await expect(action).not.to.be.reverted;
     });
   });
 
   async function builder(): Promise<TalentToken> {
-    return upgrades.deployProxy(TalentTokenFactory, [
-      "FooBar",
-      "FOO",
-      parseUnits("123"),
-      talent.address,
-      minter.address,
-      admin.address,
-    ]) as Promise<TalentToken>;
+    return upgrades.deployProxy(
+      TalentTokenFactory,
+      [
+        "FooBar",
+        "FOO",
+        parseUnits("123"),
+        talent.address,
+        minter.address,
+        admin.address,
+      ]
+    ) as Promise<TalentToken>;
   }
 
   describe("behaviour", () => {
@@ -187,10 +193,11 @@ describe("TalentToken", () => {
       });
 
       it("is not callable by another wallet", async () => {
+        const coinRoleTalent = await coin.ROLE_TALENT()
         const result = coin.connect(admin).transferTalentWallet(investor.address);
 
         await expect(result).to.be.revertedWith(
-          `AccessControl: account ${admin.address.toLowerCase()} is missing role ${await coin.ROLE_TALENT()}`
+          `AccessControl: account ${admin.address.toLowerCase()} is missing role ${coinRoleTalent}`
         );
       });
 

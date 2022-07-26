@@ -5,7 +5,7 @@ import { deployToken } from "../../scripts/shared";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import { TalentProtocol__factory } from "../../typechain";
+import { TalentProtocol__factory } from "../../typechain-types";
 
 const { expect } = chai;
 const { parseUnits } = ethers.utils;

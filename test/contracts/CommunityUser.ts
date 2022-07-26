@@ -4,7 +4,7 @@ import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import type { CommunityUser } from "../../typechain";
+import type { CommunityUser } from "../../typechain-types";
 import { Artifacts } from "../shared";
 
 chai.use(solidity);

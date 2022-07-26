@@ -3,7 +3,7 @@ import { ethers, waffle, network } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TestRewardCalculator } from "../../../typechain";
+import type { TestRewardCalculator } from "../../../typechain-types";
 import { BigNumber } from "ethers";
 
 import { Artifacts } from "../../shared";

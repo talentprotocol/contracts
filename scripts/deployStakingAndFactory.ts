@@ -1,7 +1,6 @@
 import { ethers, network, upgrades, waffle } from "hardhat";
-import * as StakingArtifact from "../artifacts/contracts/Staking.sol/Staking.json";
 import dayjs from "dayjs";
-import type { TalentFactory, Staking } from "../typechain-types";
+import type { TalentFactory, StakingMigration } from "../typechain-types";
 
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
@@ -54,15 +53,16 @@ async function main() {
   const FactoryFactory = await ethers.getContractFactory("TalentFactory");
   const factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
-  const staking = (await deployContract(owner, StakingArtifact, [
+  const StakingFactory = await ethers.getContractFactory("StakingMigration");
+  const staking = (await upgrades.deployProxy(StakingFactory, [
     dayjs().add(10, "minute").unix(),
-    dayjs().add(40, "year").unix(),
+    dayjs().add(1, "year").unix(),
     ethers.utils.parseUnits("400000000"),
     config.usdStableCoinContract,
     factory.address,
     parseUnits(config.talPriceInUsd), // how much cUSD must be spent for 1 TAL
     parseUnits(config.talentPriceInTal), // how much TAL must be spent for 1 Talent Token
-  ])) as Staking;
+  ])) as StakingMigration;
 
 
   console.log(`

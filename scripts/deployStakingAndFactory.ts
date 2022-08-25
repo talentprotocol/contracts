@@ -29,10 +29,17 @@ const celo: NetworkConfig = {
   talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
 };
 
+const mumbai: NetworkConfig = {
+  usdStableCoinContract: process.env.MUMBAI_ERC20!,
+  talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
+  talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
+};
+
 const Configs: Record<string, NetworkConfig> = {
   alfajores,
   celo,
-  hardhat
+  hardhat,
+  mumbai
 };
 
 async function main() {

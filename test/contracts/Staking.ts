@@ -897,5 +897,49 @@ describe("Staking", () => {
         expect(await talentToken1.balanceOf(investor2.address)).to.equal(parseUnits("1"));
       })
     })
+
+    describe("changeStakeOwnership", async () => {
+      it("changes the stake owner", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+        
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        let investor1Stake = await staking.stakes(investor1.address, talentToken1.address);
+        expect(investor1Stake.talentAmount).to.equal(parseUnits("250"));
+
+        await staking.connect(investor1).transferStakes([talentToken1.address], investor2.address);
+        let investor2Stake = await staking.stakes(investor2.address, talentToken1.address);
+        expect(investor2Stake.talentAmount).to.equal(parseUnits("250"));
+
+        investor1Stake = await staking.stakes(investor1.address, talentToken1.address);
+        expect(investor1Stake.talentAmount).to.equal(parseUnits("0"));
+
+      })
+
+      it("changes multiple stakes owner", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+        
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+        let investor1StakeT1 = await staking.stakes(investor1.address, talentToken1.address);
+        expect(investor1StakeT1.talentAmount).to.equal(parseUnits("250"));
+
+
+        await staking.connect(investor1).stakeStable(talentToken2.address, parseUnits("25"));
+        let investor1StakeT2 = await staking.stakes(investor1.address, talentToken2.address);
+        expect(investor1StakeT2.talentAmount).to.equal(parseUnits("250"));
+
+        await staking.connect(investor1).transferStakes([talentToken1.address, talentToken2.address], investor2.address);
+        let investor2StakeT1 = await staking.stakes(investor2.address, talentToken1.address);
+        let investor2StakeT2 = await staking.stakes(investor2.address, talentToken2.address);
+        expect(investor2StakeT1.talentAmount).to.equal(parseUnits("250"));
+        expect(investor2StakeT2.talentAmount).to.equal(parseUnits("250"));
+
+        investor1StakeT1 = await staking.stakes(investor1.address, talentToken1.address);
+        expect(investor1StakeT1.talentAmount).to.equal(parseUnits("0"));
+
+        investor1StakeT2 = await staking.stakes(investor1.address, talentToken2.address);
+        expect(investor1StakeT2.talentAmount).to.equal(parseUnits("0"));
+
+      })
+    })
   });
 });

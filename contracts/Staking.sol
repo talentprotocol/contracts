@@ -860,6 +860,9 @@ contract Staking is
     ///
     /// @dev This function requires the _talents addresses in array
     function transferStakes(address[] memory _talents, address _newOwnerAddress) public {
+
+        require(stakes[msg.sender][_talents[0]].talentAmount > 0, "Investor should have atleast one stake");
+        
         for(uint i = 0; i < _talents.length; i++) {
             StakeData storage stake = stakes[msg.sender][_talents[i]];
             stakes[_newOwnerAddress][_talents[i]] = stake;

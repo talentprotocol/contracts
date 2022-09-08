@@ -906,7 +906,9 @@ describe("Staking", () => {
         let investor1Stake = await staking.stakes(investor1.address, talentToken1.address);
         expect(investor1Stake.talentAmount).to.equal(parseUnits("250"));
 
-        await staking.connect(investor1).transferStakes([talentToken1.address], investor2.address);
+        await expect(
+          staking.connect(investor1).transferStakes([talentToken1.address], investor2.address)
+        ).to.emit(staking, "StakeTransferred").withArgs(investor1.address, investor2.address, talentToken1.address);
         let investor2Stake = await staking.stakes(investor2.address, talentToken1.address);
         expect(investor2Stake.talentAmount).to.equal(parseUnits("250"));
 
@@ -939,6 +941,18 @@ describe("Staking", () => {
         investor1StakeT2 = await staking.stakes(investor1.address, talentToken2.address);
         expect(investor1StakeT2.talentAmount).to.equal(parseUnits("0"));
 
+      })
+
+      it("fails when user does not have stake for the talent", async () => {
+        await stable.connect(investor1).approve(staking.address, parseUnits("50"));
+        await staking.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
+
+        let investor1Stake = await staking.stakes(investor1.address, talentToken1.address);
+        expect(investor1Stake.talentAmount).to.equal(parseUnits("250"));
+
+        await expect(
+          staking.connect(investor1).transferStakes([talentToken2.address, talentToken1.address], investor2.address)
+        ).to.be.revertedWith("Investor should have atleast one stake");;
       })
     })
   });

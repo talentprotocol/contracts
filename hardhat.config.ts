@@ -46,6 +46,16 @@ const config: HardhatUserConfig = {
       url: "https://forno.celo.org",
       accounts: deployer,
       chainId: 42220,
+    },
+    mumbai: {
+      url: "https://matic-mumbai.chainstacklabs.com",
+      accounts: deployer,
+      chainId: 80001
+    },
+    matic: {
+      url: "https://polygon-rpc.com/",
+      accounts: deployer,
+      chainId: 137
     }
   },
   gasReporter: {

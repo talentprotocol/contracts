@@ -1,7 +1,6 @@
 import { ethers, network, upgrades, waffle } from "hardhat";
-import * as StakingArtifact from "../artifacts/contracts/Staking.sol/Staking.json";
 import dayjs from "dayjs";
-import type { TalentFactory, Staking } from "../typechain-types";
+import type { TalentFactory, StakingMigration } from "../typechain-types";
 
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
@@ -18,7 +17,7 @@ const alfajores: NetworkConfig = {
 };
 
 const hardhat: NetworkConfig = {
-  usdStableCoinContract: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  usdStableCoinContract: process.env.LOCAL_STABLE!,
   talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
   talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
 };
@@ -29,10 +28,24 @@ const celo: NetworkConfig = {
   talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
 };
 
+const mumbai: NetworkConfig = {
+  usdStableCoinContract: process.env.MUMBAI_USDC!,
+  talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
+  talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
+};
+
+const matic: NetworkConfig = {
+  usdStableCoinContract: process.env.MATIC_USDC!,
+  talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
+  talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
+};
+
 const Configs: Record<string, NetworkConfig> = {
   alfajores,
   celo,
-  hardhat
+  hardhat,
+  mumbai,
+  matic
 };
 
 async function main() {
@@ -47,15 +60,16 @@ async function main() {
   const FactoryFactory = await ethers.getContractFactory("TalentFactory");
   const factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
-  const staking = (await deployContract(owner, StakingArtifact, [
+  const StakingFactory = await ethers.getContractFactory("StakingMigration");
+  const staking = (await upgrades.deployProxy(StakingFactory, [
     dayjs().add(10, "minute").unix(),
-    dayjs().add(40, "year").unix(),
+    dayjs().add(1, "year").unix(),
     ethers.utils.parseUnits("400000000"),
     config.usdStableCoinContract,
     factory.address,
     parseUnits(config.talPriceInUsd), // how much cUSD must be spent for 1 TAL
     parseUnits(config.talentPriceInTal), // how much TAL must be spent for 1 Talent Token
-  ])) as Staking;
+  ])) as StakingMigration;
 
 
   console.log(`

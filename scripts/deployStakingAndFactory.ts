@@ -17,7 +17,7 @@ const alfajores: NetworkConfig = {
 };
 
 const hardhat: NetworkConfig = {
-  usdStableCoinContract: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  usdStableCoinContract: process.env.LOCAL_STABLE!,
   talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
   talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
 };
@@ -29,7 +29,13 @@ const celo: NetworkConfig = {
 };
 
 const mumbai: NetworkConfig = {
-  usdStableCoinContract: process.env.MUMBAI_ERC20!,
+  usdStableCoinContract: process.env.MUMBAI_USDC!,
+  talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
+  talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
+};
+
+const matic: NetworkConfig = {
+  usdStableCoinContract: process.env.MATIC_USDC!,
   talPriceInUsd: process.env.TAL_PRICE_IN_USD!,
   talentPriceInTal: process.env.TALENT_PRICE_IN_TAL!,
 };
@@ -38,7 +44,8 @@ const Configs: Record<string, NetworkConfig> = {
   alfajores,
   celo,
   hardhat,
-  mumbai
+  mumbai,
+  matic
 };
 
 async function main() {

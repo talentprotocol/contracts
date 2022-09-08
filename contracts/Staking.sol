@@ -207,6 +207,9 @@ contract Staking is
     // emitted when a withdrawal is made from an existing stake
     event Unstake(address indexed owner, address indexed talentToken, uint256 talAmount);
 
+    // emitted when stake is transferred to another address
+    event StakeTransferred(address indexed owner, address indexed newOwner, address indexed talent);
+
     //
     // Begin: Implementation
     //
@@ -850,6 +853,21 @@ contract Staking is
 
         assembly {
             addr := mload(add(bs, 20))
+        }
+    }
+
+    /// Transfers ownership of talent stake to another address.
+    ///
+    /// @dev This function requires the _talents addresses in array
+    function transferStakes(address[] memory _talents, address _newOwnerAddress) public {
+
+        require(stakes[msg.sender][_talents[0]].talentAmount > 0, "Investor should have atleast one stake");
+        
+        for(uint i = 0; i < _talents.length; i++) {
+            StakeData storage stake = stakes[msg.sender][_talents[i]];
+            stakes[_newOwnerAddress][_talents[i]] = stake;
+            delete stakes[msg.sender][_talents[i]];
+            emit StakeTransferred(msg.sender, _newOwnerAddress, _talents[i]);
         }
     }
 }

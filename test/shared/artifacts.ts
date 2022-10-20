@@ -5,6 +5,7 @@ import Staking from "../../artifacts/contracts/Staking.sol/Staking.json";
 import RewardCalculator from "../../artifacts/contracts/staking_helpers/RewardCalculator.sol/RewardCalculator.json";
 import CommunityUser from "../../artifacts/contracts/CommunityUser.sol/CommunityUser.json";
 import CommunityMember from "../../artifacts/contracts/CommunityMember.sol/CommunityMember.json";
+import TalentNFT from "../../artifacts/contracts/TalentNFT.sol/TalentNFT.json";
 import StakingMigration from "../../artifacts/contracts/StakingMigration.sol/StakingMigration.json";
 
 // test-only contracts
@@ -29,5 +30,6 @@ export {
   InterfaceIDs,
   TestRewardCalculator,
   CommunityUser,
-  CommunityMember
+  CommunityMember,
+  TalentNFT
 };

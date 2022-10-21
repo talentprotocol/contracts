@@ -2,8 +2,8 @@ import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentNFT } from "../../typechain-types";
-import { Artifacts } from "../shared";
+import type { TalentNFT } from "../../../typechain-types";
+import { Artifacts } from "../../shared";
 
 chai.use(solidity);
 

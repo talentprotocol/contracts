@@ -6,6 +6,11 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "./model/Tiers.sol";
 
+struct WhiteListEntry {
+    TIERS tier;
+    bool isDefined;
+}
+
 contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
@@ -13,21 +18,26 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     string private _baseURIExtended;
     mapping (uint256 => string) _tokenURIs;
     bool private _publicStageFlag = false;
+    mapping(address => WhiteListEntry) _whitelist;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol NFT Collection", _ticker) {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
-    function assignRole(address _to, TIERS tier) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        grantRole(decodeFromTierEnum(tier), _to);
+    function whiteListAddress(address _to, TIERS tier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _whitelist[_to].tier = tier;
+        _whitelist[_to].isDefined = true;
     }
 
-    function hasWhitelistedRoles(address account) private returns (bool) {
-        return hasRole("ASD", account) || hasRole("ASD2", account);
+    function isWhiteListed(address account) private returns (bool) {
+        if (_publicStageFlag) {
+            return true;
+        }
+        return _whitelist[account].isDefined;
     }
 
     function mint(address _to) public {
-        if (!hasWhitelistedRoles(_to)) {
+        if (!isWhiteListed(_to)) {
             require(false, "Minting not allowed for account roles");
         }
 

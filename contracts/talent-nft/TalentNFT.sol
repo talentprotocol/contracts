@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import "./model/Tiers.sol";
 
 contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
@@ -17,14 +18,22 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
-    function mint(address _to) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _tokenIds.increment();
-        uint256 id = _tokenIds.current();
-        _safeMint(_to, id);
+    function assignRole(address _to, TIERS tier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(decodeFromTierEnum(tier), _to);
     }
 
-    function burn(uint256 _id) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _burn(_id);
+    function hasWhitelistedRoles(address account) private returns (bool) {
+        return hasRole("ASD", account) || hasRole("ASD2", account);
+    }
+
+    function mint(address _to) public {
+        if (!hasWhitelistedRoles(_to)) {
+            require(false, "Minting not allowed for account roles");
+        }
+
+        _tokenIds.increment();
+        uint256 id = _tokenIds.current();
+        _safeMint(msg.sender, id);
     }
 
     function _baseURI() internal view virtual override returns (string memory) {

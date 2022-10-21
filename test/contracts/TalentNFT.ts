@@ -10,15 +10,15 @@ chai.use(solidity);
 const { expect } = chai;
 const { deployContract } = waffle;
 
+
 describe("TalentNFT", () => {
   let creator: SignerWithAddress;
-  let addr1: SignerWithAddress;
-  let addr2: SignerWithAddress;
+  let addressOne: SignerWithAddress;
 
   let talentNFTCollection: TalentNFT;
 
   beforeEach(async () => {
-    [creator, addr1, addr2] = await ethers.getSigners();
+    [creator, addressOne] = await ethers.getSigners();
   });
 
   it("can be deployed", async () => {
@@ -50,6 +50,11 @@ describe("TalentNFT", () => {
     it("starts with an empty collection", async () => {
       expect(await talentNFTCollection.totalSupply()).to.eq(0);
       expect(await talentNFTCollection.balanceOf(creator.address)).to.eq(0);
+    });
+
+    it("checks assign role", async () => {
+      await talentNFTCollection.assignRole(addressOne.address, 1);
+      expect(await talentNFTCollection.hasRole(ethers.utils.formatBytes32String("PARTNER"), addressOne.address)).to.eq(true);
     });
 
     it("checks public stage", async () => {

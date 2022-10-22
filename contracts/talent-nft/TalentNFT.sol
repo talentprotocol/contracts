@@ -74,6 +74,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
 
     function mint() public {
         require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
+        require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
         _tokenIds.increment();
         uint256 id = _tokenIds.current();
         _safeMint(msg.sender, id);

@@ -104,6 +104,14 @@ describe("TalentNFT", () => {
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
     });
 
+    it("validates that user can only mint one token", async () => {
+      await talentNFTCollection.setPublicStageFlag(true);
+      await talentNFTCollection.whitelistAddress(addressOne.address, 2);
+      await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(addressOne).mint()).to.be.revertedWith("Address has already minted one Talent NFT");
+      expect(await talentNFTCollection.totalSupply()).to.eq(1);
+    });
+
     it("validates uri change", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);

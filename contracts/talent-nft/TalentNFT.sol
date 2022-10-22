@@ -20,7 +20,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     }
 
     /**
-        Public stage status setter
+        public stage status setter
         set's _publicStageFlag
      */
     function setPublicStageFlag(bool newFlagValue) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -30,7 +30,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     }
 
     /**
-        Public stage status getter
+        public stage status getter
         returns _publicStageFlag from contract state
      */
     function getPublicStageFlag() public view returns (bool) {
@@ -45,29 +45,35 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
             OR TIERS.PUBLIC_STAGE if public stage is active
             OR TIERS.UNDEFINED if the account is not whitelisted
      */
-    function checkAccountTier(address account) private pure returns (TIERS) {
+    function checkAccountTier(address account) private view returns (TIERS) {
         if (_publicStageFlag) {
             return TIERS.PUBLIC_STAGE;
         }
-        if (_whitelist[account] != TIERS.UNDEFINED) {
+        if (_whitelist[account] == TIERS.UNDEFINED) {
             return TIERS.UNDEFINED;
         }
         return _whitelist[account];
     }
 
-    function isWhitelisted(address account) public returns (bool) {
-        return checkAccountTier(account) == TIERS.UNDEFINED;
-    }
+    /**
+        this function whitelists an address
+        requires - DEFAULT_ADMIN_ROLE
 
+        returns associated TIER with the account if the account is whitelisted
+            OR TIERS.PUBLIC_STAGE if public stage is active
+            OR TIERS.UNDEFINED if the account is not whitelisted
+     */
     function whitelistAddress(address _to, TIERS tier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(tier > TIERS.PUBLIC_STAGE, "The tier given needs to be greater than TIERS.PUBLIC_STAGE");
         _whitelist[_to] = tier;
     }
 
-    function mint(address _to) public {
-        if (!isWhitelisted(_to)) {
-            require(false, "Minting not allowed for account roles");
-        }
+    function isWhitelisted(address account) public view returns (bool) {
+        return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
+    }
 
+    function mint() public {
+        require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
         _tokenIds.increment();
         uint256 id = _tokenIds.current();
         _safeMint(msg.sender, id);
@@ -77,7 +83,13 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         string memory base = _baseURI();
         require(bytes(base).length != 0, "Base URI not set");
-        return base;
+        string memory uri = _tokenURIs[tokenId];
+
+        if (bytes(uri).length != 0) {
+          return uri;
+        } else {
+          return base;
+        }
     }
 
     function setTokenURI(uint256 tokenId, string memory tokenURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -103,7 +115,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         address to,
         uint256 tokenId,
         bytes memory data
-    ) public override {
+    ) public pure override {
         require(false, "Talent NFT is non-transferable");
     }
 
@@ -112,7 +124,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         address from,
         address to,
         uint256 tokenId
-    ) public override {
+    ) public pure override {
         require(false, "Talent NFT is non-transferable");
     }
 

@@ -12,6 +12,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
 
     string private _baseURIExtended;
     mapping (uint256 => string) _tokenURIs;
+    mapping(string => uint256) _tokenToNFTCombination;
     bool private _publicStageFlag = false;
     mapping(address => TIERS) _whitelist;
 
@@ -72,12 +73,21 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
     }
 
-    function mint() public {
+    function isCombinationaAvailable(string memory combination) public view returns (bool) {
+        return _tokenToNFTCombination[combination] == 0;
+    }
+
+    function mint(string memory combination) public {
         require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
-        _tokenIds.increment();
-        uint256 id = _tokenIds.current();
-        _safeMint(msg.sender, id);
+        if (_tokenToNFTCombination[combination] == 0) {
+            _tokenIds.increment();
+            _tokenToNFTCombination[combination] = _tokenIds.current();
+            uint256 id = _tokenIds.current();
+            _safeMint(msg.sender, id);
+        } else {
+            require(false, "This combination was already minted");
+        }
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {

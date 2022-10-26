@@ -8,6 +8,12 @@ import "hardhat-gas-reporter";
 
 import type { HardhatUserConfig } from "hardhat/config";
 
+const deployer = {
+  mnemonic:
+    process.env.MNEMONIC ||
+    "test test test test test test test test test test test junk"
+};
+
 // const deployer = [""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
@@ -31,11 +37,26 @@ const config: HardhatUserConfig = {
   networks: {
     alfajores: {
       url: "https://alfajores-forno.celo-testnet.org",
-      accounts: ["4a8acc145360413a6f8607b3303bafac3797cc4a6d432efd35a4a6847352acd4"],
+      accounts: deployer,
       chainId: 44787,
       gasPrice: 0.5 * 10 ** 9,
       gas: 8000000,
     },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: deployer,
+      chainId: 42220,
+    },
+    mumbai: {
+      url: "https://matic-mumbai.chainstacklabs.com",
+      accounts: deployer,
+      chainId: 80001
+    },
+    matic: {
+      url: "https://polygon-rpc.com/",
+      accounts: deployer,
+      chainId: 137
+    }
   },
   gasReporter: {
     currency: "ETH",

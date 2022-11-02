@@ -5,21 +5,21 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "./model/Tiers.sol";
+import "./model/Tokens.sol";
 
 contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
-
     string private _baseURIExtended;
     mapping (uint256 => string) _tokenURIs;
-    mapping(string => uint256) _tokenToNFTCombination;
+    mapping(string => uint256) _NFTCombinationToToken;
     bool private _publicStageFlag = false;
     mapping(address => TIERS) _whitelist;
+    mapping(string => TokenReference) _mintTokens;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol NFT Collection", _ticker) {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
     }
-
     /**
         public stage status setter
         set's _publicStageFlag
@@ -72,17 +72,52 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function isWhitelisted(address account) public view returns (bool) {
         return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
     }
+    
+    /**
+        creates minting token for minting
+        add's new minting token to _mintTokens
+     */
+    function createMintingToken(
+        address userWallet, 
+        string memory mintingToken) 
+    public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(isWhitelisted(userWallet) || _publicStageFlag, 
+            "Public stage is not available and the address is not whitelisted");
+        _mintTokens[mintingToken].wallet = userWallet;
+        _mintTokens[mintingToken].date = block.timestamp;
+    }
+
+    /**
+        validates if the passed minting token is valid
+        the wallet address associated with the token
+
+        a token is valid if the signed called is the same as the one who generated the token
+        the timeDelta from the token generation and the metadata edition is less than 10 mins
+     */
+    function validateMintingToken(string memory mintingToken, address account) public returns (bool) {
+        if (_mintTokens[mintingToken].date == 0) {
+            return false;
+        }
+        unchecked {
+            uint256 timeDelta = block.timestamp -_mintTokens[mintingToken].date;
+            if (_mintTokens[mintingToken].wallet == account && timeDelta < 10 minutes) {
+                delete _mintTokens[mintingToken];
+                return true;
+            }
+        }
+        return false;
+    }
 
     function isCombinationaAvailable(string memory combination) public view returns (bool) {
-        return _tokenToNFTCombination[combination] == 0;
+        return _NFTCombinationToToken[combination] == 0;
     }
 
     function mint(string memory combination) public {
         require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
-        if (_tokenToNFTCombination[combination] == 0) {
+        if (_NFTCombinationToToken[combination] == 0) {
             _tokenIds.increment();
-            _tokenToNFTCombination[combination] = _tokenIds.current();
+            _NFTCombinationToToken[combination] = _tokenIds.current();
             uint256 id = _tokenIds.current();
             _safeMint(msg.sender, id);
         } else {
@@ -103,8 +138,15 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         }
     }
 
-    function setTokenURI(uint256 tokenId, string memory tokenURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setTokenURI(
+        uint256 tokenId,
+        string memory tokenURI_,
+        string memory mintingToken,
+        address account
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+        require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
+        require(validateMintingToken(mintingToken, account), "Unable to ensure minter identity");
         _tokenURIs[tokenId] = tokenURI_;
     }
 

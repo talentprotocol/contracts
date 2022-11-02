@@ -76,6 +76,20 @@ describe("TalentNFT", () => {
       expect(talentNFTCollection.whitelistAddress(addressOne.address, 2)).not.to.be.reverted;
     });
 
+    it("validates creation of minting token", async () => {
+      await talentNFTCollection.setPublicStageFlag(true);
+      const action = talentNFTCollection.createMintingToken(addressOne.address, "THISISMYTOKEN");
+      await expect(action).not.to.be.reverted;
+      const token = await action;
+      expect(typeof token.data).to.eq("string");
+      expect(token.data.length).to.be.greaterThan(10); 
+    });
+
+    it("validates creation of minting token (error scenario)", async () => {
+      const action = talentNFTCollection.createMintingToken(addressOne.address, "THISISMYTOKEN");
+      await expect(action).to.be.revertedWith("Public stage is not available and the address is not whitelisted");
+    });
+
     it("validates minting {publicStage: false, whitelistedUser: false}", async () => {
       const action = talentNFTCollection.connect(addressOne).mint("1-1.png");
       await expect(action).to.be.revertedWith("Minting not allowed with current sender roles");
@@ -133,8 +147,13 @@ describe("TalentNFT", () => {
       await talentNFTCollection.mint("1-1.png");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
       await talentNFTCollection.setBaseURI("---");
-      await talentNFTCollection.setTokenURI(1, "123");
+      const token1 = "THISISMYTOKEN";
+      await talentNFTCollection.createMintingToken(addressOne.address, token1);
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "123", token1, addressOne.address)).not.to.be.reverted;
       expect(await talentNFTCollection.tokenURI(1)).to.eq("123");
+      const token2 = "THISISMYTOKEN2";
+      await talentNFTCollection.createMintingToken(addressOne.address, token2);
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", token2, addressOne.address)).to.be.revertedWith("Metadata was already defined for this token");
     });
 
     it("validates uri change invalid calls", async () => {
@@ -142,8 +161,12 @@ describe("TalentNFT", () => {
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
       await talentNFTCollection.mint("1-1.png");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
-      await expect(talentNFTCollection.setTokenURI(9999, "123")).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
+      await expect(talentNFTCollection.setTokenURI(9999, "123", "THISISMYTOKEN", addressOne.address)).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
       await expect(talentNFTCollection.tokenURI(1)).to.be.revertedWith("Base URI not set");
+      const token1 = "THISISMYTOKEN";
+      const token2 = "THISISMYTOKEN2";
+      await talentNFTCollection.createMintingToken(addressOne.address, token1);
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", token2, addressOne.address)).to.be.revertedWith("Unable to ensure minter identity");
     });
 
     it("validates if nft is non-transferable", async () => {

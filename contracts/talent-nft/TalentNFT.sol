@@ -72,57 +72,17 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function isWhitelisted(address account) public view returns (bool) {
         return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
     }
-    
-    /**
-        creates minting token for minting
-        add's new minting token to _mintTokens
-     */
-    function createMintingToken(
-        address userWallet, 
-        string memory mintingToken) 
-    public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(isWhitelisted(userWallet) || _publicStageFlag, 
-            "Public stage is not available and the address is not whitelisted");
-        _mintTokens[mintingToken].wallet = userWallet;
-        _mintTokens[mintingToken].date = block.timestamp;
-    }
-
-    /**
-        validates if the passed minting token is valid
-        the wallet address associated with the token
-
-        a token is valid if the signed called is the same as the one who generated the token
-        the timeDelta from the token generation and the metadata edition is less than 10 mins
-     */
-    function validateMintingToken(string memory mintingToken, address account) public returns (bool) {
-        if (_mintTokens[mintingToken].date == 0) {
-            return false;
-        }
-        unchecked {
-            uint256 timeDelta = block.timestamp -_mintTokens[mintingToken].date;
-            if (_mintTokens[mintingToken].wallet == account && timeDelta < 10 minutes) {
-                delete _mintTokens[mintingToken];
-                return true;
-            }
-        }
-        return false;
-    }
 
     function isCombinationaAvailable(string memory combination) public view returns (bool) {
         return _NFTCombinationToToken[combination] == 0;
     }
 
-    function mint(string memory combination) public {
+    function mint() public {
         require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
-        if (_NFTCombinationToToken[combination] == 0) {
-            _tokenIds.increment();
-            _NFTCombinationToToken[combination] = _tokenIds.current();
-            uint256 id = _tokenIds.current();
-            _safeMint(msg.sender, id);
-        } else {
-            require(false, "This combination was already minted");
-        }
+        _tokenIds.increment();
+        uint256 id = _tokenIds.current();
+        _safeMint(msg.sender, id);
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
@@ -140,14 +100,15 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
 
     function setTokenURI(
         uint256 tokenId,
-        string memory tokenURI_,
-        string memory mintingToken,
+        string memory tokenMetadataURI,
+        string memory combination,
         address account
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
-        require(validateMintingToken(mintingToken, account), "Unable to ensure minter identity");
-        _tokenURIs[tokenId] = tokenURI_;
+        require(isCombinationaAvailable(combination), "This combination was already minted");
+        _NFTCombinationToToken[combination] = tokenId;
+        _tokenURIs[tokenId] = tokenMetadataURI;
     }
 
     function _baseURI() internal view virtual override returns (string memory) {

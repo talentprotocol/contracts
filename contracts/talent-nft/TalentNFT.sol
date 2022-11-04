@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "./model/Tiers.sol";
-import "./model/Tokens.sol";
 
 contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
@@ -15,7 +14,6 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     mapping(string => uint256) _NFTCombinationToToken;
     bool private _publicStageFlag = false;
     mapping(address => TIERS) _whitelist;
-    mapping(string => TokenReference) _mintTokens;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol NFT Collection", _ticker) {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -73,7 +71,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
     }
 
-    function isCombinationaAvailable(string memory combination) public view returns (bool) {
+    function isCombinationAvailable(string memory combination) public view returns (bool) {
         return _NFTCombinationToToken[combination] == 0;
     }
 
@@ -101,12 +99,11 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function setTokenURI(
         uint256 tokenId,
         string memory tokenMetadataURI,
-        string memory combination,
-        address account
+        string memory combination
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
-        require(isCombinationaAvailable(combination), "This combination was already minted");
+        require(isCombinationAvailable(combination), "This combination was already minted");
         _NFTCombinationToToken[combination] = tokenId;
         _tokenURIs[tokenId] = tokenMetadataURI;
     }

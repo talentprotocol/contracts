@@ -37,8 +37,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     }
 
     /**
-        isWhitelisted should only be called if the getPublicStageFlag is false
-        This means the public can't freely mint Talent NFT's
+        allows to check the account tier
 
         returns associated TIER with the account if the account is whitelisted
             OR TIERS.PUBLIC_STAGE if public stage is active
@@ -67,6 +66,12 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         _whitelist[_to] = tier;
     }
 
+    /**
+        isWhitelisted should only be called if the getPublicStageFlag is false
+        This means the public can't freely mint Talent NFT's
+
+        returns bool according to the whitlist value of the account
+     */
     function isWhitelisted(address account) public view returns (bool) {
         return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
     }

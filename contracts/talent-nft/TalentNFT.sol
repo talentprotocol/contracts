@@ -43,7 +43,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
             OR TIERS.PUBLIC_STAGE if public stage is active
             OR TIERS.UNDEFINED if the account is not whitelisted
      */
-    function checkAccountTier(address account) private view returns (TIERS) {
+    function checkAccountTier(address account) public view returns (TIERS) {
         if (_publicStageFlag) {
             return TIERS.PUBLIC_STAGE;
         }

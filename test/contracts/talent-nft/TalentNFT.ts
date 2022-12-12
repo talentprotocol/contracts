@@ -108,9 +108,24 @@ describe("TalentNFT", () => {
       await talentNFTCollection.setPublicStageFlag(true);
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
       await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png")).not.to.be.reverted;
+      await talentNFTCollection.whitelistAddress(addressOne.address, 3);
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 1)).not.to.be.reverted;
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.false;
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
+    });
+
+    it("validates accountTier for setTokenURI", async () => {
+      await talentNFTCollection.setPublicStageFlag(true);
+      expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
+      await talentNFTCollection.whitelistAddress(addressOne.address, 2);
+      await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
+      await talentNFTCollection.whitelistAddress(addressTwo.address, 2);
+      await expect(talentNFTCollection.connect(addressTwo).mint()).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 5)).not.to.be.reverted;
+      expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.false;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-2.png", addressTwo.address, 6)).to.be.reverted;
+      expect(await talentNFTCollection.isCombinationAvailable("1-2.png")).to.be.true;
+      expect(await talentNFTCollection.totalSupply()).to.eq(2);
     });
 
     it("validates that user can only mint one token", async () => {
@@ -124,28 +139,28 @@ describe("TalentNFT", () => {
 
     it("validates uri change", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
-      await talentNFTCollection.whitelistAddress(addressOne.address, 2);
+      await talentNFTCollection.whitelistAddress(addressOne.address, 3);
       await talentNFTCollection.mint();
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
       await talentNFTCollection.setBaseURI("---");
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "123", "1-1.png")).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "123", "1-1.png", addressOne.address, 1)).not.to.be.reverted;
       expect(await talentNFTCollection.tokenURI(1)).to.eq("123");
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png")).to.be.revertedWith("Metadata was already defined for this token");
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 1)).to.be.revertedWith("Metadata was already defined for this token");
     });
 
     it("validates uri change invalid calls", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
-      await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      await talentNFTCollection.whitelistAddress(addressTwo.address, 2);
+      await talentNFTCollection.whitelistAddress(addressOne.address, 4);
+      await talentNFTCollection.whitelistAddress(addressTwo.address, 4);
       await talentNFTCollection.connect(addressOne).mint();
       await talentNFTCollection.connect(addressTwo).mint();
       expect(await talentNFTCollection.ownerOf(1)).to.eq(addressOne.address);
       expect(await talentNFTCollection.ownerOf(2)).to.eq(addressTwo.address);
-      await expect(talentNFTCollection.setTokenURI(9999, "123", "1-1.png")).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
+      await expect(talentNFTCollection.setTokenURI(9999, "123", "1-1.png", addressOne.address, 1)).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
       await expect(talentNFTCollection.tokenURI(1)).to.be.revertedWith("Base URI not set");
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png")).not.to.be.reverted;
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png")).to.be.revertedWith("Metadata was already defined for this token");
-      await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-1.png")).to.be.revertedWith("This combination was already minted");
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 1)).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 1)).to.be.revertedWith("Metadata was already defined for this token");
+      await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-1.png", addressOne.address, 1)).to.be.revertedWith("This combination was already minted");
     });
 
     it("validates if nft is non-transferable", async () => {

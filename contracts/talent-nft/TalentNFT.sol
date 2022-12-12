@@ -104,8 +104,12 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function setTokenURI(
         uint256 tokenId,
         string memory tokenMetadataURI,
-        string memory combination
+        string memory combination,
+        address owner,
+        uint256 selectedSkin
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(selectedSkin <= 5 + uint256(_whitelist[owner]) - uint256(TIERS.USER), 
+            "Selected skin is locked for the account tier");
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
         require(isCombinationAvailable(combination), "This combination was already minted");

@@ -115,7 +115,6 @@ describe("TalentNFT", () => {
     });
 
     it("validates accountTier for setTokenURI", async () => {
-      await talentNFTCollection.setPublicStageFlag(true);
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
       await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;

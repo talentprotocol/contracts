@@ -188,6 +188,20 @@ describe("TalentNFT", () => {
       await expect(action).to.be.revertedWith("Minting not allowed with current sender roles");
     });
 
+    it("validates that after setting an URI, an admin can reset it", async () => {
+      await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
+      await talentNFTCollection.whitelistCode("çqjweq", 2);
+      await talentNFTCollection.connect(creator).mint("çqjweq");
+      expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
+      expect(await talentNFTCollection.tokenURI(1)).to.eq("TalentNFT");
+      await talentNFTCollection.setTokenURI(1, "123", "1-1.png", creator.address, 1);
+      expect(await talentNFTCollection.tokenURI(1)).to.eq("123");
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", creator.address, 1)).to.be.revertedWith("Metadata was already defined for this token");
+      await talentNFTCollection.clearTokenURI(1);
+      console.log(await talentNFTCollection.tokenURI(1));
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-2.png", creator.address, 1)).not.to.be.reverted;
+    });
+
     it("validates that you can't check for codes", async () => {
       await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
       await talentNFTCollection.whitelistCode("çqjweq", 2);

@@ -66,9 +66,9 @@ describe("TalentNFT", () => {
     });
 
     it("validates account whitelisting", async () => {
-      expect(await talentNFTCollection.isWhitelisted(addressOne.address)).to.be.false;
+      expect(await talentNFTCollection.isWhitelisted(addressOne.address, "")).to.be.false;
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      expect(await talentNFTCollection.isWhitelisted(addressOne.address)).to.be.true;
+      expect(await talentNFTCollection.isWhitelisted(addressOne.address, "")).to.be.true;
     });
 
     it("validates invalid account whitelist attempt", async () => {
@@ -77,21 +77,21 @@ describe("TalentNFT", () => {
     });
 
     it("validates minting {publicStage: false, whitelistedUser: false}", async () => {
-      const action = talentNFTCollection.connect(addressOne).mint();
+      const action = talentNFTCollection.connect(addressOne).mint("");
       await expect(action).to.be.revertedWith("Minting not allowed with current sender roles");
       expect(await talentNFTCollection.totalSupply()).to.eq(0);
     });
 
     it("validates minting {publicStage: true, whitelistedUser: false}", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
-      const action = talentNFTCollection.connect(addressOne).mint();
+      const action = talentNFTCollection.connect(addressOne).mint("");
       await expect(action).not.to.be.reverted;
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
     });
 
     it("validates minting {publicStage: false, whitelistedUser: true}", async () => {
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      const action = talentNFTCollection.connect(addressOne).mint();
+      const action = talentNFTCollection.connect(addressOne).mint("");
       await expect(action).not.to.be.reverted;
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
     });
@@ -99,7 +99,7 @@ describe("TalentNFT", () => {
     it("validates minting {publicStage: true, whitelistedUser: true}", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      const action = talentNFTCollection.connect(addressOne).mint();
+      const action = talentNFTCollection.connect(addressOne).mint("");
       await expect(action).not.to.be.reverted;
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
     });
@@ -107,7 +107,7 @@ describe("TalentNFT", () => {
     it("validates if the minting combination is still available", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
-      await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(addressOne).mint("")).not.to.be.reverted;
       await talentNFTCollection.whitelistAddress(addressOne.address, 3);
       await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 1)).not.to.be.reverted;
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.false;
@@ -117,9 +117,9 @@ describe("TalentNFT", () => {
     it("validates accountTier for setTokenURI", async () => {
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(addressOne).mint("")).not.to.be.reverted;
       await talentNFTCollection.whitelistAddress(addressTwo.address, 2);
-      await expect(talentNFTCollection.connect(addressTwo).mint()).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(addressTwo).mint("")).not.to.be.reverted;
       await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 5)).not.to.be.reverted;
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.false;
       await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-2.png", addressTwo.address, 6)).to.be.reverted;
@@ -128,18 +128,18 @@ describe("TalentNFT", () => {
     });
 
     it("validates that user can only mint one token", async () => {
-      await expect(talentNFTCollection.connect(addressOne).mint()).to.be.revertedWith("Minting not allowed with current sender roles");
+      await expect(talentNFTCollection.connect(addressOne).mint("")).to.be.revertedWith("Minting not allowed with current sender roles");
       await talentNFTCollection.setPublicStageFlag(true);
       await talentNFTCollection.whitelistAddress(addressOne.address, 2);
-      await expect(talentNFTCollection.connect(addressOne).mint()).not.to.be.reverted;
-      await expect(talentNFTCollection.connect(addressOne).mint()).to.be.revertedWith("Address has already minted one Talent NFT");
+      await expect(talentNFTCollection.connect(addressOne).mint("")).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(addressOne).mint("")).to.be.revertedWith("Address has already minted one Talent NFT");
       expect(await talentNFTCollection.totalSupply()).to.eq(1);
     });
 
     it("validates uri change", async () => {
       await talentNFTCollection.setPublicStageFlag(true);
       await talentNFTCollection.whitelistAddress(addressOne.address, 3);
-      await talentNFTCollection.mint();
+      await talentNFTCollection.mint("");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
       await talentNFTCollection.setBaseURI("---");
       await expect(talentNFTCollection.connect(creator).setTokenURI(1, "123", "1-1.png", addressOne.address, 1)).not.to.be.reverted;
@@ -151,8 +151,8 @@ describe("TalentNFT", () => {
       await talentNFTCollection.setPublicStageFlag(true);
       await talentNFTCollection.whitelistAddress(addressOne.address, 4);
       await talentNFTCollection.whitelistAddress(addressTwo.address, 4);
-      await talentNFTCollection.connect(addressOne).mint();
-      await talentNFTCollection.connect(addressTwo).mint();
+      await talentNFTCollection.connect(addressOne).mint("");
+      await talentNFTCollection.connect(addressTwo).mint("");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(addressOne.address);
       expect(await talentNFTCollection.ownerOf(2)).to.eq(addressTwo.address);
       await expect(talentNFTCollection.setTokenURI(9999, "123", "1-1.png", addressOne.address, 1)).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
@@ -162,14 +162,20 @@ describe("TalentNFT", () => {
       await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-1.png", addressOne.address, 1)).to.be.revertedWith("This combination was already minted");
     });
 
-    it("validates if nft is non-transferable", async () => {
+    it("validates if the nft is transferable", async () => {
       await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
       await talentNFTCollection.whitelistAddress(creator.address, 2);
-      await talentNFTCollection.mint();
+      await talentNFTCollection.mint("");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
       const action = talentNFTCollection.transferFrom(creator.address, addressOne.address, 1);
-      await expect(action).to.be.revertedWith("Talent NFT is non-transferable");
+      await expect(action).not.to.be.reverted;
     });
 
+    it("validates if using a code allows a wallet to mint", async () => {
+      await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
+      await talentNFTCollection.whitelistCode("çqjweq", 2);
+      await talentNFTCollection.mint("çqjweq");
+      expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
+    });
   });
 });

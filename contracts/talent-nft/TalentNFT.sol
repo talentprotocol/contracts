@@ -143,6 +143,14 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
             "Selected skin is locked for the account tier");
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
+
+        // if the combination isn't available, but the combination is for the token that we're changing
+        // the metadata, then we can allow the metadata to be changed
+        if (!isCombinationAvailable(combination) && _NFTCombinationToToken[combination] == tokenId) {
+            _tokenURIs[tokenId] = tokenMetadataURI;
+            return;    
+        }
+
         require(isCombinationAvailable(combination), "This combination was already minted");
         _NFTCombinationToToken[combination] = tokenId;
         _tokenURIs[tokenId] = tokenMetadataURI;

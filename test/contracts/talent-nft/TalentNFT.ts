@@ -199,7 +199,7 @@ describe("TalentNFT", () => {
       await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", creator.address, 1)).to.be.revertedWith("Metadata was already defined for this token");
       await talentNFTCollection.clearTokenURI(1);
       console.log(await talentNFTCollection.tokenURI(1));
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-2.png", creator.address, 1)).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", creator.address, 1)).not.to.be.reverted;
     });
 
     it("validates that you can't check for codes", async () => {

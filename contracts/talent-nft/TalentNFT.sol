@@ -104,6 +104,11 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function mint(string memory code) public {
         require(isWhitelisted(msg.sender, code), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
+
+        if(bytes(code).length > 0 && _codeWhitelist[code] != TIERS.UNDEFINED) {
+            delete _codeWhitelist[code];
+        }
+
         _tokenIds.increment();
         uint256 id = _tokenIds.current();
         _safeMint(msg.sender, id);
@@ -120,6 +125,11 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         } else {
           return base;
         }
+    }
+
+    // Clear a token URI so that a user can change their NFT
+    function clearTokenURI(uint256 tokenId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        delete _tokenURIs[tokenId];
     }
 
     function setTokenURI(

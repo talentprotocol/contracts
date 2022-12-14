@@ -177,5 +177,11 @@ describe("TalentNFT", () => {
       await talentNFTCollection.mint("çqjweq");
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
     });
+
+    it("validates that you can't check for codes", async () => {
+      await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
+      await talentNFTCollection.whitelistCode("çqjweq", 2);
+      expect(talentNFTCollection.hasOwnProperty("codeWhitelist")).to.eq(false);
+    });
   });
 });

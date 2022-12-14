@@ -178,6 +178,16 @@ describe("TalentNFT", () => {
       expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
     });
 
+    it("validates that the same code can't be used twice", async () => {
+      await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
+      await talentNFTCollection.whitelistCode("çqjweq", 2);
+      await talentNFTCollection.connect(creator).mint("çqjweq");
+      expect(await talentNFTCollection.ownerOf(1)).to.eq(creator.address);
+      const action = talentNFTCollection.connect(addressOne).mint("çqjweq");
+
+      await expect(action).to.be.revertedWith("Minting not allowed with current sender roles");
+    });
+
     it("validates that you can't check for codes", async () => {
       await talentNFTCollection.connect(creator).setBaseURI("TalentNFT");
       await talentNFTCollection.whitelistCode("çqjweq", 2);

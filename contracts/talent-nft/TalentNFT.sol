@@ -14,6 +14,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     mapping(string => uint256) _NFTCombinationToToken;
     bool private _publicStageFlag = false;
     mapping(address => TIERS) _whitelist;
+    mapping(string => TIERS) private _codeWhitelist;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol NFT Collection", _ticker) {
       _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -43,9 +44,16 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
             OR TIERS.PUBLIC_STAGE if public stage is active
             OR TIERS.UNDEFINED if the account is not whitelisted
      */
-    function checkAccountTier(address account) public view returns (TIERS) {
+    function checkAccountOrCodeTier(address account, string memory code) public view returns (TIERS) {
         if (_publicStageFlag) {
             return TIERS.PUBLIC_STAGE;
+        }
+        if (bytes(code).length > 0) {
+            if (_codeWhitelist[code] == TIERS.UNDEFINED) {
+                return TIERS.UNDEFINED;
+            } else {
+                return _codeWhitelist[code];
+            }
         }
         if (_whitelist[account] == TIERS.UNDEFINED) {
             return TIERS.UNDEFINED;
@@ -67,21 +75,34 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     }
 
     /**
+        this function whitelists a code
+        requires - DEFAULT_ADMIN_ROLE
+
+        returns associated TIER with the code if the code is valid
+            OR TIERS.PUBLIC_STAGE if public stage is active
+            OR TIERS.UNDEFINED if the code is not whitelisted
+     */
+    function whitelistCode(string memory code, TIERS tier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(tier > TIERS.PUBLIC_STAGE, "The tier given needs to be greater than TIERS.PUBLIC_STAGE");
+        _codeWhitelist[code] = tier;
+    }
+
+    /**
         isWhitelisted should only be called if the getPublicStageFlag is false
         This means the public can't freely mint Talent NFT's
 
         returns bool according to the whitlist value of the account
      */
-    function isWhitelisted(address account) public view returns (bool) {
-        return checkAccountTier(account) > TIERS.UNDEFINED || _publicStageFlag;
+    function isWhitelisted(address account, string memory code) public view returns (bool) {
+        return checkAccountOrCodeTier(account, code) > TIERS.UNDEFINED || _publicStageFlag;
     }
 
     function isCombinationAvailable(string memory combination) public view returns (bool) {
         return _NFTCombinationToToken[combination] == 0;
     }
 
-    function mint() public {
-        require(isWhitelisted(msg.sender), "Minting not allowed with current sender roles");
+    function mint(string memory code) public {
+        require(isWhitelisted(msg.sender, code), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
         _tokenIds.increment();
         uint256 id = _tokenIds.current();
@@ -127,25 +148,6 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
 
     function addOwner(address _newOwner) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
-    }
-
-    // Disable transfering this NFT
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public pure override {
-        require(false, "Talent NFT is non-transferable");
-    }
-
-    // Disable transfering this NFT
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public pure override {
-        require(false, "Talent NFT is non-transferable");
     }
 
     function supportsInterface(bytes4 interfaceId)

@@ -116,15 +116,13 @@ describe("TalentNFT", () => {
 
     it("validates accountTier for setTokenURI", async () => {
       expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
-      await talentNFTCollection.whitelistAddress(addressOne.address, 2);
+      await talentNFTCollection.whitelistAddress(addressOne.address, 12);
       await expect(talentNFTCollection.connect(addressOne).mint("")).not.to.be.reverted;
-      await talentNFTCollection.whitelistAddress(addressTwo.address, 2);
+      await talentNFTCollection.whitelistAddress(addressTwo.address, 12);
       await expect(talentNFTCollection.connect(addressTwo).mint("")).not.to.be.reverted;
-      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", addressOne.address, 5)).not.to.be.reverted;
-      expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.false;
-      await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "1-2.png", addressTwo.address, 6)).to.be.reverted;
-      expect(await talentNFTCollection.isCombinationAvailable("1-2.png")).to.be.true;
-      expect(await talentNFTCollection.totalSupply()).to.eq(2);
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "15-15.png", addressOne.address, 15)).not.to.be.reverted;
+      expect(await talentNFTCollection.isCombinationAvailable("15-15.png")).to.be.false;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(2, "321", "15-15.png", addressTwo.address, 5)).to.be.reverted;
     });
 
     it("validates that user can only mint one token", async () => {
@@ -200,6 +198,13 @@ describe("TalentNFT", () => {
       await talentNFTCollection.clearTokenURI(1);
       console.log(await talentNFTCollection.tokenURI(1));
       await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "1-1.png", creator.address, 1)).not.to.be.reverted;
+    });
+
+    it("validates accountTier for setTokenURI with codes", async () => {
+      expect(await talentNFTCollection.isCombinationAvailable("1-1.png")).to.be.true;
+      await talentNFTCollection.whitelistCode("çqjweq", 12);
+      await expect(talentNFTCollection.connect(addressOne).mint("çqjweq")).not.to.be.reverted;
+      await expect(talentNFTCollection.connect(creator).setTokenURI(1, "321", "15-15.png", addressOne.address, 15)).not.to.be.reverted;
     });
 
     it("validates that you can't check for codes", async () => {

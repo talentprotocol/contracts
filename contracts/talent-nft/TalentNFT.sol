@@ -106,6 +106,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
 
         if(bytes(code).length > 0 && _codeWhitelist[code] != TIERS.UNDEFINED) {
+            _whitelist[msg.sender] = _codeWhitelist[code];
             delete _codeWhitelist[code];
         }
 
@@ -139,7 +140,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         address owner,
         uint256 selectedSkin
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(selectedSkin <= 5 + uint256(_whitelist[owner]) - uint256(TIERS.USER), 
+        require(selectedSkin <= 5 + uint256(_whitelist[owner]) - uint256(TIERS.USER),
             "Selected skin is locked for the account tier");
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");

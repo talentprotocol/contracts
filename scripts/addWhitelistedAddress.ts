@@ -23,21 +23,28 @@ async function main() {
   const [owner] = await ethers.getSigners();
   
   const talentNFTContract = new ethers.Contract(
-    "0xc905AF9E75e7b42330f5fA3176998cbe4927eFF2",
+    "0xD3f121F2D4c27576a8C3054Fd952825Bd3A033d5",
     TalentNFT.abi,
     owner
   );
 
+  for (let i = 0; i < 10; i++) {
+    let tx = await talentNFTContract
+      .connect(owner)
+      .whitelistCode(`core-team-${i}`, TIERS.CORE_TEAM);
 
-  const URI = await talentNFTContract.tokenURI(1);
+    await tx.wait();
+    console.log("Created a core team mint code: ", `core-team-${i}`);
+  }
 
-  console.log(URI);
+  for (let i = 0; i < 10; i++) {
+    let tx = await talentNFTContract
+      .connect(owner)
+      .whitelistCode(`talent-${i}`, TIERS.TALENT);
 
-  // const tx = await talentNFTContract
-  //   .connect(owner)
-  //   .whitelistAddress("0x0914543c9716D8A4811187a78606A50cA81B9C14", TIERS.CORE_TEAM);
-
-  // await tx.wait();
+    await tx.wait();
+    console.log("Created a talent mint code: ", `talent-${i}`);
+  }
 
   // const tx2 = await talentNFTContract
   //   .connect(owner)

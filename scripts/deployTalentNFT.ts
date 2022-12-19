@@ -9,7 +9,6 @@ async function main() {
   const nftContract = await deployTalentNFT(creator.address, "TalentNFT");
   console.log(`TalentNFT Address: ${nftContract.address}`);
 
-  // @TODO: change to a better URI
   const URI = "ipfs://bafyreifuc7inyu6fhytj2vof6qhrejkla7ohd7qwac33gfwcc57mrbxfn4/metadata.json";
   await nftContract.setBaseURI(URI);
 

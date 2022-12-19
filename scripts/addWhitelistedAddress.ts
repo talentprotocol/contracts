@@ -1,4 +1,5 @@
 import { ethers, upgrades } from "hardhat";
+import crypto from "crypto";
 import * as TalentNFT from "../artifacts/contracts/talent-nft/TalentNFT.sol/TalentNFT.json";
 
 const { exit } = process;
@@ -23,27 +24,20 @@ async function main() {
   const [owner] = await ethers.getSigners();
   
   const talentNFTContract = new ethers.Contract(
-    "0xD3f121F2D4c27576a8C3054Fd952825Bd3A033d5",
+    "0x529872baCcfeeA84d43Cea2f0c4b3C38bBA45ce1",
     TalentNFT.abi,
     owner
   );
 
-  for (let i = 0; i < 10; i++) {
+
+  for (let i = 0; i < 5; i++) {
+    const uuid = crypto.randomUUID();
     let tx = await talentNFTContract
       .connect(owner)
-      .whitelistCode(`core-team-${i}`, TIERS.CORE_TEAM);
+      .whitelistCode(uuid, TIERS.CORE_TEAM);
 
     await tx.wait();
-    console.log("Created a core team mint code: ", `core-team-${i}`);
-  }
-
-  for (let i = 0; i < 10; i++) {
-    let tx = await talentNFTContract
-      .connect(owner)
-      .whitelistCode(`talent-${i}`, TIERS.TALENT);
-
-    await tx.wait();
-    console.log("Created a talent mint code: ", `talent-${i}`);
+    console.log("Created a core team mint code: ", uuid);
   }
 
   // const tx2 = await talentNFTContract

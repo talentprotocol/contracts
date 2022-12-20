@@ -11,7 +11,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-
+   
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
@@ -31,6 +31,11 @@ interface ITalentToken is IERC20Upgradeable {
 
     // how much is available to be minted
     function mintingAvailability() external view returns (uint256);
+
+    // Disable talent minting
+    function disable() external;
+
+    function disabled() external view returns (bool);
 }
 
 /// @title The base contract for Talent Tokens
@@ -73,6 +78,9 @@ contract TalentToken is
     // talent's wallet
     address public override(ITalentToken) talent;
 
+    // Disable minting and transfer of tokens when moving to new network
+    bool public override(ITalentToken) disabled;
+
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -96,6 +104,8 @@ contract TalentToken is
 
         _mint(_talent, _initialSupply);
         mintingAvailability = MAX_SUPPLY - _initialSupply;
+
+        disabled = false;
     }
 
     function _authorizeUpgrade(address newImplementation)
@@ -111,6 +121,7 @@ contract TalentToken is
     /// @param _to Recipient of the new tokens
     /// @param _amount Amount to mint
     function mint(address _to, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER) {
+        require(!disabled, "Token has been disabled");
         require(mintingAvailability >= _amount, "_amount exceeds minting availability");
         mintingAvailability -= _amount;
 
@@ -128,6 +139,8 @@ contract TalentToken is
     /// @param _from Owner of the tokens to burn
     /// @param _amount Amount to mint
     function burn(address _from, uint256 _amount) public override(ITalentToken) onlyRole(ROLE_MINTER) {
+        require(!disabled, "Token has been disabled");
+
         // if we have already reached MAX_SUPPLY, we don't ever want to allow
         // minting, even if a burn has occured afterwards
         if (mintingAvailability > 0) {
@@ -150,6 +163,12 @@ contract TalentToken is
         talent = _newTalent;
         grantRole(ROLE_TALENT, _newTalent);
         revokeRole(ROLE_TALENT, msg.sender);
+    }
+
+    function disable() public override(ITalentToken) onlyRole(ROLE_MINTER) {
+        disabled = true;
+        mintingFinishedAt = block.timestamp;
+        mintingAvailability = 0;
     }
 
     //

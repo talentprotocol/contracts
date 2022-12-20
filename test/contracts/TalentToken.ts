@@ -219,6 +219,37 @@ describe("TalentToken", () => {
         expect(await coin.hasRole(await coin.ROLE_TALENT(), talent.address)).to.be.false;
       });
     });
+
+    describe("disable", () => {
+      it("works when called by the minter", async () => {
+        const action = coin.connect(minter).disable();
+
+        await expect(action).not.to.be.reverted;
+        expect(await coin.disabled()).to.be.true;
+      });
+
+      it("is not callable by a non-minter", async () => {
+        const action = coin.connect(talent).disable();
+
+        await expect(action).to.be.reverted;
+      });
+
+      it("disables minting", async () => {
+        const connectedCoin = await coin.connect(minter);
+        await connectedCoin.disable();
+        const action = connectedCoin.mint(talent.address, parseUnits("1"));
+
+        await expect(action).to.be.revertedWith("Token has been disabled");
+      });
+
+      it("disables burning", async () => {
+        const connectedCoin = await coin.connect(minter);
+        await connectedCoin.disable();
+        const action = connectedCoin.burn(talent.address, parseUnits("1"));
+
+        await expect(action).to.be.revertedWith("Token has been disabled");
+      });
+    })
   });
 
   describe("upgradeability", () => {

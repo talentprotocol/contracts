@@ -19,10 +19,7 @@ contract StakingV2 is Staking {
     /// @param _talentTokenAddress The talent address
     /// @param _amount The TAL amount
     /// @return bool
-    function createStakeWithVirtualTAL(
-        address _talentTokenAddress,
-        uint256 _amount
-    )
+    function createStakeWithVirtualTAL(address _talentTokenAddress, uint256 _amount)
         public
         onlyWhileStakingEnabled
         stablePhaseOnly
@@ -30,10 +27,7 @@ contract StakingV2 is Staking {
         returns (bool)
     {
         require(!disabled, "1");
-        require(
-            IVirtualTAL(virtualTALAddress).getBalance(msg.sender) >= _amount,
-            "2"
-        );
+        require(IVirtualTAL(virtualTALAddress).getBalance(msg.sender) >= _amount, "2");
 
         _checkpointAndStake(msg.sender, _talentTokenAddress, _amount);
 
@@ -49,22 +43,16 @@ contract StakingV2 is Staking {
     /// @param _talentTokenAddress The talent address
     /// @param _amount The talent tokens amount
     /// @return bool
-    function sellTalentTokenWithVirtualTAL(
-        address _talentTokenAddress,
-        uint256 _amount
-    ) public onlyWhileStakingEnabled stablePhaseOnly returns (bool) {
+    function sellTalentTokenWithVirtualTAL(address _talentTokenAddress, uint256 _amount)
+        public
+        onlyWhileStakingEnabled
+        stablePhaseOnly
+        returns (bool)
+    {
         require(!disabled, "1");
-        require(
-            IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount,
-            "3"
-        );
+        require(IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "3");
 
-        uint256 tokenAmount = _checkpointAndUnstake(
-            msg.sender,
-            _talentTokenAddress,
-            _amount,
-            true
-        );
+        uint256 tokenAmount = _checkpointAndUnstake(msg.sender, _talentTokenAddress, _amount, true);
 
         emit Unstake(_talentTokenAddress, msg.sender, tokenAmount);
 

@@ -115,8 +115,7 @@ contract Staking is
     // Begin: Constants
     //
 
-    bytes4 constant ERC1363_RECEIVER_RET =
-        bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
+    bytes4 constant ERC1363_RECEIVER_RET = bytes4(keccak256("onTransferReceived(address,address,uint256,bytes)"));
 
     //
     // Begin: State
@@ -192,20 +191,10 @@ contract Staking is
     //
 
     // emitted when a new stake is created
-    event Stake(
-        address indexed owner,
-        address indexed talentToken,
-        uint256 talAmount,
-        bool stable
-    );
+    event Stake(address indexed owner, address indexed talentToken, uint256 talAmount, bool stable);
 
     // emitte when stake rewards are reinvested into the stake
-    event RewardClaim(
-        address indexed owner,
-        address indexed talentToken,
-        uint256 stakerReward,
-        uint256 talentReward
-    );
+    event RewardClaim(address indexed owner, address indexed talentToken, uint256 stakerReward, uint256 talentReward);
 
     // emitted when stake rewards are withdrawn
     event RewardWithdrawal(
@@ -216,18 +205,10 @@ contract Staking is
     );
 
     // emitted when a talent withdraws his share of rewards
-    event TalentRewardWithdrawal(
-        address indexed talentToken,
-        address indexed talentTokenWallet,
-        uint256 reward
-    );
+    event TalentRewardWithdrawal(address indexed talentToken, address indexed talentTokenWallet, uint256 reward);
 
     // emitted when a withdrawal is made from an existing stake
-    event Unstake(
-        address indexed owner,
-        address indexed talentToken,
-        uint256 talAmount
-    );
+    event Unstake(address indexed owner, address indexed talentToken, uint256 talAmount);
 
     //
     // Begin: Implementation
@@ -283,8 +264,7 @@ contract Staking is
         override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
         returns (bool)
     {
-        return
-            AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
+        return AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
     }
 
     /// Creates a new stake from an amount of stable coin.
@@ -363,16 +343,9 @@ contract Staking is
     ///
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return true if operation succeeds
-    function withdrawTalentRewards(address _talent)
-        public
-        tokenPhaseOnly
-        returns (bool)
-    {
+    function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
         // only the talent himself can redeem their own rewards
-        require(
-            msg.sender == ITalentToken(_talent).talent(),
-            "only the talent can withdraw their own shares"
-        );
+        require(msg.sender == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
 
         uint256 amount = talentRedeemableRewards[_talent];
 
@@ -422,15 +395,8 @@ contract Staking is
     /// @param _stableAmount amount of stable coin to be retrieved.
     ///
     /// @notice Corresponding TAL amount will be enforced based on the set price
-    function swapStableForToken(uint256 _stableAmount)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        tokenPhaseOnly
-    {
-        require(
-            _stableAmount <= totalStableStored,
-            "not enough stable coin left in the contract"
-        );
+    function swapStableForToken(uint256 _stableAmount) public onlyRole(DEFAULT_ADMIN_ROLE) tokenPhaseOnly {
+        require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
 
         uint256 tokenAmount = convertUsdToToken(_stableAmount);
         totalStableStored -= _stableAmount;
@@ -448,12 +414,7 @@ contract Staking is
         address _sender,
         uint256 _amount,
         bytes calldata data
-    )
-        external
-        override(IERC1363ReceiverUpgradeable)
-        onlyWhileStakingEnabled
-        returns (bytes4)
-    {
+    ) external override(IERC1363ReceiverUpgradeable) onlyWhileStakingEnabled returns (bytes4) {
         if (_isToken(msg.sender)) {
             require(!disabled, "staking has been disabled");
 
@@ -468,20 +429,12 @@ contract Staking is
 
             return ERC1363_RECEIVER_RET;
         } else if (_isTalentToken(msg.sender)) {
-            require(
-                _isTokenSet(),
-                "TAL token not yet set. Refund not possible"
-            );
+            require(_isTokenSet(), "TAL token not yet set. Refund not possible");
 
             // if it's a registered Talent Token, this is a refund
             address talent = msg.sender;
 
-            uint256 tokenAmount = _checkpointAndUnstake(
-                _sender,
-                talent,
-                _amount,
-                false
-            );
+            uint256 tokenAmount = _checkpointAndUnstake(_sender, talent, _amount, false);
 
             emit Unstake(_sender, talent, tokenAmount);
 
@@ -507,21 +460,11 @@ contract Staking is
     // Begin: IRewardParameters
     //
 
-    function totalShares()
-        public
-        view
-        override(IRewardParameters)
-        returns (uint256)
-    {
+    function totalShares() public view override(IRewardParameters) returns (uint256) {
         return totalTokensStaked;
     }
 
-    function rewardsLeft()
-        public
-        view
-        override(IRewardParameters)
-        returns (uint256)
-    {
+    function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
         return rewardsMax - rewardsGiven - rewardsAdminWithdrawn;
     }
 
@@ -539,14 +482,8 @@ contract Staking is
 
     /// Allows the admin to withdraw whatever is left of the reward pool
     function adminWithdraw() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(
-            disabled || block.timestamp < end,
-            "not disabled, and not end of staking either"
-        );
-        require(
-            activeStakes == 0,
-            "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them"
-        );
+        require(disabled || block.timestamp < end, "not disabled, and not end of staking either");
+        require(activeStakes == 0, "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them");
 
         uint256 amount = rewardsLeft();
         require(amount > 0, "nothing left to withdraw");
@@ -640,10 +577,7 @@ contract Staking is
         uint256 tokenAmount = (stake.tokenAmount * proportion) / MUL;
 
         if (!_virtualTAL) {
-            require(
-                IERC20(token).balanceOf(address(this)) >= tokenAmount,
-                "not enough TAL to fulfill request"
-            );
+            require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
         }
 
         stake.talentAmount -= _talentAmount;
@@ -727,9 +661,7 @@ contract Staking is
         //
         // this will enforce that rewards past this checkpoint will always be
         // 0, effectively ending the stake
-        uint256 maxS = (maxSForTalent[_talent] > 0)
-            ? maxSForTalent[_talent]
-            : S;
+        uint256 maxS = (maxSForTalent[_talent] > 0) ? maxSForTalent[_talent] : S;
 
         (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
             stake.tokenAmount,
@@ -760,18 +692,11 @@ contract Staking is
 
         if (_action == RewardAction.WITHDRAW) {
             IERC20(token).transfer(_owner, stakerRewards);
-            emit RewardWithdrawal(
-                _owner,
-                _talent,
-                stakerRewards,
-                talentRewards
-            );
+            emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
         } else if (_action == RewardAction.RESTAKE) {
             // truncate rewards to stake to the maximum stake availability
             uint256 availability = stakeAvailability(_talent);
-            uint256 rewardsToStake = (availability > stakerRewards)
-                ? stakerRewards
-                : availability;
+            uint256 rewardsToStake = (availability > stakerRewards) ? stakerRewards : availability;
             uint256 rewardsToWithdraw = stakerRewards - rewardsToStake;
 
             _stake(_owner, _talent, rewardsToStake);
@@ -785,16 +710,8 @@ contract Staking is
             }
             /// Added here for V2
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
-            IVirtualTAL(virtualTALAddress).adminMint(
-                msg.sender,
-                convertTalentToToken(stakerRewards)
-            );
-            emit RewardWithdrawal(
-                _owner,
-                _talent,
-                stakerRewards,
-                talentRewards
-            );
+            IVirtualTAL(virtualTALAddress).adminMint(msg.sender, convertTalentToToken(stakerRewards));
+            emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
         } else {
             revert("Unrecognized checkpoint action");
         }
@@ -809,10 +726,7 @@ contract Staking is
             return;
         }
 
-        S =
-            S +
-            (calculateGlobalReward(SAt, block.timestamp)) /
-            totalAdjustedShares;
+        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalAdjustedShares;
         SAt = block.timestamp;
     }
 
@@ -827,10 +741,7 @@ contract Staking is
         if (maxSForTalent[_talent] > 0) {
             newS = maxSForTalent[_talent];
         } else {
-            newS =
-                S +
-                (calculateGlobalReward(SAt, _currentTime)) /
-                totalAdjustedShares;
+            newS = S + (calculateGlobalReward(SAt, _currentTime)) / totalAdjustedShares;
         }
         address talentAddress = ITalentToken(_talent).talent();
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
@@ -866,10 +777,7 @@ contract Staking is
     ) private {
         ITalentToken(_talent).mint(_owner, _amount);
 
-        if (
-            maxSForTalent[_talent] == 0 &&
-            ITalentToken(_talent).mintingFinishedAt() > 0
-        ) {
+        if (maxSForTalent[_talent] == 0 && ITalentToken(_talent).mintingFinishedAt() > 0) {
             maxSForTalent[_talent] = S;
         }
     }
@@ -915,10 +823,7 @@ contract Staking is
             // calculated adjusted shares again, now with rewards included, and
             // excluding the previously computed amount to be deducted
             // (replaced by the new one)
-            totalAdjustedShares =
-                totalAdjustedShares +
-                sqrt(stakes[_owner][_talent].tokenAmount) -
-                toDeduct;
+            totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
             isAlreadyUpdatingAdjustedShares = false;
         }
     }
@@ -949,11 +854,7 @@ contract Staking is
     ///
     /// @param _talent The amount of Talent Tokens to convert
     /// @return The converted TAL amount
-    function convertTalentToToken(uint256 _talent)
-        public
-        view
-        returns (uint256)
-    {
+    function convertTalentToToken(uint256 _talent) public view returns (uint256) {
         return (_talent * talentPrice) / 1 ether;
     }
 
@@ -971,11 +872,7 @@ contract Staking is
     ///
     /// @dev I didn't understand why using `calldata` instead of `memory` doesn't work,
     ///   or what would be the correct assembly to work with it.
-    function bytesToAddress(bytes memory bs)
-        private
-        pure
-        returns (address addr)
-    {
+    function bytesToAddress(bytes memory bs) private pure returns (address addr) {
         require(bs.length == 20, "invalid data length for address");
 
         assembly {

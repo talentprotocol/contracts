@@ -9,9 +9,7 @@ import "hardhat-gas-reporter";
 import type { HardhatUserConfig } from "hardhat/config";
 
 const deployer = {
-  mnemonic:
-    process.env.MNEMONIC ||
-    "test test test test test test test test test test test junk"
+  mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
 };
 
 //const deployer = [""];
@@ -48,13 +46,13 @@ const config: HardhatUserConfig = {
     mumbai: {
       url: "https://matic-mumbai.chainstacklabs.com",
       accounts: deployer,
-      chainId: 80001
+      chainId: 80001,
     },
     matic: {
       url: "https://rpc-mainnet.maticvigil.com/",
       accounts: deployer,
-      chainId: 137
-    }
+      chainId: 137,
+    },
   },
   gasReporter: {
     currency: "ETH",

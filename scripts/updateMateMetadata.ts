@@ -48,8 +48,8 @@ const USERS_TO_UPDATE = [{
         console.log("SUCCESS");
       })
       .catch(err => {
-        console.log("ERROR");
-        console.log(err)
+        console.log(`ERROR on token ${TOKEN_ID_TO_UPDATE} from ${TOKEN_OWNER_WALLET}`);
+        console.log(err);
       });
   }
   for (let i = 0; i < USERS_TO_UPDATE.length; i++) {

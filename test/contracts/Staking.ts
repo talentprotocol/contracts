@@ -897,5 +897,39 @@ describe("Staking", () => {
         expect(await talentToken1.balanceOf(investor2.address)).to.equal(parseUnits("1"));
       })
     })
+
+    describe("transferToNetwork", async () => {
+      it("disables the talent token", async () => {
+        await staking.connect(talent1).transferToNetwork(talentToken1.address, 80001);
+        expect(await talentToken1.disabled()).to.be.true;
+
+        const connectedStake = await staking.connect(talent2);
+
+        const stakeAction = connectedStake.stakeStable(talentToken1.address, parseUnits("1"));
+        await expect(stakeAction).to.be.revertedWith("Talent token has been disabled");
+
+        const claimAction = connectedStake.claimRewards(talentToken1.address);
+        await expect(claimAction).to.be.revertedWith("Talent token has been disabled");
+
+        const claimBehalfAction = connectedStake.claimRewardsOnBehalf(talent1.address, talentToken1.address);
+        await expect(claimBehalfAction).to.be.revertedWith("Talent token has been disabled");
+
+        await enterPhaseTwo();
+        const withdrawAction = connectedStake.withdrawRewards(talentToken1.address);
+        await expect(withdrawAction).to.be.revertedWith("Talent token has been disabled");
+
+        const withdrawTalentAction = staking.connect(talent1).withdrawTalentRewards(talentToken1.address);
+        await expect(withdrawTalentAction).to.be.revertedWith("Talent token has been disabled");
+
+        await expect(staking.stakeAvailability(talentToken1.address)).to.be.reverted;
+      });
+
+      it("fails when not called by talent owner", async () => {
+        const action = staking.connect(talent2).transferToNetwork(talentToken1.address, 80001);
+        await expect(action).to.be.revertedWith("only the talent can disable the token");
+      });
+
+    });
+    
   });
 });

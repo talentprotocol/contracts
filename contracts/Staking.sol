@@ -355,6 +355,8 @@ contract Staking is
         // only the talent himself can redeem their own rewards
         require(msg.sender == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
 
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
         uint256 amount = talentRedeemableRewards[_talent];
 
         IERC20(token).transfer(msg.sender, amount);
@@ -865,6 +867,7 @@ contract Staking is
     }
 
     function transferToNetwork(address _talent, uint256 _newChainId) external {
+        require(msg.sender == ITalentToken(_talent).talent(), "only the talent can disable the token");
         ITalentToken(_talent).disable();
         emit TalentDisabledForNetworkTransfer(_talent, _newChainId);
     }

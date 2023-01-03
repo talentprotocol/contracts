@@ -1,6 +1,5 @@
 import fetch from "node-fetch";
 import { File } from "nft.storage";
-import { Blob } from "buffer";
 import axios from "axios";
 import { ethers } from "hardhat";
 import { NFTStorage } from "nft.storage";
@@ -14,17 +13,17 @@ const UNREVEALED_TOKENS: number[] = [];
 const OLD_METADATA: any = [];
 
 const ACCOUNT_TIER_MAP = {
-	"2": 11,
-	"3": 12,
-	"4": 24,
-	"5": 22,
-	"6": 21,
-	"7": 23,
-	"8": 23,
-	"9": 23,
-	"10": 31,
-	"11": 32,
-	"12": 41,
+	"2": "11",
+	"3": "12",
+	"4": "24",
+	"5": "22",
+	"6": "21",
+	"7": "23",
+	"8": "23",
+	"9": "23",
+	"10": "31",
+	"11": "32",
+	"12": "41",
 };
 
 const accountTierToCommunityLevelConverter = (accountTier: number) => {
@@ -42,6 +41,7 @@ const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.matic
     TalentNFT.abi,
     owner
   );
+
 
   async function main(TOKEN_ID_TO_UPDATE: number) {
     const result = await talentNFTContract.tokenURI(TOKEN_ID_TO_UPDATE);

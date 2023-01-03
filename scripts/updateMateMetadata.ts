@@ -30,7 +30,7 @@ const UNREVEALED_TOKENS: number[] = [];
         console.log("- clearing tokenuri");
         await talentNFTContract.clearTokenURI(TOKEN_ID_TO_UPDATE);
         const newCommunityLevel = await talentNFTContract.checkAccountOrCodeTier(TOKEN_OWNER_WALLET, "");
-        if (data.attributes[0]["trait_type"] === "No") {
+        if (data.attributes[0]["trait_type"] === "Revealed") {
           UNREVEALED_TOKENS.push(TOKEN_ID_TO_UPDATE);
           throw `ERROR::: This Mate is unrevealed - TOKEN_ID: ${TOKEN_ID_TO_UPDATE}`;
         }

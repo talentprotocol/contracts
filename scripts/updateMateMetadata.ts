@@ -5,10 +5,9 @@ import * as TalentNFT from "../artifacts/contracts/talent-nft/TalentNFT.sol/Tale
 
 const client = new NFTStorage({ token: "..." });
 
-const USERS_TO_UPDATE = [{
-  tokenId: 0,
-  wallet: "..."
-}];
+const TOKENS_TO_UPDATE = Array.from({length: 550 }, (_, i) => i + 1);
+const TOKENS_THAT_FAILED_TO_UPDATE: number[] = [];
+const UNREVEALED_TOKENS: number[] = [];
 
 (async () => {
   const [owner] = await ethers.getSigners();
@@ -19,9 +18,9 @@ const USERS_TO_UPDATE = [{
     owner
   );
 
-
-  async function main(TOKEN_ID_TO_UPDATE: number, TOKEN_OWNER_WALLET: string) {
+  async function main(TOKEN_ID_TO_UPDATE: number) {
     const result = await talentNFTContract.tokenURI(TOKEN_ID_TO_UPDATE);
+    const TOKEN_OWNER_WALLET = await talentNFTContract.ownerOf(TOKEN_ID_TO_UPDATE);
     const parsedURL = result.split("/")[2];
     return axios(`https://${parsedURL}.ipfs.dweb.link/metadata.json`)
       .then(async ({data}) => {
@@ -31,6 +30,14 @@ const USERS_TO_UPDATE = [{
         console.log("- clearing tokenuri");
         await talentNFTContract.clearTokenURI(TOKEN_ID_TO_UPDATE);
         const newCommunityLevel = await talentNFTContract.checkAccountOrCodeTier(TOKEN_OWNER_WALLET, "");
+        if (data.attributes[0]["trait_type"] === "No") {
+          UNREVEALED_TOKENS.push(TOKEN_ID_TO_UPDATE);
+          throw `ERROR::: This Mate is unrevealed - TOKEN_ID: ${TOKEN_ID_TO_UPDATE}`;
+        }
+        if (data.attributes[data.attributes.length  -1]["trait_type"] !== "Community Level") {
+          TOKENS_THAT_FAILED_TO_UPDATE.push(TOKEN_ID_TO_UPDATE);
+          throw `ERROR::: Not changing Community Level --- CHANGING TRAIT ${data.attributes[data.attributes.length  -1]["trait_type"]} instead`;
+        }
         data.attributes[data.attributes.length  -1].value = newCommunityLevel;
         console.log("- new metadata to store:")
         console.log(data);
@@ -52,8 +59,15 @@ const USERS_TO_UPDATE = [{
         console.log(err);
       });
   }
-  for (let i = 0; i < USERS_TO_UPDATE.length; i++) {
-    console.log(`-> updating token ${USERS_TO_UPDATE[i].tokenId}`);
-    await main(USERS_TO_UPDATE[i].tokenId, USERS_TO_UPDATE[i].wallet);
+  for (let i = 0; i < TOKENS_TO_UPDATE.length; i++) {
+    console.log(`-> updating token ${TOKENS_TO_UPDATE[i]}`);
+    await main(TOKENS_TO_UPDATE[i]);
   }
+
+  console.log("-----------------");
+  console.log("Tokens that failed to update:");
+  console.log(TOKENS_THAT_FAILED_TO_UPDATE);
+  console.log("Unrevealed tokens:");
+  console.log(UNREVEALED_TOKENS);
+  console.log("-----------------");
 })();

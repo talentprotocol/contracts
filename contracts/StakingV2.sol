@@ -26,8 +26,7 @@ contract StakingV2 is Staking {
         updatesAdjustedShares(msg.sender, _talentTokenAddress)
         returns (bool)
     {
-        require(!disabled, "1");
-        require(IVirtualTAL(virtualTALAddress).getBalance(msg.sender) >= _amount, "2");
+        require(IVirtualTAL(virtualTALAddress).getBalance(msg.sender) >= _amount, "not enough TAL");
 
         _checkpointAndStake(msg.sender, _talentTokenAddress, _amount);
 
@@ -49,8 +48,8 @@ contract StakingV2 is Staking {
         stablePhaseOnly
         returns (bool)
     {
-        require(!disabled, "1");
-        require(IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "3");
+        require(!disabled, "staking has been disabled");
+        require(IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
 
         uint256 tokenAmount = _checkpointAndUnstake(msg.sender, _talentTokenAddress, _amount, true);
 

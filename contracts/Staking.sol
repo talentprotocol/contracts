@@ -281,8 +281,6 @@ contract Staking is
         updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
-        require(!disabled, "staking has been disabled");
-
         uint256 tokenAmount = convertUsdToToken(_amount);
 
         _checkpointAndStake(msg.sender, _talent, tokenAmount);
@@ -416,8 +414,6 @@ contract Staking is
         bytes calldata data
     ) external override(IERC1363ReceiverUpgradeable) onlyWhileStakingEnabled returns (bytes4) {
         if (_isToken(msg.sender)) {
-            require(!disabled, "staking has been disabled");
-
             // if input is TAL, this is a stake since TAL deposits are enabled when
             // `setToken` is called, no additional check for `tokenPhaseOnly` is
             // necessary here
@@ -520,6 +516,7 @@ contract Staking is
     ) internal updatesAdjustedShares(_owner, _talent) {
         require(_isTalentToken(_talent), "not a valid talent token");
         require(_tokenAmount > 0, "amount cannot be zero");
+        require(!disabled, "staking has been disabled");
 
         _checkpoint(_owner, _talent, RewardAction.RESTAKE);
         _stake(_owner, _talent, _tokenAmount);
@@ -593,7 +590,7 @@ contract Staking is
         }
 
         if (_virtualTAL) {
-            _burnTalentFromUser(_talent, _talentAmount);
+            ITalentToken(_talent).burn(msg.sender, _talentAmount);
             IVirtualTAL(virtualTALAddress).adminMint(msg.sender, tokenAmount);
         } else {
             _burnTalent(_talent, _talentAmount);
@@ -792,11 +789,6 @@ contract Staking is
     /// the contract is the owner of the tokens to be burnt, not the owner
     function _burnTalent(address _talent, uint256 _amount) private {
         ITalentToken(_talent).burn(address(this), _amount);
-    }
-
-    /// burns a given amount of a given talent token from the owner's wallet
-    function _burnTalentFromUser(address _talent, uint256 _amount) private {
-        ITalentToken(_talent).burn(msg.sender, _amount);
     }
 
     /// returns a given amount of TAL to an owner

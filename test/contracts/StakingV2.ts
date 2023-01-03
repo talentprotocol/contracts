@@ -53,24 +53,15 @@ describe("StakingV2", () => {
     start = dayjs.unix(timestamp).add(1, "day").unix(); // one minute later
     end = dayjs.unix(timestamp).add(100, "days").unix();
 
-    [owner, minter, talent1, talent2, investor1, investor2] =
-      await ethers.getSigners();
+    [owner, minter, talent1, talent2, investor1, investor2] = await ethers.getSigners();
 
     stable = (await deployContract(owner, Artifacts.USDTMock, [])) as USDTMock;
 
-    await stable
-      .connect(owner)
-      .transfer(investor1.address, parseUnits("10000"));
-    await stable
-      .connect(owner)
-      .transfer(investor2.address, parseUnits("10000"));
+    await stable.connect(owner).transfer(investor1.address, parseUnits("10000"));
+    await stable.connect(owner).transfer(investor2.address, parseUnits("10000"));
 
-    const TalentProtocolFactory = await ethers.getContractFactory(
-      "TalentProtocol"
-    );
-    tal = (await upgrades.deployProxy(TalentProtocolFactory, [
-      parseUnits("1000000000"),
-    ])) as TalentProtocol;
+    const TalentProtocolFactory = await ethers.getContractFactory("TalentProtocol");
+    tal = (await upgrades.deployProxy(TalentProtocolFactory, [parseUnits("1000000000")])) as TalentProtocol;
 
     await tal.connect(owner).transfer(investor1.address, parseUnits("1000"));
     await tal.connect(owner).transfer(investor2.address, parseUnits("1000"));
@@ -106,20 +97,8 @@ describe("StakingV2", () => {
 
       await factory.setMinter(stakingV2.address);
 
-      talentToken1 = await deployTalentToken(
-        factory,
-        minter,
-        talent1,
-        "Fred Moura",
-        "FRED"
-      );
-      talentToken2 = await deployTalentToken(
-        factory,
-        minter,
-        talent2,
-        "Francisco Leal",
-        "LEAL"
-      );
+      talentToken1 = await deployTalentToken(factory, minter, talent1, "Fred Moura", "FRED");
+      talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");
 
       await ensureTimestamp(start);
     });
@@ -132,10 +111,7 @@ describe("StakingV2", () => {
 
     describe("setVirtualTALAddress", () => {
       async function virtualTALBuilder(): Promise<VirtualTAL> {
-        return upgrades.deployProxy(
-          VirtualTALFactory,
-          []
-        ) as Promise<VirtualTAL>;
+        return upgrades.deployProxy(VirtualTALFactory, []) as Promise<VirtualTAL>;
       }
 
       beforeEach(async () => {
@@ -150,9 +126,7 @@ describe("StakingV2", () => {
       });
 
       it("is not callable by a random user", async () => {
-        const action = stakingV2
-          .connect(investor1)
-          .setVirtualTALAddress(virtualTAL.address);
+        const action = stakingV2.connect(investor1).setVirtualTALAddress(virtualTAL.address);
 
         await expect(action).to.be.revertedWith(
           `AccessControl: account ${investor1.address.toLowerCase()} is missing role ${await stakingV2.DEFAULT_ADMIN_ROLE()}`
@@ -162,10 +136,7 @@ describe("StakingV2", () => {
 
     describe("createStakeWithVirtualTAL", () => {
       async function virtualTALBuilder(): Promise<VirtualTAL> {
-        return upgrades.deployProxy(
-          VirtualTALFactory,
-          []
-        ) as Promise<VirtualTAL>;
+        return upgrades.deployProxy(VirtualTALFactory, []) as Promise<VirtualTAL>;
       }
 
       beforeEach(async () => {
@@ -184,17 +155,13 @@ describe("StakingV2", () => {
 
         // mints talent tokens
         const talentBalance = await talentToken1.balanceOf(investor1.address);
-        const expectedBalance = await stakingV2.convertTokenToTalent(
-          parseUnits("100")
-        );
+        const expectedBalance = await stakingV2.convertTokenToTalent(parseUnits("100"));
 
         expect(talentBalance).to.equal(expectedBalance);
         expect(talentBalance).not.to.equal(parseUnits("0"));
 
         //  burns virtual TAL
-        const virtualTALBalance = await virtualTAL.getBalance(
-          investor1.address
-        );
+        const virtualTALBalance = await virtualTAL.getBalance(investor1.address);
         expect(virtualTALBalance).to.equal(parseUnits("0"));
 
         await expect(action).to.emit(stakingV2, "Stake");
@@ -203,10 +170,7 @@ describe("StakingV2", () => {
 
     describe("sellTalentTokenWithVirtualTAL", () => {
       async function virtualTALBuilder(): Promise<VirtualTAL> {
-        return upgrades.deployProxy(
-          VirtualTALFactory,
-          []
-        ) as Promise<VirtualTAL>;
+        return upgrades.deployProxy(VirtualTALFactory, []) as Promise<VirtualTAL>;
       }
 
       beforeEach(async () => {
@@ -217,32 +181,44 @@ describe("StakingV2", () => {
         await virtualTAL.connect(owner).setAdminRole(stakingV2.address);
       });
 
-      it("partially sells talent tokens and mint virtual TAL", async () => {
-        await stable
-          .connect(investor1)
-          .approve(stakingV2.address, parseUnits("1"));
-        await stakingV2
-          .connect(investor1)
-          .stakeStable(talentToken1.address, parseUnits("1"));
-        const talentBalanceBefore = await talentToken1.balanceOf(
-          investor1.address
-        );
+      it("partially sells talent tokens and mints virtual TAL", async () => {
+        await stable.connect(investor1).approve(stakingV2.address, parseUnits("1"));
+        await stakingV2.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+
         const action = await stakingV2
           .connect(investor1)
           .sellTalentTokenWithVirtualTAL(talentToken1.address, parseUnits("2"));
 
         // burns talent tokens
         const talentBalance = await talentToken1.balanceOf(investor1.address);
-        // talentBalanceBefore (10) - 2 = 8 + margin to account for rewards
+        // 10 - 2 = 8 + margin to account for rewards
         expect(talentBalance).to.be.closeTo(parseUnits("8"), margin);
 
         // mints virtual TAL
-        const virtualTALBalance = await virtualTAL.getBalance(
-          investor1.address
-        );
-        const expectedBalance = await stakingV2.convertTalentToToken(
-          parseUnits("2")
-        );
+        const virtualTALBalance = await virtualTAL.getBalance(investor1.address);
+        const expectedBalance = await stakingV2.convertTalentToToken(parseUnits("2"));
+
+        expect(virtualTALBalance).to.be.closeTo(expectedBalance, margin);
+
+        await expect(action).to.emit(stakingV2, "Unstake");
+      });
+
+      it("sells all talent tokens and mints virtual TAL", async () => {
+        await stable.connect(investor1).approve(stakingV2.address, parseUnits("1"));
+        await stakingV2.connect(investor1).stakeStable(talentToken1.address, parseUnits("1"));
+
+        const action = await stakingV2
+          .connect(investor1)
+          .sellTalentTokenWithVirtualTAL(talentToken1.address, parseUnits("10"));
+
+        // burns talent tokens
+        const talentBalance = await talentToken1.balanceOf(investor1.address);
+        // 10 - 10 = exactly 0 to include rewards
+        expect(talentBalance).to.equal(parseUnits("0"));
+
+        // mints virtual TAL
+        const virtualTALBalance = await virtualTAL.getBalance(investor1.address);
+        const expectedBalance = await stakingV2.convertTalentToToken(parseUnits("10"));
 
         expect(virtualTALBalance).to.be.closeTo(expectedBalance, margin);
 

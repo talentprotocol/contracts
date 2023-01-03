@@ -58,10 +58,7 @@ contract VirtualTAL is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {}
 
-    function setAdminRole(address _address)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setAdminRole(address _address) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _setupRole(DEFAULT_ADMIN_ROLE, _address);
     }
 
@@ -71,11 +68,7 @@ contract VirtualTAL is
     ///
     /// @param _to Recipient of the new TAL
     /// @param _amount Amount to mint
-    function adminMint(address _to, uint256 _amount)
-        public
-        override(IVirtualTAL)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminMint(address _to, uint256 _amount) public override(IVirtualTAL) onlyRole(DEFAULT_ADMIN_ROLE) {
         addressToTAL[_to] = addressToTAL[_to] + _amount;
 
         emit AdminMinted(_to, _amount);
@@ -87,11 +80,7 @@ contract VirtualTAL is
     ///
     /// @param _from Owner of the TAL to burn
     /// @param _amount Amount to mint
-    function adminBurn(address _from, uint256 _amount)
-        public
-        override(IVirtualTAL)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function adminBurn(address _from, uint256 _amount) public override(IVirtualTAL) onlyRole(DEFAULT_ADMIN_ROLE) {
         require(addressToTAL[_from] >= _amount, "not enough amount to burn");
 
         addressToTAL[_from] = addressToTAL[_from] - _amount;
@@ -105,12 +94,7 @@ contract VirtualTAL is
     /// @param _newOwner address for the new owner's wallet
     function transferownerWallet(address _newOwner) public {}
 
-    function getBalance(address _owner)
-        public
-        view
-        override(IVirtualTAL)
-        returns (uint256)
-    {
+    function getBalance(address _owner) public view override(IVirtualTAL) returns (uint256) {
         return addressToTAL[_owner];
     }
 
@@ -122,11 +106,7 @@ contract VirtualTAL is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(
-            ERC165Upgradeable,
-            AccessControlUpgradeable,
-            ERC1363Upgradeable
-        )
+        override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable)
         returns (bool)
     {
         return

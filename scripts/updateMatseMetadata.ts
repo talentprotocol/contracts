@@ -7,7 +7,7 @@ import * as TalentNFT from "../artifacts/contracts/talent-nft/TalentNFT.sol/Tale
 
 const client = new NFTStorage({ token: "..." });
 
-const TOKENS_TO_UPDATE = [24];
+const TOKENS_TO_UPDATE = Array.from({ length: 10 }).map((_, i) => i + 1);
 const TOKENS_THAT_FAILED_TO_UPDATE: number[] = [];
 const UNREVEALED_TOKENS: number[] = [];
 const OLD_METADATA: any = [];
@@ -76,10 +76,15 @@ const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.matic
         console.log(data);
         const metadata = await client.store(data);
 		    const feeData = await provider.getFeeData();
-        console.log("- clearing tokenuri");
-        const tx = await talentNFTContract.clearTokenURI(TOKEN_ID_TO_UPDATE);
+        const gasPrice = feeData.gasPrice?.mul(5);
+        console.log(`- clearing tokenuri  with gas price: ${gasPrice}`);
+        const tx = await talentNFTContract.clearTokenURI(TOKEN_ID_TO_UPDATE, {
+          gasPrice
+        });
+        console.log("- waiting the transaction to be finised")
+        console.log(tx);
         await tx.wait();
-        console.log("- setting tokenuri");
+        console.log(`- setting tokenuri with gas price ${gasPrice}`);
         await talentNFTContract
           .connect(owner)
           .setTokenURI(
@@ -89,7 +94,7 @@ const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.matic
             TOKEN_OWNER_WALLET,
             0,
             {
-              gasPrice: feeData.gasPrice?.mul(5),
+              gasPrice
             }
           );
         console.log("SUCCESS");

@@ -6,30 +6,27 @@ import * as TalentNFT from "../artifacts/contracts/talent-nft/TalentNFT.sol/Tale
 
 const client = new NFTStorage({ token: "..." });
 
-const MATE_ID = 500;
-const FILE_NAME = "male-11-23-5-10-8-3-2-12.png";
-const MATE_DATA = {
-  name: 'Talent Mate 500',
+const MATE_ID = 475;
+const FILE_NAME = "female-6-6-1-x-12-5-6-3.png";
+const MATE_DATA = {  
+  name: 'Talent Mate 475',
   description: 'Talent Mates. An NFT collection by Talent Protocol.',
   properties: { type: 'image' },
   attributes: [
-    { trait_type: 'Background', value: 'Eucalyptus Green' },
-    {
-      trait_type: 'Background Object',
-      value: 'Purple Electric Guitar'
-    },
-    { trait_type: 'Skin', value: 'User - Mint Color' },
-    { trait_type: 'Clothes', value: 'Purple Talent Tee' },
-    { trait_type: 'Hair', value: 'Talent Buckethat' },
-    { trait_type: 'Mouth', value: 'Pouting' },
-    { trait_type: 'Eyes', value: 'Monocle' },
-    { trait_type: 'Thinking', value: 'GPU' },
+    { trait_type: 'Background', value: 'Cream' },
+    { trait_type: 'Background Object', value: 'Flower Bouquet' },
+    { trait_type: 'Skin', value: 'User - Pink Color' },
+    { trait_type: 'Clothes', value: 'Dark Tuxedo' },
+    { trait_type: 'Mouth', value: 'Grinning' },
+    { trait_type: 'Eyes', value: 'Round Sunglasses' },
+    { trait_type: 'Thinking', value: 'Heart' },
     { trait_type: 'Revealed', value: 'Yes' },
-    { trait_type: 'Body', value: 1 },
-    { trait_type: 'Community Level', value: 11 }
+    { trait_type: 'Body', value: 2 },
+    { trait_type: 'Community Level', value: '22' }
   ],
   image: null
 }
+
 
 const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.maticvigil.com/");
 
@@ -55,7 +52,8 @@ const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.matic
         //@ts-ignore
         const metadata = await client.store(MATE_DATA);
 		    const feeData = await provider.getFeeData();
-        console.log("- setting tokenuri");
+        const gasPrice = feeData.gasPrice?.mul(5);
+        console.log(`- setting tokenuri with gas price: ${gasPrice}`);
         await talentNFTContract
           .connect(owner)
           .setTokenURI(
@@ -65,7 +63,7 @@ const provider = new ethers.providers.JsonRpcProvider("https://rpc-mainnet.matic
             TOKEN_OWNER_WALLET,
             0,
             {
-              gasPrice: feeData.gasPrice?.mul(5),
+              gasPrice
             }
           );
         console.log("SUCCESS");

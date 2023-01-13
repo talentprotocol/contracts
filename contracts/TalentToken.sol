@@ -81,13 +81,18 @@ contract TalentToken is
     // Disable minting and transfer of tokens when moving to new network
     bool public override(ITalentToken) disabled;
 
+
+    // Determine if the token is migrated to new network
+    bool public isMigrated;
+
     function initialize(
         string memory _name,
         string memory _symbol,
         uint256 _initialSupply,
         address _talent,
         address _minter,
-        address _admin
+        address _admin,
+        bool _isMigrated
     ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -106,6 +111,7 @@ contract TalentToken is
         mintingAvailability = MAX_SUPPLY - _initialSupply;
 
         disabled = false;
+        isMigrated = _isMigrated;
     }
 
     function _authorizeUpgrade(address newImplementation)

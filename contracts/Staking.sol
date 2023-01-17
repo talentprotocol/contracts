@@ -12,7 +12,7 @@ import {IERC1363ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/i
 import "hardhat/console.sol";
 
 import {StableThenToken} from "./staking_helpers/StableThenToken.sol";
-import {IRewardParameters, RewardCalculator} from "./staking_helpers/RewardCalculator.sol";
+import {IRewardCalculator} from "./staking_helpers/RewardCalculator.sol";
 import {VirtualTALHelper} from "./staking_v2_helpers/VirtualTALHelper.sol";
 import {ITalentToken} from "./TalentToken.sol";
 import {ITalentFactory} from "./TalentFactory.sol";
@@ -80,7 +80,6 @@ contract Staking is
     ERC165Upgradeable,
     AccessControlEnumerableUpgradeable,
     StableThenToken,
-    RewardCalculator,
     VirtualTALHelper,
     IERC1363ReceiverUpgradeable
 {
@@ -142,6 +141,9 @@ contract Staking is
     /// The Talent Token Factory contract (ITalentFactory)
     address public factory;
 
+    /// The Reward Calculator contract (IRewardCalculator)
+    address public rewardCalculator;
+
     /// The price (in USD cents) of a single TAL token
     uint256 public tokenPrice;
 
@@ -163,19 +165,19 @@ contract Staking is
 
     /// Sum of sqrt(tokenAmount) for each stake
     /// Used to compute adjusted reward values
-    uint256 public override(IRewardParameters) totalAdjustedShares;
+    uint256 public totalAdjustedShares;
 
     // How much TAL is to be given in rewards
-    uint256 public override(IRewardParameters) rewardsMax;
+    uint256 public rewardsMax;
 
     // How much TAL has already been given/reserved in rewards
-    uint256 public override(IRewardParameters) rewardsGiven;
+    uint256 public rewardsGiven;
 
     /// Start date for staking period
-    uint256 public override(IRewardParameters) start;
+    uint256 public start;
 
     /// End date for staking period
-    uint256 public override(IRewardParameters) end;
+    uint256 public end;
 
     // Continuously growing value used to compute reward distributions
     uint256 public S;
@@ -221,6 +223,7 @@ contract Staking is
     /// @param _factory ITalentFactory instance
     /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
     /// @param _talentPrice The price of a talent token in TAL (50 means 1 Talent Token = 50 TAL)
+    /// @param _rewardCalculator IRewardCalculator instance
 
     function initialize(
         uint256 _start,
@@ -229,7 +232,8 @@ contract Staking is
         address _stableCoin,
         address _factory,
         uint256 _tokenPrice,
-        uint256 _talentPrice
+        uint256 _talentPrice,
+        address _rewardCalculator
     ) public virtual initializer {
         require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
@@ -239,7 +243,6 @@ contract Staking is
         __AccessControlEnumerable_init_unchained();
 
         __StableThenToken_init(_stableCoin);
-        __RewardCalculator_init();
         __VirtualTALHelper_init();
 
         start = _start;
@@ -249,6 +252,7 @@ contract Staking is
         tokenPrice = _tokenPrice;
         talentPrice = _talentPrice;
         SAt = _start;
+        rewardCalculator = _rewardCalculator;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -456,11 +460,11 @@ contract Staking is
     // Begin: IRewardParameters
     //
 
-    function totalShares() public view override(IRewardParameters) returns (uint256) {
+    function totalShares() public view returns (uint256) {
         return totalTokensStaked;
     }
 
-    function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
+    function rewardsLeft() public view returns (uint256) {
         return rewardsMax - rewardsGiven - rewardsAdminWithdrawn;
     }
 
@@ -570,8 +574,8 @@ contract Staking is
         // rewards, then returning 1 Talent Token should result in 50.5 TAL
         // being returned, instead of the 50 that would be given under the set
         // exchange rate
-        uint256 proportion = (_talentAmount * MUL) / stake.talentAmount;
-        uint256 tokenAmount = (stake.tokenAmount * proportion) / MUL;
+        uint256 proportion = (_talentAmount * IRewardCalculator(rewardCalculator).getMUL()) / stake.talentAmount;
+        uint256 tokenAmount = (stake.tokenAmount * proportion) / IRewardCalculator(rewardCalculator).getMUL();
 
         if (!_virtualTAL) {
             require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
@@ -660,7 +664,7 @@ contract Staking is
         // 0, effectively ending the stake
         uint256 maxS = (maxSForTalent[_talent] > 0) ? maxSForTalent[_talent] : S;
 
-        (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
+        (uint256 stakerRewards, uint256 talentRewards) = IRewardCalculator(rewardCalculator).calculateReward(
             stake.tokenAmount,
             stake.S,
             maxS,
@@ -723,7 +727,10 @@ contract Staking is
             return;
         }
 
-        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalAdjustedShares;
+        S =
+            S +
+            (IRewardCalculator(rewardCalculator).calculateGlobalReward(start, end, SAt, block.timestamp, rewardsMax)) /
+            totalAdjustedShares;
         SAt = block.timestamp;
     }
 
@@ -738,12 +745,15 @@ contract Staking is
         if (maxSForTalent[_talent] > 0) {
             newS = maxSForTalent[_talent];
         } else {
-            newS = S + (calculateGlobalReward(SAt, _currentTime)) / totalAdjustedShares;
+            newS =
+                S +
+                (IRewardCalculator(rewardCalculator).calculateGlobalReward(start, end, SAt, _currentTime, rewardsMax)) /
+                totalAdjustedShares;
         }
         address talentAddress = ITalentToken(_talent).talent();
         uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
 
-        (uint256 sRewards, uint256 tRewards) = calculateReward(
+        (uint256 sRewards, uint256 tRewards) = IRewardCalculator(rewardCalculator).calculateReward(
             stake.tokenAmount,
             stake.S,
             newS,
@@ -808,14 +818,17 @@ contract Staking is
             // value (e.g. reward calculation)
             // therefore, we just keep track of it, and do a final update to the stored value at the end;
             // temporarily deduct from adjusted shares
-            uint256 toDeduct = sqrt(stakes[_owner][_talent].tokenAmount);
+            uint256 toDeduct = IRewardCalculator(rewardCalculator).sqrt(stakes[_owner][_talent].tokenAmount);
 
             _;
 
             // calculated adjusted shares again, now with rewards included, and
             // excluding the previously computed amount to be deducted
             // (replaced by the new one)
-            totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
+            totalAdjustedShares =
+                totalAdjustedShares +
+                IRewardCalculator(rewardCalculator).sqrt(stakes[_owner][_talent].tokenAmount) -
+                toDeduct;
             isAlreadyUpdatingAdjustedShares = false;
         }
     }

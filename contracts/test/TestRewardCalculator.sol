@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {IRewardParameters, RewardCalculator} from "../staking_helpers/RewardCalculator.sol";
+import {RewardCalculator} from "../staking_helpers/RewardCalculator.sol";
 
 contract TestRewardCalculator is RewardCalculator {
-    uint256 public override(IRewardParameters) start;
-    uint256 public override(IRewardParameters) end;
-    uint256 public override(IRewardParameters) rewardsMax;
-    uint256 public override(IRewardParameters) rewardsGiven;
-    uint256 public override(IRewardParameters) totalShares;
-    uint256 public override(IRewardParameters) totalAdjustedShares;
+    uint256 public start;
+    uint256 public end;
+    uint256 public rewardsMax;
+    uint256 public rewardsGiven;
+    uint256 public totalShares;
+    uint256 public totalAdjustedShares;
 
     constructor(
         uint256 _start,
@@ -32,7 +32,7 @@ contract TestRewardCalculator is RewardCalculator {
     }
 
     function test_calculateGlobalReward(uint256 _start, uint256 _end) public view returns (uint256) {
-        return calculateGlobalReward(_start, _end);
+        return calculateGlobalReward(start, end, _start, _end, rewardsMax);
     }
 
     function test_calculateReward(
@@ -54,11 +54,11 @@ contract TestRewardCalculator is RewardCalculator {
     }
 
     function test_truncatePeriod(uint256 _start, uint256 _end) public view returns (uint256, uint256) {
-        return _truncatePeriod(_start, _end);
+        return _truncatePeriod(start, end, _start, _end);
     }
 
     function test_periodToPercents(uint256 _start, uint256 _end) public view returns (uint256, uint256) {
-        return _periodToPercents(_start, _end);
+        return _periodToPercents(start, end, _start, _end);
     }
 
     function test_curvePercentage(uint256 _start, uint256 _end) public pure returns (uint256) {
@@ -69,7 +69,7 @@ contract TestRewardCalculator is RewardCalculator {
         return _integralAt(_x);
     }
 
-    function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
+    function rewardsLeft() public view returns (uint256) {
         return rewardsMax - rewardsGiven;
     }
 

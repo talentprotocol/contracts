@@ -4,7 +4,14 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, Staking, TalentToken } from "../../typechain-types";
+import type {
+  TalentProtocol,
+  USDTMock,
+  TalentFactory,
+  Staking,
+  TalentToken,
+  RewardCalculator,
+} from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall, ensureTimestamp } from "../shared/utils";
@@ -59,6 +66,9 @@ describe("Staking", () => {
     const FactoryFactory = await ethers.getContractFactory("TalentFactory");
     factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
+    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
+    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
+
     const StakingContract = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(StakingContract, [
       start,
@@ -67,7 +77,8 @@ describe("Staking", () => {
       stable.address,
       factory.address,
       parseUnits("0.02"),
-      parseUnits("5")
+      parseUnits("5"),
+      rewardCalculator.address,
     ])) as Staking;
 
     await factory.setMinter(staking.address);
@@ -297,7 +308,7 @@ describe("Staking", () => {
     const reward1 = stake1.tokenAmount.sub(amount);
     const talentReward1 = await staking.talentRedeemableRewards(talentToken1.address);
 
-    expect(result.stakerRewards).to.eq(reward1)
-    expect(result.talentRewards).to.eq(talentReward1)
+    expect(result.stakerRewards).to.eq(reward1);
+    expect(result.talentRewards).to.eq(talentReward1);
   });
 });

@@ -13,6 +13,7 @@ import type {
   StakingV2,
   TalentToken,
   VirtualTAL,
+  RewardCalculator,
 } from "../../typechain-types";
 
 import { Artifacts } from "../shared";
@@ -72,6 +73,9 @@ describe("StakingV2", () => {
   });
 
   const stakingV2Builder = async (): Promise<StakingV2> => {
+    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
+    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
+
     const StakingV2Contract = await ethers.getContractFactory("StakingV2");
     const staking = await upgrades.deployProxy(StakingV2Contract, [
       start,
@@ -81,6 +85,7 @@ describe("StakingV2", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
+      rewardCalculator.address,
     ]);
     await staking.deployed();
 

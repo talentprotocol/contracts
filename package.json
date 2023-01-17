@@ -4,6 +4,10 @@
   "description": "Talent Protocol Smart Contracts",
   "author": "Talent Protocol",
   "dependencies": {
+    "@ensdomains/dnsprovejs": "^0.4.1",
+    "@ensdomains/dnssecoraclejs": "^0.2.7",
+    "@ensdomains/ens": "^0.6.2",
+    "@ensdomains/ens-contracts": "^0.0.7",
     "@ethersproject/abi": "^5.0.0",
     "@ethersproject/bytes": "^5.0.0",
     "@ethersproject/providers": "^5.0.0",
@@ -17,6 +21,7 @@
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
     "dayjs": "^1.10.7",
+    "eth-ens-namehash": "^2.0.8",
     "ethers": "^5.1.0",
     "hardhat": "^2.1.2",
     "hardhat-gas-reporter": "^1.0.4",

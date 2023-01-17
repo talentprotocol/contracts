@@ -7,6 +7,8 @@ import CommunityUser from "../../artifacts/contracts/CommunityUser.sol/Community
 import CommunityMember from "../../artifacts/contracts/CommunityMember.sol/CommunityMember.json";
 import TalentNFT from "../../artifacts/contracts/talent-nft/TalentNFT.sol/TalentNFT.json";
 import StakingMigration from "../../artifacts/contracts/StakingMigration.sol/StakingMigration.json";
+import TalSubdomainRegistrar from "../../artifacts/contracts/subdomain-registrar/TalSubdomainRegistrar.sol/TalSubdomainRegistrar.json";
+import TestDNSRegistrar from "../../artifacts/contracts/subdomain-registrar/test/TestDNSRegistrar.sol/TestDNSRegistrar.json";
 
 // test-only contracts
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
@@ -15,6 +17,13 @@ import ERC20MockWithoutErc165 from "../../artifacts/contracts/test/ERC20Mock.sol
 import TestStableThenToken from "../../artifacts/contracts/test/TestStableThenToken.sol/TestStableThenToken.json";
 import InterfaceIDs from "../../artifacts/contracts/test/InterfaceIDs.sol/InterfaceIDs.json";
 import TestRewardCalculator from "../../artifacts/contracts/test/TestRewardCalculator.sol/TestRewardCalculator.json";
+import TestResolver from "../../artifacts/contracts/subdomain-registrar/test/TestResolver.sol/TestResolver.json";
+import TestDNSSEC from "../../artifacts/contracts/subdomain-registrar/test/TestDNSSEC.sol/TestDNSSEC.json";
+import ENSRoot from "@ensdomains/ens-contracts/artifacts/contracts/root/Root.sol/Root.json";
+import ENSRegistry from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json";
+import DnsRegistrar from "@ensdomains/ens-contracts/artifacts/contracts/dnsregistrar/DNSRegistrar.sol/DNSRegistrar.json";
+import SimplePublicSuffixList from "@ensdomains/ens-contracts/artifacts/contracts/dnsRegistrar/SimplePublicSuffixList.sol/SimplePublicSuffixList.json";
+
 
 export {
   TalentProtocol,
@@ -23,12 +32,20 @@ export {
   Staking,
   StakingMigration,
   RewardCalculator,
+  TalSubdomainRegistrar,
   USDTMock,
   ERC20Mock,
   ERC20MockWithoutErc165,
   TestStableThenToken,
   InterfaceIDs,
   TestRewardCalculator,
+  TestResolver,
+  ENSRegistry,
+  DnsRegistrar,
+  TestDNSSEC,
+  SimplePublicSuffixList,
+  TestDNSRegistrar,
+  ENSRoot,
   CommunityUser,
   CommunityMember,
   TalentNFT

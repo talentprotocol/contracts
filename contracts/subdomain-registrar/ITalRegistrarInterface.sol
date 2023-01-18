@@ -16,8 +16,7 @@ interface ITalRegistrarInterface {
     * @dev Emitted when a new subdomain is registered.
     */
     event SubDomainRegistered(
-        uint256 indexed id,
-        string label,
+        string subDomainLabel,
         uint price,
         address indexed owner
     );

@@ -62,7 +62,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
      }
 
     modifier notStopped() {
-        require(!stopped);
+        require(!stopped, 'TALSUBDOMAIN_REGISTRAR: Contract is currently stopped.');
         _;
     }
 
@@ -116,6 +116,8 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     * @notice Sets the price to pay for upcoming subdomain registrations.
     */
     function setSubdomainFee(uint newSubdomainFee) public override onlyOwner {
+        require(newSubdomainFee != subdomainFee, 'TALSUBDOMAIN_REGISTRAR: New fee matches the current fee');
+
         subdomainFee = newSubdomainFee;
         emit SubDomainFeeChanged(subdomainFee);
     }
@@ -162,9 +164,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         bytes32 labelHash = keccak256(bytes(subdomainLabel));
 
         bytes32 childNode = keccak256(abi.encodePacked(ROOT_NODE, labelHash));
-        address subdomainOwner = ensRegistry.owner(
-            keccak256(abi.encodePacked(ROOT_NODE, labelHash))
-        );
+        address subdomainOwner = ensRegistry.owner(childNode);
         require(
             subdomainOwner == address(0x0),
             'TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_ALREADY_REGISTERED'
@@ -194,6 +194,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
 
         // Giving back the ownership to the user
         ensRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account);
-        emit SubDomainRegistered(uint256(childNode), subdomainLabel, 0, account);
+
+        emit SubDomainRegistered(subdomainLabel, subdomainFee, account);
     }
 }

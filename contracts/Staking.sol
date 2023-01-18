@@ -871,4 +871,17 @@ contract Staking is
         ITalentToken(_talent).disable();
         emit TalentDisabledForNetworkTransfer(_talent, _newChainId);
     }
+
+    function migrateStakes(address _talent, address[] memory _stakeholders, uint256[] memory _stakeAmounts) external {
+        require(_stakeholders.length == _stakeAmounts.length, "stakeholders and amounts do not match");
+        require(!disabled, "staking has been disabled");
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
+        for (uint i = 0; i < _stakeholders.length; i++) {
+            uint256 tokenAmount = convertUsdToToken(_stakeAmounts[i]);
+            totalStableStored += _stakeAmounts[i];
+            _checkpointAndStake(_stakeholders[i], _talent, tokenAmount);
+            emit Stake(_stakeholders[i], _talent, tokenAmount, true);
+        }
+    }
 }

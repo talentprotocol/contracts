@@ -249,7 +249,7 @@ describe("TalentToken", () => {
 
         await expect(action).to.be.revertedWith("Token has been disabled");
       });
-    })
+    });
   });
 
   describe("upgradeability", () => {

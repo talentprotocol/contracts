@@ -12,7 +12,7 @@ import {ITalRegistrarInterface} from './ITalRegistrarInterface.sol';
  *
  * Users may register a subdomain by calling `register` with the name of the domain
  * they wish to register under, and the label hash of the subdomain they want to
- * register. They must also specify the new owner of the domain. The registrar then configures a simple
+ * register. The registrar then configures a simple
  * default resolver, which resolves `addr` lookups to the new owner, and sets
  * the `owner` account as the owner of the subdomain in ENS.
  *
@@ -41,8 +41,10 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     * @dev Constructor.
     * @param ens The address of the ENS registry.
     * @param resolver The address of the Resolver.
+    * @param registrar The address of the ENS DNS registrar.
     * @param node The node that this registrar administers.
     * @param contractOwner The owner of the contract.
+    * @param initialSubdomainFee The amount to pay for a subdomain.
     */
     constructor(
         ENS ens,
@@ -69,6 +71,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     /**
     * @notice Transfer the root domain ownership of the TalSubdomain Registrar to a new owner.
     * @dev Can be called by the owner of the registrar.
+    * @param newDomainOwner The address of the new owner of `tal.community`.
     */
     function transferDomainOwnership(address newDomainOwner)
         public
@@ -82,7 +85,6 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
 
     /**
     * @notice Returns the address that owns the subdomain.
-    * @dev Can only be called if and only if the subdomain of the root node is free
     * @param subdomainLabel The subdomain label to get the owner.
     */
     function subDomainOwner(string memory subdomainLabel)
@@ -109,7 +111,49 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         payable
         notStopped
     {
-        _register(_msgSender(), subdomainLabel);
+        bytes32 labelHash = keccak256(bytes(subdomainLabel));
+        bytes32 childNode = keccak256(abi.encodePacked(ROOT_NODE, labelHash));
+        address subdomainOwner = ensRegistry.owner(childNode);
+        require(
+            subdomainOwner == address(0x0),
+            'TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_ALREADY_REGISTERED'
+        );
+        _payAndRegister(_msgSender(), subdomainLabel, labelHash, childNode);
+    }
+
+    /**
+    * @notice Register a name for free.
+    * @dev Can only be called by the owner if and only if the subdomain of the root node is free
+    * @param subdomainLabel The label hash of the domain to register a subdomain of.
+    * @param subdomainNewOwner The address that will own the sudomain.
+    */
+    function freeRegister(string memory subdomainLabel, address subdomainNewOwner)
+        public
+        override
+        onlyOwner
+    {
+        bytes32 labelHash = keccak256(bytes(subdomainLabel));
+        bytes32 childNode = keccak256(abi.encodePacked(ROOT_NODE, labelHash));
+        address subdomainOwner = ensRegistry.owner(childNode);
+        require(
+            subdomainOwner == address(0x0),
+            'TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_ALREADY_REGISTERED'
+        );
+
+        _register(subdomainNewOwner, subdomainLabel, labelHash, childNode, 0);
+    }
+
+    /**
+    * @notice Removes the owner of a subdomain.
+    * @dev Can only be called by the owner if and only if the subdomain is taken
+    * @param subdomainLabel The subdomain label to register.
+    */
+    function revokeSubdomain(string memory subdomainLabel)
+        public
+        override
+        onlyOwner
+    {
+        _revoke(subdomainLabel);
     }
 
     /**
@@ -123,7 +167,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     }
 
     /**
-    * @notice Stops the registrar, disabling configuring of new domains.
+    * @notice Stops the registrar, disabling the register of new domains.
     * @dev Can only be called by the owner.
     */
     function stop() public override notStopped onlyOwner {
@@ -131,7 +175,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     }
 
     /**
-    * @notice Opens the registrar, enabling configuring of new domains..
+    * @notice Opens the registrar, enabling configuring of new domains.
     * @dev Can only be called by the owner.
     */
     function open() public override onlyOwner {
@@ -140,7 +184,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
 
     /**
     * @notice Submits ownership proof to the DNS registrar contract.
-    *
+    * @dev Can only be called by the owner.
     */
     function configureDnsOwnership(
         bytes memory name,
@@ -155,21 +199,19 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     }
 
     /**
-    * @dev Register a name and mint a DAO token.
+    * @dev Register a name when the correct amount is passed.
     *      Can only be called if and only if the subdomain is free to be registered.
     * @param account The address that will receive the subdomain.
     * @param subdomainLabel The label to register.
+    * @param labelHash Encrypted representation of the label to register.
+    * @param childNode Encrypted representation of the label to register plus the root domain.
     */
-    function _register(address account, string memory subdomainLabel) internal {
-        bytes32 labelHash = keccak256(bytes(subdomainLabel));
-
-        bytes32 childNode = keccak256(abi.encodePacked(ROOT_NODE, labelHash));
-        address subdomainOwner = ensRegistry.owner(childNode);
-        require(
-            subdomainOwner == address(0x0),
-            'TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_ALREADY_REGISTERED'
-        );
-
+    function _payAndRegister(
+        address account,
+        string memory subdomainLabel,
+        bytes32 labelHash,
+        bytes32 childNode
+    ) internal {
         // User must have paid enough
         require(msg.value >= subdomainFee, 'TALSUBDOMAIN_REGISTRAR: Amount passed is not enough');
 
@@ -180,6 +222,24 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
 
         payable(owner()).transfer(subdomainFee);
 
+        _register(account, subdomainLabel, labelHash, childNode, subdomainFee);
+    }
+
+    /**
+    * @dev Register a name.
+    *      Can only be called if and only if the subdomain is free to be registered.
+    * @param account The address that will receive the subdomain.
+    * @param subdomainLabel The label to register.
+    * @param labelHash Encrypted representation of the label to register.
+    * @param childNode Encrypted representation of the label to register plus the root domain.
+    */
+    function _register(
+        address account,
+        string memory subdomainLabel,
+        bytes32 labelHash,
+        bytes32 childNode,
+        uint fee
+    ) internal {
         // Set ownership to TalRegistrar, so that the contract can set resolver
         ensRegistry.setSubnodeRecord(
             ROOT_NODE,
@@ -195,6 +255,30 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         // Giving back the ownership to the user
         ensRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account);
 
-        emit SubDomainRegistered(subdomainLabel, subdomainFee, account);
+        emit SubDomainRegistered(subdomainLabel, fee, account);
+    }
+
+    /**
+    * @notice Removes the owner of a subdomain.
+    * @dev Can only be called by the owner if and only if the subdomain is taken
+    * @param subdomainLabel The subdomain label to register.
+    */
+    function _revoke(string memory subdomainLabel) internal {
+        bytes32 labelHash = keccak256(bytes(subdomainLabel));
+        bytes32 childNode = keccak256(abi.encodePacked(ROOT_NODE, labelHash));
+        address subdomainOwner = ensRegistry.owner(childNode);
+        require(
+            subdomainOwner != address(0x0),
+            'TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_NOT_REGISTERED'
+        );
+
+        // Revoke ownership
+        ensRegistry.setSubnodeRecord(
+            ROOT_NODE,
+            labelHash,
+            address(0x0),
+            address(0x0),
+            0
+        );
     }
 }

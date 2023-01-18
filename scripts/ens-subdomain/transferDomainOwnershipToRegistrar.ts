@@ -25,7 +25,7 @@ async function main() {
 
   // Address of the deployed registrar smart contract
   // The domain needs to have an _ens record pointing to the address below
-  const subdomainRegistrarAddress = "0x7F522d7d45434655b616F7CB8AD0304623e7Eb38";
+  const subdomainRegistrarAddress = "0x1e6c790d7651338F3CB88381a0861bD21Df28a49";
 
   const subdomainRegistrarContract = new ethers.Contract(
     subdomainRegistrarAddress,
@@ -67,17 +67,17 @@ async function main() {
   console.log("rrsetsHex", rrsetsHex);
   
 
-  // let tx;
-  // if(rrsets.length === 0){
-  //     // This happens if someone has submitted the proof directly to DNSSECOracle, hence only claim a name on the registrar.
-  //     tx = await dnsRegistrarContract.claim(encodedName, proof, {gasPrice: feeData.gasPrice?.mul(20)})
-  // }else{
-  //     // This submits proof to DNSSECOracle, then claim a name.
-  //     // tx = await subdomainRegistrarContract.configureDnsOwnership(encodedName, rrsetsHex, hexEncodeBuffer(proof), {gasPrice: feeData.gasPrice?.mul(20)})
-  //     tx = await dnsRegistrarContract.proveAndClaim(encodedName, rrsetsHex, hexEncodeBuffer(proof), {gasPrice: feeData.gasPrice?.mul(20)})
-  // }
+  let tx;
+  if(rrsets.length === 0){
+      // This happens if someone has submitted the proof directly to DNSSECOracle, hence only claim a name on the registrar.
+      tx = await dnsRegistrarContract.claim(encodedName, proof, {gasPrice: feeData.gasPrice?.mul(20)})
+  }else{
+      // This submits proof to DNSSECOracle, then claim a name.
+      tx = await subdomainRegistrarContract.configureDnsOwnership(encodedName, rrsetsHex, hexEncodeBuffer(proof), {gasPrice: feeData.gasPrice?.mul(20)})
+      // tx = await dnsRegistrarContract.proveAndClaim(encodedName, rrsetsHex, hexEncodeBuffer(proof), {gasPrice: feeData.gasPrice?.mul(20)})
+  }
 
-  // console.log(tx);
+  console.log(tx);
 }
 
 main()

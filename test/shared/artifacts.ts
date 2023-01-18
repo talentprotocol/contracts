@@ -8,7 +8,6 @@ import CommunityMember from "../../artifacts/contracts/CommunityMember.sol/Commu
 import TalentNFT from "../../artifacts/contracts/talent-nft/TalentNFT.sol/TalentNFT.json";
 import StakingMigration from "../../artifacts/contracts/StakingMigration.sol/StakingMigration.json";
 import TalSubdomainRegistrar from "../../artifacts/contracts/subdomain-registrar/TalSubdomainRegistrar.sol/TalSubdomainRegistrar.json";
-import TestDNSRegistrar from "../../artifacts/contracts/subdomain-registrar/test/TestDNSRegistrar.sol/TestDNSRegistrar.json";
 
 // test-only contracts
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
@@ -22,8 +21,7 @@ import TestDNSSEC from "../../artifacts/contracts/subdomain-registrar/test/TestD
 import ENSRoot from "@ensdomains/ens-contracts/artifacts/contracts/root/Root.sol/Root.json";
 import ENSRegistry from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json";
 import DnsRegistrar from "@ensdomains/ens-contracts/artifacts/contracts/dnsregistrar/DNSRegistrar.sol/DNSRegistrar.json";
-import SimplePublicSuffixList from "@ensdomains/ens-contracts/artifacts/contracts/dnsRegistrar/SimplePublicSuffixList.sol/SimplePublicSuffixList.json";
-
+import SimplePublicSuffixList from "@ensdomains/ens-contracts/artifacts/contracts/dnsregistrar/SimplePublicSuffixList.sol/SimplePublicSuffixList.json";
 
 export {
   TalentProtocol,
@@ -44,7 +42,6 @@ export {
   DnsRegistrar,
   TestDNSSEC,
   SimplePublicSuffixList,
-  TestDNSRegistrar,
   ENSRoot,
   CommunityUser,
   CommunityMember,

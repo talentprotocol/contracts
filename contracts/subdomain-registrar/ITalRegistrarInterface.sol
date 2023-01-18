@@ -54,6 +54,21 @@ interface ITalRegistrarInterface {
     function register(string calldata subdomainLabel) external payable;
 
     /**
+    * @notice Register a name for free.
+    * @param subdomainLabel The subdomain label to register.
+    * @param subdomainNewOwner The address that will own the sudomain.
+    *
+    * Emits a {SubDomainRegistered} event.
+    */
+    function freeRegister(string calldata subdomainLabel, address subdomainNewOwner) external;
+
+    /**
+    * @notice Removes the owner of a subdomain.
+    * @param subdomainLabel The subdomain label to register.
+    */
+    function revokeSubdomain(string calldata subdomainLabel) external;
+
+    /**
     * @notice Sets the price to pay for upcoming subdomain registrations.
     */
     function setSubdomainFee(uint subdomainFee) external;
@@ -70,7 +85,6 @@ interface ITalRegistrarInterface {
 
     /**
     * @notice Submits ownership proof to the DNS registrar contract.
-    *
     */
     function configureDnsOwnership(
         bytes memory name,

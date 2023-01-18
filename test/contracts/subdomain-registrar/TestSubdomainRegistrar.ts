@@ -1,7 +1,3 @@
-// const ENS = artifacts.require("ENSRegistry");
-// const SubdomainRegistrar = artifacts.require("SubdomainRegistrar");
-// const HashRegistrar = artifacts.require("HashRegistrar");
-// const TestResolver = artifacts.require("TestResolver");
 import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -41,7 +37,6 @@ describe('SubdomainRegistrar', function () {
   const domain = `${label}.community`;
   const node = nameHash.hash(domain);
   const defaultFee = parseUnits("8");
-  const now = Math.round(new Date().getTime() / 1000);
 
   before(async function () {
     [ensOwner, registrarOwner, account1, account2] = await ethers.getSigners();
@@ -60,7 +55,7 @@ describe('SubdomainRegistrar', function () {
       hexEncodeName('com'),
       hexEncodeName('community'),
     ])
-    dnsRegistrar = await deployContract(ensOwner, Artifacts.TestDNSRegistrar, [dnssec.address, suffixes.address, ens.address]);
+    dnsRegistrar = await deployContract(ensOwner, Artifacts.DnsRegistrar, [dnssec.address, suffixes.address, ens.address]);
     await root.setController(dnsRegistrar.address, true)
 
     subdomainRegistrar = await deployContract(registrarOwner, Artifacts.TalSubdomainRegistrar, [
@@ -82,11 +77,13 @@ describe('SubdomainRegistrar', function () {
       data: ['a=' + subdomainRegistrar.address]
     });
     
+    const now = Math.round(new Date().getTime() / 1000);
+    const oneYearFromNow = Math.round(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).getTime() / 1000);
     await dnssec.setData(
       16,
       hexEncodeName(`_ens.${domain}`),
       now,
-      now,
+      oneYearFromNow,
       proof
     );
 
@@ -111,11 +108,13 @@ describe('SubdomainRegistrar', function () {
       data: ['a=' + subdomainRegistrar.address]
     });
     
+    const now = Math.round(new Date().getTime() / 1000);
+    const oneYearFromNow = Math.round(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).getTime() / 1000);
     await dnssec.setData(
       16,
       hexEncodeName(`_ens.${domain}`),
       now,
-      now,
+      oneYearFromNow,
       proof
     );
 
@@ -126,7 +125,7 @@ describe('SubdomainRegistrar', function () {
     expect(await ens.resolver(nameHash.hash(domain))).to.be.equal(resolver.address);
   })
 
-  describe("testing subdomain register", () => {
+  describe("testing subdomain payable register", () => {
     beforeEach(async () => {
       await claimDNS();
     });
@@ -208,6 +207,146 @@ describe('SubdomainRegistrar', function () {
       await expect(action).to.be.revertedWith("TALSUBDOMAIN_REGISTRAR: Contract is currently stopped.");
 
       expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+    })
+  })
+
+  describe("testing subdomain free register", () => {
+    beforeEach(async () => {
+      await claimDNS();
+      await subdomainRegistrar.connect(registrarOwner).open();
+    });
+
+    it('allows the owner to register a subdomain not taken for free', async() => {
+      const subDomain = "freedinis";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+    })
+
+    it('allows the owner to register a subdomain not taken for free even if the contract is stopped', async() => {
+      await subdomainRegistrar.connect(registrarOwner).stop();
+
+      const subDomain = "freestopped";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+    })
+
+    it('emits a SubDomainRegistered event when a free domain is registered', async() => {
+      const subDomain = "freeverdefred";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      const tx = await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account2.address);
+
+      const event = await findEvent(tx, "SubDomainRegistered");
+
+      expect(event?.args?.subDomainLabel).to.eq(subDomain);
+      expect(event?.args?.price).to.be.eq(0);
+      expect(event?.args?.owner).to.be.eq(account2.address);
+    })
+
+    it('prevents register a subdomain already taken for free', async() => {
+      const subDomain = "freetaken";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+
+      const action = subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account2.address);
+
+      await expect(action).to.be.revertedWith("TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_ALREADY_REGISTERED");
+    })
+
+    it('only allow the owner to register a subdomain for free', async() => {
+      const subDomain = "freenotowner";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      const action = subdomainRegistrar.connect(account1).freeRegister(subDomain, account2.address);
+
+      await expect(action).to.be.reverted
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+    })
+  })
+
+  describe("testing subdomain revoke", () => {
+    beforeEach(async () => {
+      await claimDNS();
+      await subdomainRegistrar.connect(registrarOwner).open();
+    });
+
+    it('allows the owner to revoke a registered subdomain', async() => {
+      const subDomain = "registered";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+
+      await subdomainRegistrar.connect(registrarOwner).revokeSubdomain(subDomain);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+    })
+
+    it('allows the owner to revoke a subdomain even if the contract is stopped', async() => {
+      await subdomainRegistrar.connect(registrarOwner).stop();
+
+      const subDomain = "stoppedregistered";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+
+      await subdomainRegistrar.connect(registrarOwner).revokeSubdomain(subDomain);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+    })
+
+    it('allows the owner to register a revoked subdomain', async() => {
+      const subDomain = "revokedregistered";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+
+      await subdomainRegistrar.connect(registrarOwner).revokeSubdomain(subDomain);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+    })
+
+    it('prevents revoke a subdomain not registered', async() => {
+      const subDomain = "notregistered";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      const action = subdomainRegistrar.connect(registrarOwner).revokeSubdomain(subDomain);
+
+      await expect(action).to.be.revertedWith("TALSUBDOMAIN_REGISTRAR: SUBDOMAIN_NOT_REGISTERED");
+    })
+
+    it('only allow the owner to revoke a subdomain', async() => {
+      const subDomain = "registerednotowner";
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(ZERO_ADDRESS);
+
+      await subdomainRegistrar.connect(registrarOwner).freeRegister(subDomain, account1.address);
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
+
+      const action = subdomainRegistrar.connect(account1).revokeSubdomain(subDomain);
+
+      await expect(action).to.be.reverted
+
+      expect(await subdomainRegistrar.subDomainOwner(subDomain)).to.be.equal(account1.address);
     })
   })
 

@@ -13,7 +13,6 @@ import type {
   TalentFactoryV2,
   StakingMigration,
   TalentFactoryV2__factory,
-  RewardCalculator,
 } from "../../typechain-types";
 
 import { TalentTokenV2__factory, UpgradeableBeacon__factory } from "../../typechain-types";
@@ -72,9 +71,6 @@ describe("StakingMigration", () => {
     const FactoryFactory = await ethers.getContractFactory("TalentFactory");
     factory = (await upgrades.deployProxy(FactoryFactory, [])) as TalentFactory;
 
-    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
     const StakingContract = await ethers.getContractFactory("Staking");
     staking = (await upgrades.deployProxy(StakingContract, [
       start,
@@ -84,7 +80,6 @@ describe("StakingMigration", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-      rewardCalculator.address,
     ])) as Staking;
     await staking.deployed();
 
@@ -131,11 +126,6 @@ describe("StakingMigration", () => {
     const amountInTal = amount.mul(50);
     expect(stake.tokenAmount).to.eq(amountInTal.add(event?.args?.stakerReward));
 
-    // deploy of a new smart contract (V2)
-
-    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
     const StakingMigrationContract = await ethers.getContractFactory("StakingMigration");
     const stakingv2 = (await upgrades.deployProxy(StakingMigrationContract, [
       start,
@@ -145,7 +135,6 @@ describe("StakingMigration", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-      rewardCalculator.address,
     ])) as StakingMigration;
     await stakingv2.deployed();
 
@@ -228,10 +217,6 @@ describe("StakingMigration", () => {
     const amountInTal = amount.mul(50);
     expect(stake.tokenAmount).to.eq(amountInTal.add(event?.args?.stakerReward));
 
-    // deploy of a new smart contract (V2)
-    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
     const StakingMigrationContract = await ethers.getContractFactory("StakingMigration");
     const stakingv2 = (await upgrades.deployProxy(StakingMigrationContract, [
       start,
@@ -241,7 +226,6 @@ describe("StakingMigration", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-      rewardCalculator.address,
     ])) as StakingMigration;
     await stakingv2.deployed();
 
@@ -294,9 +278,6 @@ describe("StakingMigration", () => {
     ensureTimestamp(start);
     const amount = parseUnits("25");
 
-    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
     const StakingMigrationContract = await ethers.getContractFactory("StakingMigration");
     const stakingv2 = (await upgrades.deployProxy(StakingMigrationContract, [
       start,
@@ -306,7 +287,6 @@ describe("StakingMigration", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-      rewardCalculator.address,
     ])) as StakingMigration;
     await stakingv2.deployed();
 

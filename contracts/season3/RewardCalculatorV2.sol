@@ -2,30 +2,37 @@
 pragma solidity ^0.8.7;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {
+    AccessControlEnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+
 import "hardhat/console.sol";
 
-interface IRewardParameters {
-    /// Start of the staking period
-    function start() external view returns (uint256);
+interface IRewardCalculatorV2 {
+    /// Return variable MUL
+    function mul() external view returns (uint256);
 
-    /// End of the staking period
-    function end() external view returns (uint256);
+    /// Calculate the spefiic reward
+    function calculateReward(
+        uint256 _shares,
+        uint256 _stakerS,
+        uint256 _currentS,
+        uint256 _stakerWeight,
+        uint256 _talentWeight
+    ) external view returns (uint256, uint256);
 
-    // Total amount of shares currently staked
-    function totalShares() external view returns (uint256);
+    /// Calculate the global reward
+    function calculateGlobalReward(
+        uint256 stakingStart,
+        uint256 stakingEnd,
+        uint256 _start,
+        uint256 _end,
+        uint256 rewardsMax
+    ) external view returns (uint256);
 
-    /// Maximum amount of rewards to be distributed
-    function rewardsMax() external view returns (uint256);
-
-    // Total amount of rewards already given
-    function rewardsGiven() external view returns (uint256);
-
-    // Amount of rewards still left to earn
-    function rewardsLeft() external view returns (uint256);
-
-    /// Sum of sqrt(tokenAmount) for each stake
-    /// Used to compute adjusted reward values
-    function totalAdjustedShares() external view returns (uint256);
+    /// sqrt function
+    function sqrt(uint256 x) external pure returns (uint256);
 }
 
 /// @title Mathematical model that calculates staking rewards
@@ -54,13 +61,22 @@ interface IRewardParameters {
 ///   e.g.: if two stakes exist, Alice with 1 TAL, and Bob with 2 TAL, adjusted weights are:
 ///     Alice: sqrt(1) / (sqrt(1) + sqrt(2)) ~= 41.42%
 ///     Bob:   sqrt(2) / (sqrt(1) + sqrt(2)) ~= 58.57%
-abstract contract RewardCalculator is Initializable, IRewardParameters {
+contract RewardCalculatorV2 is Initializable, ContextUpgradeable, AccessControlEnumerableUpgradeable {
     /// Multiplier used to offset small percentage values to fit within a uint256
     /// e.g. 5% is internally represented as (0.05 * mul). The final result
     /// after calculations is divided by mul again to retrieve a real value
     uint256 internal constant MUL = 1e10;
 
-    function __RewardCalculator_init() public initializer {}
+    function initialize() public virtual initializer {
+        __Context_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function mul() external pure returns (uint256) {
+        return MUL;
+    }
 
     /// Calculates how many shares should be rewarded to a stake,
     /// based on how many shares are staked, and a beginning timestamp
@@ -84,20 +100,26 @@ abstract contract RewardCalculator is Initializable, IRewardParameters {
         uint256 _currentS,
         uint256 _stakerWeight,
         uint256 _talentWeight
-    ) internal pure returns (uint256, uint256) {
+    ) public pure returns (uint256, uint256) {
         uint256 total = (sqrt(_shares) * (_currentS - _stakerS)) / MUL;
         uint256 talentShare = _calculateTalentShare(total, _stakerWeight, _talentWeight);
 
         return (total - talentShare, talentShare);
     }
 
-    function calculateGlobalReward(uint256 _start, uint256 _end) internal view returns (uint256) {
-        (uint256 start, uint256 end) = _truncatePeriod(_start, _end);
-        (uint256 startPercent, uint256 endPercent) = _periodToPercents(start, end);
+    function calculateGlobalReward(
+        uint256 stakingStart,
+        uint256 stakingEnd,
+        uint256 _start,
+        uint256 _end,
+        uint256 rewardsMax
+    ) public pure returns (uint256) {
+        (uint256 start, uint256 end) = _truncatePeriod(stakingStart, stakingEnd, _start, _end);
+        (uint256 startPercent, uint256 endPercent) = _periodToPercents(stakingStart, stakingEnd, start, end);
 
         uint256 percentage = _curvePercentage(startPercent, endPercent);
 
-        return ((percentage * this.rewardsMax()));
+        return ((percentage * rewardsMax));
     }
 
     function _calculateTalentShare(
@@ -107,6 +129,10 @@ abstract contract RewardCalculator is Initializable, IRewardParameters {
     ) internal pure returns (uint256) {
         uint256 stakeAdjustedWeight = sqrt(_stakerWeight * MUL);
         uint256 talentAdjustedWeight = sqrt(_talentWeight * MUL);
+
+        if (stakeAdjustedWeight + talentAdjustedWeight == 0) {
+            return 0;
+        }
 
         uint256 talentWeight = (talentAdjustedWeight * MUL) / ((stakeAdjustedWeight + talentAdjustedWeight));
         uint256 talentRewards = (_rewards * talentWeight) / MUL;
@@ -120,28 +146,38 @@ abstract contract RewardCalculator is Initializable, IRewardParameters {
     }
 
     /// Truncates a period to fit within the start and end date of the staking period
-    function _truncatePeriod(uint256 _start, uint256 _end) internal view returns (uint256, uint256) {
-        if (_end <= this.start() || _start >= this.end()) {
-            return (this.start(), this.start());
+    function _truncatePeriod(
+        uint256 _stakingStart,
+        uint256 _stakingEnd,
+        uint256 _start,
+        uint256 _end
+    ) internal pure returns (uint256, uint256) {
+        if (_end <= _stakingStart || _start >= _stakingEnd) {
+            return (_stakingStart, _stakingStart);
         }
 
-        uint256 periodStart = _start < this.start() ? this.start() : _start;
-        uint256 periodEnd = _end > this.end() ? this.end() : _end;
+        uint256 periodStart = _start < _stakingStart ? _stakingStart : _start;
+        uint256 periodEnd = _end > _stakingEnd ? _stakingEnd : _end;
 
         return (periodStart, periodEnd);
     }
 
     /// converts a period to percentages where 0 is the beginning and 100 is
     /// the end of the staking period
-    function _periodToPercents(uint256 _start, uint256 _end) internal view returns (uint256, uint256) {
-        uint256 totalDuration = this.end() - this.start();
+    function _periodToPercents(
+        uint256 _stakingStart,
+        uint256 _stakingEnd,
+        uint256 _start,
+        uint256 _end
+    ) internal pure returns (uint256, uint256) {
+        uint256 totalDuration = _stakingEnd - _stakingStart;
 
         if (totalDuration == 0) {
             return (0, 1);
         }
 
-        uint256 startPercent = ((_start - this.start()) * MUL) / totalDuration;
-        uint256 endPercent = ((_end - this.start()) * MUL) / totalDuration;
+        uint256 startPercent = ((_start - _stakingStart) * MUL) / totalDuration;
+        uint256 endPercent = ((_end - _stakingStart) * MUL) / totalDuration;
 
         return (startPercent, endPercent);
     }
@@ -176,7 +212,7 @@ abstract contract RewardCalculator is Initializable, IRewardParameters {
     }
 
     /// copied from https://github.com/ethereum/dapp-bin/pull/50/files
-    function sqrt(uint256 x) internal pure returns (uint256 y) {
+    function sqrt(uint256 x) public pure returns (uint256 y) {
         if (x == 0) return 0;
         else if (x <= 3) return 1;
         uint256 z = (x + 1) / 2;

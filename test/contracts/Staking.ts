@@ -15,8 +15,6 @@ import type {
   Staking,
   TalentToken,
   TalentFactoryV2__factory,
-  VirtualTAL,
-  RewardCalculator,
 } from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
@@ -42,8 +40,6 @@ describe("Staking", () => {
   let talentToken2: TalentToken;
   let factory: TalentFactory;
   let staking: Staking;
-  let VirtualTALFactory: ContractFactory;
-  let virtualTAL: VirtualTAL;
 
   let start = dayjs().add(1, "day").unix();
   let end = dayjs.unix(start).add(100, "days").unix();
@@ -77,9 +73,6 @@ describe("Staking", () => {
 
   describe("constructor", () => {
     it("works with valid arguments", async () => {
-      const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-      const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
       const StakingContract = await ethers.getContractFactory("Staking");
       const action = upgrades.deployProxy(StakingContract, [
         start,
@@ -89,16 +82,12 @@ describe("Staking", () => {
         factory.address,
         parseUnits("0.02"),
         parseUnits("5"),
-        rewardCalculator.address,
       ]);
 
       await expect(action).not.to.be.reverted;
     });
 
     it("fails if tokenPrice is 0", async () => {
-      const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-      const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
       const StakingContract = await ethers.getContractFactory("Staking");
       const action = upgrades.deployProxy(StakingContract, [
         start,
@@ -108,16 +97,12 @@ describe("Staking", () => {
         factory.address,
         parseUnits("0"),
         parseUnits("50"),
-        rewardCalculator.address,
       ]);
 
       await expect(action).to.be.revertedWith("_tokenPrice cannot be 0");
     });
 
     it("fails if talentPrice is 0", async () => {
-      const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-      const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
       const StakingContract = await ethers.getContractFactory("Staking");
       const action = upgrades.deployProxy(StakingContract, [
         start,
@@ -127,7 +112,6 @@ describe("Staking", () => {
         factory.address,
         parseUnits("0.5"),
         parseUnits("0"),
-        rewardCalculator.address,
       ]);
 
       await expect(action).to.be.revertedWith("_talentPrice cannot be 0");
@@ -135,9 +119,6 @@ describe("Staking", () => {
   });
 
   const builder = async (): Promise<Staking> => {
-    const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-    const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
     const StakingContract = await ethers.getContractFactory("Staking");
     const staking = await upgrades.deployProxy(StakingContract, [
       start,
@@ -147,7 +128,6 @@ describe("Staking", () => {
       factory.address,
       parseUnits("0.02"),
       parseUnits("5"),
-      rewardCalculator.address,
     ]);
     await staking.deployed();
 
@@ -161,9 +141,6 @@ describe("Staking", () => {
 
   describe("upgradabled", () => {
     beforeEach(async () => {
-      const RewardCalculator = await ethers.getContractFactory("RewardCalculator");
-      const rewardCalculator = (await upgrades.deployProxy(RewardCalculator, [])) as RewardCalculator;
-
       const StakingContract = await ethers.getContractFactory("Staking");
       staking = (await upgrades.deployProxy(StakingContract, [
         start,
@@ -173,7 +150,6 @@ describe("Staking", () => {
         factory.address,
         parseUnits("0.02"),
         parseUnits("5"),
-        rewardCalculator.address,
       ])) as Staking;
 
       await staking.deployed();

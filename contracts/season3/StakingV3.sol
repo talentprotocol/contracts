@@ -6,25 +6,32 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import {IERC1363ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
+import {
+    AccessControlEnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import {
+    IERC1363ReceiverUpgradeable
+} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "hardhat/console.sol";
 
-import {StableThenToken} from "./staking_helpers/StableThenToken.sol";
-import {IRewardParameters, RewardCalculator} from "./staking_helpers/RewardCalculator.sol";
-import {ITalentToken} from "./TalentToken.sol";
-import {ITalentFactory} from "./TalentFactory.sol";
+import {StableThenToken} from "../staking_helpers/StableThenToken.sol";
+import {IRewardCalculatorV2} from "./RewardCalculatorV2.sol";
+import {ITalentToken} from "../TalentToken.sol";
+import {ITalentFactory} from "../TalentFactory.sol";
+import {ITalentFactoryV3} from "./TalentFactoryV3.sol";
+import {IVirtualTAL} from "./VirtualTAL.sol";
 
-/// Staking contract
+/// StakingV3 contract
 ///
-/// @notice During phase 1, accepts USDT, which is automatically converted into an equivalent TAL amount.
+/// @notice During phase 1, accepts USDT or Virtual TAL, which is automatically
+///   converted into an equivalent TAL amount.
 ///   Once phase 2 starts (after a TAL address has been set), only TAL deposits are accepted
 ///
-/// @notice Staking:
+/// @notice StakingV3:
 ///   Each stake results in minting a set supply of the corresponding talent token
 ///   Talent tokens are immediately transfered to the staker, and TAL is locked into the stake
-///   If the amount of TAL sent corresponds to an amount of Talent Token greater than
 ///
 /// @notice Checkpoints:
 ///   Any action on a stake triggers a checkpoint. Checkpoints accumulate
@@ -41,13 +48,12 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///
 /// @notice Re-stake:
 ///   Stakers can at any moment strengthen their position by sending in more TAL to an existing stake.
-///   This will cause a checkpoint, accumulate rewards in the stake, and mint new Talent Token
+///   This will cause a checkpoint, accumulate rewards in the virtual TAL wallet, and mint new Talent Token
 ///
 /// @notice Claim rewards:
 ///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
 ///   Rewards are only calculated from the moment of their last checkpoint.
-///   Claiming rewards adds the calculated amount of TAL to the existing stake,
-///   and mints the equivalent amount of Talent Token.
+///   Claiming rewards adds the calculated amount of TAL to the staker virtual TAL wallet
 ///
 /// @notice Withdraw rewards:
 ///   Stakers can, at any moment, claim whatever rewards are pending from their stake.
@@ -56,9 +62,9 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   No Talent Token is minted in this scenario
 ///
 /// @notice Rewards:
-///   given based on the logic from `RewardCalculator`, which
+///   given based on the logic from `RewardCalculatorV2`, which
 ///   relies on a continuous `totalAdjustedShares` being updated on every
-///   stake/withdraw. Seel `RewardCalculator` for more details
+///   stake/withdraw. See `RewardCalculatorV2` for more details
 ///
 /// @notice Disabling staking:
 ///   The team reserves the ability to halt staking & reward accumulation,
@@ -72,13 +78,12 @@ import {ITalentFactory} from "./TalentFactory.sol";
 ///   Once 0 is reached, since no more claims will ever be made,
 ///   the remaining TAL from the reward pool can be safely withdrawn back to the team
 
-contract Staking is
+contract StakingV3 is
     Initializable,
     ContextUpgradeable,
     ERC165Upgradeable,
     AccessControlEnumerableUpgradeable,
     StableThenToken,
-    RewardCalculator,
     IERC1363ReceiverUpgradeable
 {
     //
@@ -87,22 +92,31 @@ contract Staking is
 
     /// Details of each individual stake
     struct StakeData {
-        /// Amount currently staked
+        /// Amount of TAL currently staked per talent
         uint256 tokenAmount;
         /// Talent tokens minted as part of this stake
         uint256 talentAmount;
+        uint256 firstPurchaseTimestamp;
+        uint256 lastPurchaseTimestamp;
+    }
+
+    /// Details of investor's global stake
+    struct GlobalStakeData {
+        /// Amount of all TAL currently staked
+        uint256 tokenAmount;
         /// Latest checkpoint for this stake. Staking rewards should only be
         /// calculated from this moment forward. Anything past it should already
         /// be accounted for in `tokenAmount`
         uint256 lastCheckpointAt;
         uint256 S;
-        bool finishedAccumulating;
+        /// S for talent pool rewards
+        uint256 talentS;
     }
 
-    /// Possible actions when a checkpoint is being triggered
+    /// Possible actions when a checkpoint is being triggered to withdraw rewards
     enum RewardAction {
         WITHDRAW,
-        RESTAKE
+        VIRTUAL_TAL_WITHDRAW
     }
 
     //
@@ -118,6 +132,9 @@ contract Staking is
     /// List of all stakes (investor => talent => Stake)
     mapping(address => mapping(address => StakeData)) public stakes;
 
+    /// List of all stakes (investor => StakeV2)
+    mapping(address => GlobalStakeData) public globalStakes;
+
     // How many stakes are there in total
     uint256 public activeStakes;
 
@@ -127,14 +144,14 @@ contract Staking is
     /// Talent's share of rewards, to be redeemable by each individual talent
     mapping(address => uint256) public talentRedeemableRewards;
 
-    /// Max S for a given talent, to halt rewards after minting is over
-    mapping(address => uint256) public maxSForTalent;
-
     // Ability for admins to disable further stakes and rewards
     bool public disabled;
 
     /// The Talent Token Factory contract (ITalentFactory)
     address public factory;
+
+    /// The Reward Calculator contract (IRewardCalculator)
+    address public rewardCalculator;
 
     /// The price (in USD cents) of a single TAL token
     uint256 public tokenPrice;
@@ -157,25 +174,40 @@ contract Staking is
 
     /// Sum of sqrt(tokenAmount) for each stake
     /// Used to compute adjusted reward values
-    uint256 public override(IRewardParameters) totalAdjustedShares;
+    uint256 public totalAdjustedShares;
 
     // How much TAL is to be given in rewards
-    uint256 public override(IRewardParameters) rewardsMax;
+    uint256 public rewardsMax;
 
     // How much TAL has already been given/reserved in rewards
-    uint256 public override(IRewardParameters) rewardsGiven;
+    uint256 public rewardsGiven;
 
     /// Start date for staking period
-    uint256 public override(IRewardParameters) start;
+    uint256 public start;
 
     /// End date for staking period
-    uint256 public override(IRewardParameters) end;
+    uint256 public end;
 
     // Continuously growing value used to compute reward distributions
     uint256 public S;
 
+    // Continuously growing value used to compute talent reward distributions
+    uint256 public talentS;
+
     // Timestamp at which S was last updated
     uint256 public SAt;
+
+    // Total value of TAL invested by all supporters
+    uint256 public totalTALInvested;
+
+    // Total value of TAL invested only by talents
+    uint256 public totalTalentTALInvested;
+
+    // Total value of TAL invested only by supporters
+    uint256 public totalSupporterTALInvested;
+
+    /// address for Virtual TAL smart contract
+    address public virtualTAL;
 
     /// re-entrancy guard for `updatesAdjustedShares`
     bool private isAlreadyUpdatingAdjustedShares;
@@ -187,16 +219,8 @@ contract Staking is
     // emitted when a new stake is created
     event Stake(address indexed owner, address indexed talentToken, uint256 talAmount, bool stable);
 
-    // emitte when stake rewards are reinvested into the stake
-    event RewardClaim(address indexed owner, address indexed talentToken, uint256 stakerReward, uint256 talentReward);
-
     // emitted when stake rewards are withdrawn
-    event RewardWithdrawal(
-        address indexed owner,
-        address indexed talentToken,
-        uint256 stakerReward,
-        uint256 talentReward
-    );
+    event RewardWithdrawal(address indexed owner, uint256 stakerReward, uint256 talentReward);
 
     // emitted when a talent withdraws his share of rewards
     event TalentRewardWithdrawal(address indexed talentToken, address indexed talentTokenWallet, uint256 reward);
@@ -215,6 +239,7 @@ contract Staking is
     /// @param _factory ITalentFactory instance
     /// @param _tokenPrice The price of a tal token in the give stable-coin (50 means 1 TAL = 0.50USD)
     /// @param _talentPrice The price of a talent token in TAL (50 means 1 Talent Token = 50 TAL)
+    /// @param _rewardCalculator IRewardCalculatorV2 instance
 
     function initialize(
         uint256 _start,
@@ -223,7 +248,9 @@ contract Staking is
         address _stableCoin,
         address _factory,
         uint256 _tokenPrice,
-        uint256 _talentPrice
+        uint256 _talentPrice,
+        address _rewardCalculator,
+        address _virtualTAL
     ) public virtual initializer {
         require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
@@ -233,7 +260,6 @@ contract Staking is
         __AccessControlEnumerable_init_unchained();
 
         __StableThenToken_init(_stableCoin);
-        __RewardCalculator_init();
 
         start = _start;
         end = _end;
@@ -242,6 +268,8 @@ contract Staking is
         tokenPrice = _tokenPrice;
         talentPrice = _talentPrice;
         SAt = _start;
+        rewardCalculator = _rewardCalculator;
+        virtualTAL = _virtualTAL;
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -271,17 +299,14 @@ contract Staking is
         public
         onlyWhileStakingEnabled
         stablePhaseOnly
-        updatesAdjustedShares(msg.sender, _talent)
+        updatesAdjustedShares(msg.sender)
         returns (bool)
     {
-        require(_amount > 0, "amount cannot be zero");
-        require(!disabled, "staking has been disabled");
-
         uint256 tokenAmount = convertUsdToToken(_amount);
 
-        totalStableStored += _amount;
+        _checkpointAndStake(msg.sender, _talent, tokenAmount, RewardAction.VIRTUAL_TAL_WITHDRAW);
 
-        _checkpointAndStake(msg.sender, _talent, tokenAmount);
+        totalStableStored += _amount;
 
         IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
 
@@ -290,42 +315,59 @@ contract Staking is
         return true;
     }
 
-    /// Redeems rewards since last checkpoint, and reinvests them in the stake
+    /// Redeems rewards since last checkpoint and withdraws to Virtual TAL
     ///
-    /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    function claimRewards(address _talent) public returns (bool) {
-        claimRewardsOnBehalf(msg.sender, _talent);
+    function claimRewardsToVirtualTAL() public stablePhaseOnly returns (bool) {
+        claimRewardsOnBehalf(msg.sender);
 
         return true;
     }
 
-    /// Redeems rewards for a given staker, and reinvests them in the stake
+    /// Redeems rewards for a given staker and withdraws to Virtual TAL
     ///
     /// @param _owner owner of the stake to process
-    /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    function claimRewardsOnBehalf(address _owner, address _talent)
-        public
-        updatesAdjustedShares(_owner, _talent)
-        returns (bool)
-    {
-        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
+    function claimRewardsOnBehalf(address _owner) public stablePhaseOnly returns (bool) {
+        _claimCheckpoint(_owner, RewardAction.VIRTUAL_TAL_WITHDRAW);
 
         return true;
     }
 
     /// Redeems rewards since last checkpoint, and withdraws them to the owner's wallet
     ///
-    /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
-    function withdrawRewards(address _talent)
-        public
-        tokenPhaseOnly
-        updatesAdjustedShares(msg.sender, _talent)
-        returns (bool)
-    {
-        _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
+    function withdrawRewards() public tokenPhaseOnly returns (bool) {
+        _claimCheckpoint(msg.sender, RewardAction.WITHDRAW);
+
+        return true;
+    }
+
+    /// @param _owner The talent from which rewards are to be claimed
+    /// @param _talent The talent token from which rewards are to be claimed
+    /// @return rewards if operation succeeds
+    function _talentRewards(address _owner, address _talent) internal returns (uint256) {
+        // only the talent himself can redeem their own rewards
+        require(_owner == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
+
+        GlobalStakeData storage globalStake = globalStakes[_owner];
+
+        uint256 rewards = ((talentS - globalStake.talentS) * convertTalentToToken(IERC20(_talent).totalSupply())) /
+            IRewardCalculatorV2(rewardCalculator).mul();
+        globalStake.talentS = talentS;
+
+        return rewards;
+    }
+
+    /// Redeems a talent's share of the staking rewards to Virtual TAL
+    ///
+    /// @notice When stakers claim rewards, a share of those is reserved for
+    ///   the talent to redeem for himself through this function
+    ///
+    /// @param _talent The talent token from which rewards are to be claimed
+    /// @return true if operation succeeds
+    function withdrawTalentRewardsToVirtualTAL(address _talent) public stablePhaseOnly returns (bool) {
+        IVirtualTAL(virtualTAL).adminMint(msg.sender, _talentRewards(msg.sender, _talent));
 
         return true;
     }
@@ -338,14 +380,7 @@ contract Staking is
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return true if operation succeeds
     function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
-        // only the talent himself can redeem their own rewards
-        require(msg.sender == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
-
-        uint256 amount = talentRedeemableRewards[_talent];
-
-        IERC20(token).transfer(msg.sender, amount);
-
-        talentRedeemableRewards[_talent] = 0;
+        IERC20(token).transfer(msg.sender, _talentRewards(msg.sender, _talent));
 
         return true;
     }
@@ -410,14 +445,12 @@ contract Staking is
         bytes calldata data
     ) external override(IERC1363ReceiverUpgradeable) onlyWhileStakingEnabled returns (bytes4) {
         if (_isToken(msg.sender)) {
-            require(!disabled, "staking has been disabled");
-
             // if input is TAL, this is a stake since TAL deposits are enabled when
             // `setToken` is called, no additional check for `tokenPhaseOnly` is
             // necessary here
             address talent = bytesToAddress(data);
 
-            _checkpointAndStake(_sender, talent, _amount);
+            _checkpointAndStake(_sender, talent, _amount, RewardAction.WITHDRAW);
 
             emit Stake(_sender, talent, _amount, false);
 
@@ -428,7 +461,7 @@ contract Staking is
             // if it's a registered Talent Token, this is a refund
             address talent = msg.sender;
 
-            uint256 tokenAmount = _checkpointAndUnstake(_sender, talent, _amount);
+            uint256 tokenAmount = _checkpointAndUnstake(_sender, talent, _amount, RewardAction.WITHDRAW);
 
             emit Unstake(_sender, talent, tokenAmount);
 
@@ -454,11 +487,11 @@ contract Staking is
     // Begin: IRewardParameters
     //
 
-    function totalShares() public view override(IRewardParameters) returns (uint256) {
+    function totalShares() public view returns (uint256) {
         return totalTokensStaked;
     }
 
-    function rewardsLeft() public view override(IRewardParameters) returns (uint256) {
+    function rewardsLeft() public view returns (uint256) {
         return rewardsMax - rewardsGiven - rewardsAdminWithdrawn;
     }
 
@@ -476,7 +509,7 @@ contract Staking is
 
     /// Allows the admin to withdraw whatever is left of the reward pool
     function adminWithdraw() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(disabled || block.timestamp < end, "not disabled, and not end of staking either");
+        require(disabled || block.timestamp < end, "disabled OR not end of staking");
         require(activeStakes == 0, "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them");
 
         uint256 amount = rewardsLeft();
@@ -495,7 +528,7 @@ contract Staking is
     //
 
     //
-    // Private Interface
+    // Internal Interface for V2 use
     //
 
     /// Creates a checkpoint, and then stakes adds the given TAL amount to the stake,
@@ -510,12 +543,14 @@ contract Staking is
     function _checkpointAndStake(
         address _owner,
         address _talent,
-        uint256 _tokenAmount
-    ) private updatesAdjustedShares(_owner, _talent) {
+        uint256 _tokenAmount,
+        RewardAction _action
+    ) internal updatesAdjustedShares(_owner) {
         require(_isTalentToken(_talent), "not a valid talent token");
         require(_tokenAmount > 0, "amount cannot be zero");
+        require(!disabled, "staking has been disabled");
 
-        _checkpoint(_owner, _talent, RewardAction.RESTAKE);
+        _checkpoint(_owner, _talent, _action);
         _stake(_owner, _talent, _tokenAmount);
     }
 
@@ -528,31 +563,22 @@ contract Staking is
     /// @param _owner Owner of the stake
     /// @param _talent Talent token to uliasnstake from
     /// @param _talentAmount Talent token amount to unstake
+    /// @param _action reward action name
     function _checkpointAndUnstake(
         address _owner,
         address _talent,
-        uint256 _talentAmount
-    ) private updatesAdjustedShares(_owner, _talent) returns (uint256) {
+        uint256 _talentAmount,
+        RewardAction _action
+    ) internal updatesAdjustedShares(_owner) returns (uint256) {
         require(_isTalentToken(_talent), "not a valid talent token");
+        require(_talentAmount > 0, "amount cannot be zero");
 
+        _checkpoint(_owner, _talent, _action);
+
+        GlobalStakeData storage globalStake = globalStakes[_owner];
         StakeData storage stake = stakes[_owner][_talent];
 
-        // full refund is being requested
-        bool isFullRefund = stake.talentAmount == _talentAmount;
-
-        // if we're dealing with a full refund then we must do a
-        // withdraw instead of restake because otherwise we'll
-        // send talent tokens back to the _owner and we're unable to
-        // collect them and match the records
-        if (isFullRefund) {
-            _checkpoint(_owner, _talent, RewardAction.WITHDRAW);
-        } else {
-            _checkpoint(_owner, _talent, RewardAction.RESTAKE);
-        }
-
-        stake = stakes[_owner][_talent];
-
-        require(stake.lastCheckpointAt > 0, "stake does not exist");
+        require(globalStake.lastCheckpointAt > 0, "stake does not exist");
         require(stake.talentAmount >= _talentAmount);
 
         // calculate TAL amount proportional to how many talent tokens are
@@ -560,25 +586,36 @@ contract Staking is
         // rewards, then returning 1 Talent Token should result in 50.5 TAL
         // being returned, instead of the 50 that would be given under the set
         // exchange rate
-        uint256 proportion = (_talentAmount * MUL) / stake.talentAmount;
-        uint256 tokenAmount = (stake.tokenAmount * proportion) / MUL;
+        uint256 proportion = (_talentAmount * IRewardCalculatorV2(rewardCalculator).mul()) / stake.talentAmount;
+        uint256 tokenAmount = (stake.tokenAmount * proportion) / IRewardCalculatorV2(rewardCalculator).mul();
 
-        require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
+        if (_action == RewardAction.WITHDRAW) {
+            require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
+        }
 
         stake.talentAmount -= _talentAmount;
         stake.tokenAmount -= tokenAmount;
+        globalStake.tokenAmount -= tokenAmount;
         totalTokensStaked -= tokenAmount;
 
-        // if stake is over, it has finished accumulating
-        if (stake.tokenAmount == 0 && !stake.finishedAccumulating) {
-            stake.finishedAccumulating = true;
+        if (ITalentFactoryV3(factory).hasTalentToken(_owner)) {
+            totalTalentTALInvested -= tokenAmount;
+        } else {
+            totalSupporterTALInvested -= tokenAmount;
+        }
 
-            // also decrease the counter
+        // if stake is over, it has to  decrease the counter
+        if (stake.tokenAmount == 0) {
             activeStakes -= 1;
         }
 
-        _burnTalent(_talent, _talentAmount);
-        _withdrawToken(_owner, tokenAmount);
+        if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
+            ITalentToken(_talent).burn(msg.sender, _talentAmount);
+            IVirtualTAL(virtualTAL).adminMint(msg.sender, tokenAmount);
+        } else {
+            _burnTalent(_talent, _talentAmount);
+            _withdrawToken(_owner, tokenAmount);
+        }
 
         return tokenAmount;
     }
@@ -599,15 +636,25 @@ contract Staking is
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
         StakeData storage stake = stakes[_owner][_talent];
+        GlobalStakeData storage globalStake = globalStakes[_owner];
 
         // if it's a new stake, increase stake count
         if (stake.tokenAmount == 0) {
             activeStakes += 1;
-            stake.finishedAccumulating = false;
+            stake.firstPurchaseTimestamp = block.timestamp;
         }
 
+        stake.lastPurchaseTimestamp = block.timestamp;
+        globalStake.tokenAmount += _tokenAmount;
         stake.tokenAmount += _tokenAmount;
         stake.talentAmount += talentAmount;
+        totalTALInvested += _tokenAmount;
+
+        if (ITalentFactoryV3(factory).hasTalentToken(_owner)) {
+            totalTalentTALInvested += _tokenAmount;
+        } else {
+            totalSupporterTALInvested += _tokenAmount;
+        }
 
         totalTokensStaked += _tokenAmount;
 
@@ -615,6 +662,8 @@ contract Staking is
     }
 
     /// Performs a new checkpoint for a given stake
+    ///
+    /// Internal Interface for V2 use
     ///
     /// Calculates all pending rewards since the last checkpoint, and accumulates them
     /// @param _owner Owner of the stake
@@ -624,14 +673,10 @@ contract Staking is
         address _owner,
         address _talent,
         RewardAction _action
-    ) private updatesAdjustedShares(_owner, _talent) {
-        StakeData storage stake = stakes[_owner][_talent];
-
+    ) internal updatesAdjustedShares(_owner) {
         _updateS();
 
         // calculate rewards since last checkpoint
-        address talentAddress = ITalentToken(_talent).talent();
-
         // if the talent token has been fully minted, rewards can only be
         // considered up until that timestamp (or S, according to the math)
         // so end date of reward is
@@ -639,56 +684,83 @@ contract Staking is
         //
         // this will enforce that rewards past this checkpoint will always be
         // 0, effectively ending the stake
-        uint256 maxS = (maxSForTalent[_talent] > 0) ? maxSForTalent[_talent] : S;
+        (uint256 stakerRewards, uint256 talentRewards) = _updateStakeRewards(_owner);
 
-        (uint256 stakerRewards, uint256 talentRewards) = calculateReward(
-            stake.tokenAmount,
-            stake.S,
-            maxS,
-            stake.talentAmount,
-            IERC20(_talent).balanceOf(talentAddress)
-        );
-
-        rewardsGiven += stakerRewards + talentRewards;
-        stake.S = maxS;
-        stake.lastCheckpointAt = block.timestamp;
-
-        talentRedeemableRewards[_talent] += talentRewards;
-
-        // if staking is disabled, set token to finishedAccumulating, and decrease activeStakes
+        // if staking is disabled decrease activeStakes
         // this forces admins to finish accumulation of all stakes, via `claimRewardsOnBehalf`
         // before withdrawing any remaining TAL from the reward pool
-        if (disabled && !stake.finishedAccumulating) {
-            stake.finishedAccumulating = true;
+        if (disabled) {
             activeStakes -= 1;
         }
 
         // no need to proceed if there's no rewards yet
-        if (stakerRewards == 0) {
+        if (stakerRewards + talentRewards == 0) {
             return;
         }
 
+        address talentOwner = ITalentToken(_talent).talent();
+        uint256 rewards = _talentRewards(talentOwner, _talent);
+
+        // Only possible in token phase
         if (_action == RewardAction.WITHDRAW) {
+            // transfer talent rewards
+            IERC20(token).transfer(talentOwner, rewards);
+            // transfer staker rewards
             IERC20(token).transfer(_owner, stakerRewards);
-            emit RewardWithdrawal(_owner, _talent, stakerRewards, talentRewards);
-        } else if (_action == RewardAction.RESTAKE) {
-            // truncate rewards to stake to the maximum stake availability
-            uint256 availability = stakeAvailability(_talent);
-            uint256 rewardsToStake = (availability > stakerRewards) ? stakerRewards : availability;
-            uint256 rewardsToWithdraw = stakerRewards - rewardsToStake;
 
-            _stake(_owner, _talent, rewardsToStake);
-            emit RewardClaim(_owner, _talent, rewardsToStake, talentRewards);
+            emit RewardWithdrawal(_owner, stakerRewards, rewards);
+        } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
+            // transfer talent rewards
+            IVirtualTAL(virtualTAL).adminMint(talentOwner, rewards);
+            // transfer staker rewards
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
 
-            // TODO test
-            // TODO the !!token part as well
-            if (rewardsToWithdraw > 0 && token != address(0x0)) {
-                IERC20(token).transfer(_owner, rewardsToWithdraw);
-                emit RewardWithdrawal(_owner, _talent, rewardsToWithdraw, 0);
-            }
+            emit RewardWithdrawal(_owner, stakerRewards, rewards);
         } else {
             revert("Unrecognized checkpoint action");
         }
+    }
+
+    function _claimCheckpoint(address _owner, RewardAction _action) internal updatesAdjustedShares(_owner) {
+        _updateS();
+
+        (uint256 stakerRewards, uint256 talentRewards) = _updateStakeRewards(_owner);
+
+        // Only possible in token phase
+        if (_action == RewardAction.WITHDRAW) {
+            IERC20(token).transfer(_owner, stakerRewards);
+
+            emit RewardWithdrawal(_owner, stakerRewards, 0);
+        } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
+
+            emit RewardWithdrawal(_owner, stakerRewards, 0);
+        } else {
+            revert("Unrecognized checkpoint action");
+        }
+    }
+
+    function _updateStakeRewards(address _owner) internal returns (uint256, uint256) {
+        GlobalStakeData storage globalStake = globalStakes[_owner];
+
+        (uint256 stakerRewards, uint256 talentRewards) = IRewardCalculatorV2(rewardCalculator).calculateReward(
+            globalStake.tokenAmount,
+            globalStake.S,
+            S,
+            totalSupporterTALInvested,
+            totalTalentTALInvested
+        );
+
+        rewardsGiven += stakerRewards + talentRewards;
+        globalStake.S = S;
+        globalStake.lastCheckpointAt = block.timestamp;
+        if (totalTALInvested == 0) {
+            talentS = 0;
+        } else {
+            talentS = (talentS + (talentRewards * IRewardCalculatorV2(rewardCalculator).mul()) / totalTALInvested);
+        }
+
+        return (stakerRewards, talentRewards);
     }
 
     function _updateS() private {
@@ -700,45 +772,41 @@ contract Staking is
             return;
         }
 
-        S = S + (calculateGlobalReward(SAt, block.timestamp)) / totalAdjustedShares;
+        S =
+            S +
+            (
+                IRewardCalculatorV2(rewardCalculator).calculateGlobalReward(
+                    start,
+                    end,
+                    SAt,
+                    block.timestamp,
+                    rewardsMax
+                )
+            ) /
+            totalAdjustedShares;
         SAt = block.timestamp;
     }
 
-    function calculateEstimatedReturns(
-        address _owner,
-        address _talent,
-        uint256 _currentTime
-    ) public view returns (uint256 stakerRewards, uint256 talentRewards) {
-        StakeData storage stake = stakes[_owner][_talent];
-        uint256 newS;
+    function calculateEstimatedReturns(address _owner, uint256 _currentTime)
+        public
+        view
+        returns (uint256 stakerRewards, uint256 talentRewards)
+    {
+        GlobalStakeData storage globalStake = globalStakes[_owner];
+        uint256 newS = S +
+            (IRewardCalculatorV2(rewardCalculator).calculateGlobalReward(start, end, SAt, _currentTime, rewardsMax)) /
+            totalAdjustedShares;
 
-        if (maxSForTalent[_talent] > 0) {
-            newS = maxSForTalent[_talent];
-        } else {
-            newS = S + (calculateGlobalReward(SAt, _currentTime)) / totalAdjustedShares;
-        }
-        address talentAddress = ITalentToken(_talent).talent();
-        uint256 talentBalance = IERC20(_talent).balanceOf(talentAddress);
-
-        (uint256 sRewards, uint256 tRewards) = calculateReward(
-            stake.tokenAmount,
-            stake.S,
+        (uint256 sRewards, uint256 tRewards) = IRewardCalculatorV2(rewardCalculator).calculateReward(
+            globalStake.tokenAmount,
+            globalStake.S,
             newS,
-            stake.talentAmount,
-            talentBalance
+            totalSupporterTALInvested,
+            totalSupporterTALInvested
         );
 
         return (sRewards, tRewards);
     }
-
-    // function disable() {
-    //     _updateS();
-    //     disable = true;
-    //     totalSharesWhenDisable = totalTokensStaked;
-
-    //     reservedTAL = (sqrt(totalSharesWhenDisable) * (S - 0)) / MUL;
-    //     availableTAL = rewardsMax() - reservedTAL;
-    // }
 
     /// mints a given amount of a given talent token
     /// to be used within a staking update (re-stake or new deposit)
@@ -750,10 +818,6 @@ contract Staking is
         uint256 _amount
     ) private {
         ITalentToken(_talent).mint(_owner, _amount);
-
-        if (maxSForTalent[_talent] == 0 && ITalentToken(_talent).mintingFinishedAt() > 0) {
-            maxSForTalent[_talent] = S;
-        }
     }
 
     /// burns a given amount of a given talent token
@@ -773,7 +837,60 @@ contract Staking is
         IERC20(token).transfer(_owner, _amount);
     }
 
-    modifier updatesAdjustedShares(address _owner, address _talent) {
+    function isV3() public pure virtual returns (bool) {
+        return true;
+    }
+
+    /// Creates stake and burns virtual TAL
+    ///
+    /// @param _talentTokenAddress The talent address
+    /// @param _amount The TAL amount
+    /// @return bool
+    function createStakeWithVirtualTAL(address _talentTokenAddress, uint256 _amount)
+        public
+        onlyWhileStakingEnabled
+        stablePhaseOnly
+        updatesAdjustedShares(msg.sender)
+        returns (bool)
+    {
+        require(IVirtualTAL(virtualTAL).getBalance(msg.sender) >= _amount, "not enough TAL");
+
+        _checkpointAndStake(msg.sender, _talentTokenAddress, _amount, RewardAction.VIRTUAL_TAL_WITHDRAW);
+
+        IVirtualTAL(virtualTAL).adminBurn(msg.sender, _amount);
+
+        emit Stake(msg.sender, _talentTokenAddress, _amount, true);
+
+        return true;
+    }
+
+    /// Sells talent tokens and mints virtual TAL
+    ///
+    /// @param _talentTokenAddress The talent address
+    /// @param _amount The talent tokens amount
+    /// @return bool
+    function sellTalentTokenForVirtualTAL(address _talentTokenAddress, uint256 _amount)
+        public
+        onlyWhileStakingEnabled
+        stablePhaseOnly
+        returns (bool)
+    {
+        require(!disabled, "staking has been disabled");
+        require(IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
+
+        uint256 tokenAmount = _checkpointAndUnstake(
+            msg.sender,
+            _talentTokenAddress,
+            _amount,
+            RewardAction.VIRTUAL_TAL_WITHDRAW
+        );
+
+        emit Unstake(_talentTokenAddress, msg.sender, tokenAmount);
+
+        return true;
+    }
+
+    modifier updatesAdjustedShares(address _owner) {
         if (isAlreadyUpdatingAdjustedShares) {
             // works like a re-entrancy guard, to prevent sqrt calculations
             // from happening twice
@@ -781,18 +898,21 @@ contract Staking is
         } else {
             isAlreadyUpdatingAdjustedShares = true;
             // calculate current adjusted shares for this stake
-            // we don't deduct it directly because other computations wrapped by this modifier depend on the original value
-            // (e.g. reward calculation)
+            // we don't deduct it directly because other computations wrapped by this modifier depend on the original
+            // value (e.g. reward calculation)
             // therefore, we just keep track of it, and do a final update to the stored value at the end;
             // temporarily deduct from adjusted shares
-            uint256 toDeduct = sqrt(stakes[_owner][_talent].tokenAmount);
+            uint256 toDeduct = IRewardCalculatorV2(rewardCalculator).sqrt(globalStakes[_owner].tokenAmount);
 
             _;
 
             // calculated adjusted shares again, now with rewards included, and
             // excluding the previously computed amount to be deducted
             // (replaced by the new one)
-            totalAdjustedShares = totalAdjustedShares + sqrt(stakes[_owner][_talent].tokenAmount) - toDeduct;
+            totalAdjustedShares =
+                totalAdjustedShares +
+                IRewardCalculatorV2(rewardCalculator).sqrt(globalStakes[_owner].tokenAmount) -
+                toDeduct;
             isAlreadyUpdatingAdjustedShares = false;
         }
     }

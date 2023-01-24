@@ -11,19 +11,9 @@ contract StakingMigration is Staking {
         address _stableCoin,
         address _factory,
         uint256 _tokenPrice,
-        uint256 _talentPrice,
-        address _rewardCalculator
+        uint256 _talentPrice
     ) public override(Staking) initializer {
-        Staking.initialize(
-            _start,
-            _end,
-            _rewardsMax,
-            _stableCoin,
-            _factory,
-            _tokenPrice,
-            _talentPrice,
-            _rewardCalculator
-        );
+        Staking.initialize(_start, _end, _rewardsMax, _stableCoin, _factory, _tokenPrice, _talentPrice);
     }
 
     function transferStake(

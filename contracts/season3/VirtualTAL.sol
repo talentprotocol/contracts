@@ -14,7 +14,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
+import {ERC1363Upgradeable} from "../tokens/ERC1363Upgradeable.sol";
 
 interface IVirtualTAL is IERC20Upgradeable {
     // admin mints TAL from address

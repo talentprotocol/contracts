@@ -100,7 +100,8 @@ contract TalentFactory is
     function createTalent(
         address _talent,
         string memory _name,
-        string memory _symbol
+        string memory _symbol,
+        bool _isMigrated
     ) public returns (address) {
         require(!isSymbol(_symbol), "talent token with this symbol already exists");
         require(_isMinterSet(), "minter not yet set");
@@ -114,7 +115,8 @@ contract TalentFactory is
                 INITIAL_SUPPLY,
                 _talent,
                 minter,
-                getRoleMember(DEFAULT_ADMIN_ROLE, 0)
+                getRoleMember(DEFAULT_ADMIN_ROLE, 0),
+                _isMigrated
             )
         );
         // address token = ClonesUpgradeable.clone(implementation);

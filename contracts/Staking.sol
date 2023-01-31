@@ -207,6 +207,9 @@ contract Staking is
     // emitted when a withdrawal is made from an existing stake
     event Unstake(address indexed owner, address indexed talentToken, uint256 talAmount);
 
+    // emitted when a talent token is disabled
+    event TalentDisabledForNetworkTransfer(address indexed talent, uint256 newChainId);
+
     //
     // Begin: Implementation
     //
@@ -280,6 +283,7 @@ contract Staking is
     {
         require(_amount > 0, "amount cannot be zero");
         require(!disabled, "staking has been disabled");
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
 
         uint256 tokenAmount = convertUsdToToken(_amount);
 
@@ -299,6 +303,8 @@ contract Staking is
     /// @param _talent talent token of the stake to process
     /// @return true if operation succeeds
     function claimRewards(address _talent) public returns (bool) {
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
         claimRewardsOnBehalf(msg.sender, _talent);
 
         return true;
@@ -314,6 +320,8 @@ contract Staking is
         updatesAdjustedShares(_owner, _talent)
         returns (bool)
     {
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
         _checkpoint(_owner, _talent, RewardAction.RESTAKE);
 
         return true;
@@ -329,6 +337,8 @@ contract Staking is
         updatesAdjustedShares(msg.sender, _talent)
         returns (bool)
     {
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
         _checkpoint(msg.sender, _talent, RewardAction.WITHDRAW);
 
         return true;
@@ -344,6 +354,8 @@ contract Staking is
     function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
         // only the talent himself can redeem their own rewards
         require(msg.sender == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
+
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
 
         uint256 amount = talentRedeemableRewards[_talent];
 
@@ -379,6 +391,7 @@ contract Staking is
     /// @return How much TAL can be staked on the given talent token, before depleting minting supply
     function stakeAvailability(address _talent) public view returns (uint256) {
         require(_isTalentToken(_talent), "not a valid talent token");
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
 
         uint256 talentAmount = ITalentToken(_talent).mintingAvailability();
 
@@ -850,6 +863,23 @@ contract Staking is
 
         assembly {
             addr := mload(add(bs, 20))
+        }
+    }
+
+    function transferToNetwork(address _talent, uint256 _newChainId) public {
+        require(msg.sender == ITalentToken(_talent).talent(), "only the talent can disable the token");
+        ITalentToken(_talent).disable();
+        emit TalentDisabledForNetworkTransfer(_talent, _newChainId);
+    }
+
+    function migrateStakes(address _talent, address[] memory _stakeholders, uint256[] memory _stakeAmounts) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_stakeholders.length == _stakeAmounts.length, "stakeholders and amounts do not match");
+        require(!disabled, "staking has been disabled");
+        require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
+
+        for (uint i = 0; i < _stakeholders.length; i++) {
+            _checkpointAndStake(_stakeholders[i], _talent, _stakeAmounts[i]);
+            emit Stake(_stakeholders[i], _talent, _stakeAmounts[i], true);
         }
     }
 }

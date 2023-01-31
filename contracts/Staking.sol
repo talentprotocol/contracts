@@ -866,22 +866,20 @@ contract Staking is
         }
     }
 
-    function transferToNetwork(address _talent, uint256 _newChainId) external {
+    function transferToNetwork(address _talent, uint256 _newChainId) public {
         require(msg.sender == ITalentToken(_talent).talent(), "only the talent can disable the token");
         ITalentToken(_talent).disable();
         emit TalentDisabledForNetworkTransfer(_talent, _newChainId);
     }
 
-    function migrateStakes(address _talent, address[] memory _stakeholders, uint256[] memory _stakeAmounts) external {
+    function migrateStakes(address _talent, address[] memory _stakeholders, uint256[] memory _stakeAmounts) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_stakeholders.length == _stakeAmounts.length, "stakeholders and amounts do not match");
         require(!disabled, "staking has been disabled");
         require(!ITalentToken(_talent).disabled(), "Talent token has been disabled");
 
         for (uint i = 0; i < _stakeholders.length; i++) {
-            uint256 tokenAmount = convertUsdToToken(_stakeAmounts[i]);
-            totalStableStored += _stakeAmounts[i];
-            _checkpointAndStake(_stakeholders[i], _talent, tokenAmount);
-            emit Stake(_stakeholders[i], _talent, tokenAmount, true);
+            _checkpointAndStake(_stakeholders[i], _talent, _stakeAmounts[i]);
+            emit Stake(_stakeholders[i], _talent, _stakeAmounts[i], true);
         }
     }
 }

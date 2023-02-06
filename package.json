@@ -4,6 +4,7 @@
   "description": "Talent Protocol Smart Contracts",
   "author": "Talent Protocol",
   "dependencies": {
+    "@chainlink/contracts": "^0.6.0",
     "@ensdomains/dnsprovejs": "^0.4.1",
     "@ensdomains/dnssecoraclejs": "^0.2.7",
     "@ensdomains/ens": "^0.6.2",

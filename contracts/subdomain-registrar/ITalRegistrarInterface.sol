@@ -1,6 +1,6 @@
 pragma solidity ^0.8.7;
 
-import {DNSSEC} from '@ensdomains/ens-contracts/contracts/dnssec-oracle/DNSSEC.sol';
+import {DNSSEC} from "@ensdomains/ens-contracts/contracts/dnssec-oracle/DNSSEC.sol";
 
 /**
  * @title ITalRegistrarInterface interface
@@ -13,79 +13,75 @@ import {DNSSEC} from '@ensdomains/ens-contracts/contracts/dnssec-oracle/DNSSEC.s
  */
 interface ITalRegistrarInterface {
     /**
-    * @dev Emitted when a new subdomain is registered.
-    */
-    event SubDomainRegistered(
-        string subDomainLabel,
-        uint price,
-        address indexed owner
-    );
+     * @dev Emitted when a new subdomain is registered.
+     */
+    event SubDomainRegistered(string subDomainLabel, uint256 price, address indexed owner);
 
     /**
-    * @dev Emitted when the root domain ownership is transferred to a new address.
-    */
+     * @dev Emitted when the root domain ownership is transferred to a new address.
+     */
     event DomainOwnershipTransferred(address indexed owner);
 
     /**
-    * @dev Emitted when the subdomain fee is changed.
-    */
-    event SubDomainFeeChanged(uint newFee);
-    
+     * @dev Emitted when the subdomain fee is changed.
+     */
+    event SubDomainFeeChanged(uint256 newFee);
+
     /**
-    * @notice Transfer the root domain ownership of the TAL Subdomain Registrar to a new owner.
-    *
-    * Emits a {DomainOwnershipTransfered} event.
-    */
+     * @notice Transfer the root domain ownership of the TAL Subdomain Registrar to a new owner.
+     *
+     * Emits a {DomainOwnershipTransfered} event.
+     */
     function transferDomainOwnership(address newDomainOwner) external;
 
     /**
-    * @notice Returns the address that owns the subdomain.
-    * @dev Can only be called if and only if the subdomain of the root node is free
-    * @param subdomainLabel The subdomain label to get the owner.
-    */
+     * @notice Returns the address that owns the subdomain.
+     * @dev Can only be called if and only if the subdomain of the root node is free
+     * @param subdomainLabel The subdomain label to get the owner.
+     */
     function subDomainOwner(string memory subdomainLabel) external view returns (address owner);
 
     /**
-    * @notice Register a name.
-    * @param subdomainLabel The subdomain label to register.
-    *
-    * Emits a {SubDomainRegistered} event.
-    */
+     * @notice Register a name.
+     * @param subdomainLabel The subdomain label to register.
+     *
+     * Emits a {SubDomainRegistered} event.
+     */
     function register(string calldata subdomainLabel) external payable;
 
     /**
-    * @notice Register a name for free.
-    * @param subdomainLabel The subdomain label to register.
-    * @param subdomainNewOwner The address that will own the sudomain.
-    *
-    * Emits a {SubDomainRegistered} event.
-    */
+     * @notice Register a name for free.
+     * @param subdomainLabel The subdomain label to register.
+     * @param subdomainNewOwner The address that will own the sudomain.
+     *
+     * Emits a {SubDomainRegistered} event.
+     */
     function freeRegister(string calldata subdomainLabel, address subdomainNewOwner) external;
 
     /**
-    * @notice Removes the owner of a subdomain.
-    * @param subdomainLabel The subdomain label to register.
-    */
+     * @notice Removes the owner of a subdomain.
+     * @param subdomainLabel The subdomain label to register.
+     */
     function revokeSubdomain(string calldata subdomainLabel) external;
 
     /**
-    * @notice Sets the price to pay for upcoming subdomain registrations.
-    */
-    function setSubdomainFee(uint subdomainFee) external;
+     * @notice Sets the price to pay for upcoming subdomain registrations in usd.
+     */
+    function setSubdomainFee(uint256 subdomainFee) external;
 
     /**
-    * @notice Stops subdomain registrations.
-    */
+     * @notice Stops subdomain registrations.
+     */
     function stop() external;
 
     /**
-    * @notice Opens  subdomain registration.
-    */
+     * @notice Opens  subdomain registration.
+     */
     function open() external;
 
     /**
-    * @notice Submits ownership proof to the DNS registrar contract.
-    */
+     * @notice Submits ownership proof to the DNS registrar contract.
+     */
     function configureDnsOwnership(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input,

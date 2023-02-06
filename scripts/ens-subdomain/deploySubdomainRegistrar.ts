@@ -1,15 +1,19 @@
 import { ethers } from "hardhat";
 import type { TalSubdomainRegistrar } from "../../typechain-types";
 
-var nameHash = require('eth-ens-namehash');
+var nameHash = require("eth-ens-namehash");
 
 const { exit } = process;
 
 async function main() {
   const [owner] = await ethers.getSigners();
 
+  // goerli 0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e
+  // mainnet 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
+  const ethUsdPriceFeedAddress = "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e";
+
   // The same address is used for mainnet and testnet
-  const ens_address = "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e";
+  const ensAddress = "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e";
 
   // mainnet address: 0xa2f428617a523837d4adc81c67a296d42fd95e86
   // goerli address: 0x8edc487d26f6c8fa76e032066a3d4f87e273515d
@@ -18,13 +22,22 @@ async function main() {
   // mainnet address: 0xDaaF96c344f63131acadD0Ea35170E7892d3dfBA
   // goerli address: 0xE264d5bb84bA3b8061ADC38D3D76e6674aB91852
   const publicResolverAddress = "0xE264d5bb84bA3b8061ADC38D3D76e6674aB91852";
+  // tal.community for mainnet
   const domain = "tal.builders";
   const node = nameHash.hash(domain);
   const subdomainFee = 0;
 
   const subdomainRegistrarContract = await ethers.getContractFactory("TalSubdomainRegistrar");
-  
-  const deployedSubdomainRegistrar = await subdomainRegistrarContract.deploy(ens_address, publicResolverAddress, dnsRegistrarAddress, node, owner.address, subdomainFee);
+
+  const deployedSubdomainRegistrar = await subdomainRegistrarContract.deploy(
+    ensAddress,
+    publicResolverAddress,
+    dnsRegistrarAddress,
+    ethUsdPriceFeedAddress,
+    node,
+    owner.address,
+    subdomainFee
+  );
   await deployedSubdomainRegistrar.deployed();
 
   console.log(deployedSubdomainRegistrar.address);

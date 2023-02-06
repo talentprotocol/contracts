@@ -17,6 +17,7 @@ import TestStableThenToken from "../../artifacts/contracts/test/TestStableThenTo
 import InterfaceIDs from "../../artifacts/contracts/test/InterfaceIDs.sol/InterfaceIDs.json";
 import TestRewardCalculator from "../../artifacts/contracts/test/TestRewardCalculator.sol/TestRewardCalculator.json";
 import TestResolver from "../../artifacts/contracts/subdomain-registrar/test/TestResolver.sol/TestResolver.json";
+import TestPriceFeed from "../../artifacts/contracts/subdomain-registrar/test/TestPriceFeed.sol/TestPriceFeed.json";
 import TestDNSSEC from "../../artifacts/contracts/subdomain-registrar/test/TestDNSSEC.sol/TestDNSSEC.json";
 import ENSRoot from "@ensdomains/ens-contracts/artifacts/contracts/root/Root.sol/Root.json";
 import ENSRegistry from "@ensdomains/ens-contracts/artifacts/contracts/registry/ENSRegistry.sol/ENSRegistry.json";
@@ -38,6 +39,7 @@ export {
   InterfaceIDs,
   TestRewardCalculator,
   TestResolver,
+  TestPriceFeed,
   ENSRegistry,
   DnsRegistrar,
   TestDNSSEC,
@@ -45,5 +47,5 @@ export {
   ENSRoot,
   CommunityUser,
   CommunityMember,
-  TalentNFT
+  TalentNFT,
 };

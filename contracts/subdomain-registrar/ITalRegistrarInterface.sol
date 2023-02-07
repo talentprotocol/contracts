@@ -1,6 +1,7 @@
 pragma solidity ^0.8.7;
 
 import {DNSSEC} from "@ensdomains/ens-contracts/contracts/dnssec-oracle/DNSSEC.sol";
+import {PublicResolver} from "@ensdomains/ens-contracts/contracts/resolvers/PublicResolver.sol";
 
 /**
  * @title ITalRegistrarInterface interface
@@ -70,6 +71,11 @@ interface ITalRegistrarInterface {
     function setSubdomainFee(uint256 subdomainFee) external;
 
     /**
+     * @notice Sets the new resolver address.
+     */
+    function setPublicResolver(PublicResolver resolver) external;
+
+    /**
      * @notice Stops subdomain registrations.
      */
     function stop() external;
@@ -87,4 +93,9 @@ interface ITalRegistrarInterface {
         DNSSEC.RRSetWithSignature[] memory input,
         bytes memory proof
     ) external;
+
+    /**
+     * @notice Returns the price in eth to pay for a subdomain.
+     */
+    function domainPriceInEth() external view returns (uint256 price);
 }

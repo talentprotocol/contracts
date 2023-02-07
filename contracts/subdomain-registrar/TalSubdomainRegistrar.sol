@@ -40,7 +40,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     bool public stopped = false;
 
     /// Multiplier used to get integer values
-    uint256 internal constant MUL = 10e18;
+    uint256 internal constant MUL = 1e18;
 
     /**
      * @dev Constructor.
@@ -134,6 +134,13 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
     }
 
     /**
+     * @notice Sets the new resolver address.
+     */
+    function setPublicResolver(PublicResolver resolver) public override onlyOwner {
+        publicResolver = resolver;
+    }
+
+    /**
      * @notice Sets the price to pay for upcoming subdomain registrations in usd.
      */
     function setSubdomainFee(uint256 newSubdomainFee) public override onlyOwner {
@@ -171,7 +178,10 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         dnsRegistrar.proveAndClaimWithResolver(name, input, proof, address(publicResolver), address(this));
     }
 
-    function domainPriceInEth() public view returns (uint256 price) {
+    /**
+     * @notice Return the price in eth to pay for a subdomain.
+     */
+    function domainPriceInEth() public view override returns (uint256 price) {
         if (subdomainFee == 0) {
             return 0;
         }

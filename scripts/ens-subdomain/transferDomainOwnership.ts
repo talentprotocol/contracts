@@ -8,8 +8,8 @@ async function main() {
 
   // Address of the deployed registrar smart contract
   // The domain needs to have an _ens record pointing to the address below
-  const newSubdomainRegistrarAddress = "0x38B5Fb838e5A605dF510525d4A4D197Ae0DB20f0";
-  const oldSubdomainRegistrarAddress = "0x1e6c790d7651338F3CB88381a0861bD21Df28a49";
+  const newSubdomainRegistrarAddress = "0xe86C5ea96eA47D3A9D835672C1428329bD0bb7Af";
+  const oldSubdomainRegistrarAddress = "0xc187Cf217f578B7Ef6b895E08197a18E77FCd185";
 
   const subdomainRegistrarContract = new ethers.Contract(
     oldSubdomainRegistrarAddress,

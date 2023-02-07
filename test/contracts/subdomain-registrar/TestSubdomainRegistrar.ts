@@ -38,7 +38,7 @@ describe("SubdomainRegistrar", function () {
 
   const ethPriceUSD = 1500;
   // Returns price with 8 decimals
-  const ethUsdPriceFeed = ethPriceUSD * 10 ** 10;
+  const ethUsdPriceFeed = ethPriceUSD * 10 ** 8;
 
   const defaultFeeUSD = 8;
   const subdomainPriceInEth = parseUnits((defaultFeeUSD / ethPriceUSD).toString());
@@ -381,6 +381,30 @@ describe("SubdomainRegistrar", function () {
       await expect(action).to.be.revertedWith("TALSUBDOMAIN_REGISTRAR: New fee matches the current fee");
 
       expect(await subdomainRegistrar.subdomainFee()).to.be.equal(currentFee);
+    });
+  });
+
+  describe("testing resolver change", () => {
+    it("allows the registrar owner to change the resolver", async () => {
+      const newResolver = (await deployContract(ensOwner, Artifacts.TestResolver, [])) as TestResolver;
+
+      expect(await subdomainRegistrar.publicResolver()).to.be.equal(resolver.address);
+
+      await subdomainRegistrar.setPublicResolver(newResolver.address);
+
+      expect(await subdomainRegistrar.publicResolver()).to.be.equal(newResolver.address);
+    });
+
+    it("prevents other accounts to change the subdomain price", async () => {
+      const newResolver = (await deployContract(ensOwner, Artifacts.TestResolver, [])) as TestResolver;
+
+      const currentResolver = await subdomainRegistrar.publicResolver();
+
+      const action = subdomainRegistrar.connect(account1).setPublicResolver(newResolver.address);
+
+      await expect(action).to.be.reverted;
+
+      expect(await subdomainRegistrar.publicResolver()).to.be.equal(currentResolver);
     });
   });
 

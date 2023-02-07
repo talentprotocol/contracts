@@ -494,9 +494,6 @@ describe("StakingV3", () => {
         expect(event?.args?.stakerReward).to.be.gt(0);
         expect(event?.args?.talentReward).to.equal(0);
 
-        // TODO: check what this value should be - should we care?
-        // expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
-
         // updates stake amount
         const stake = await stakingV3.stakes(investor1.address, talentToken1.address);
         expect(stake.tokenAmount).to.eq(await stakingV3.convertUsdToToken(amount));
@@ -527,9 +524,6 @@ describe("StakingV3", () => {
         expect(event?.args?.stakerReward).to.be.gt(0);
         expect(event?.args?.talentReward).to.equal(0);
 
-        // TODO: check what the reward should be
-        // expect(event?.args?.stakerReward.add(event?.args?.talentReward)).to.be.closeTo(rewards, margin);
-
         // updates stake amount
         const stake = await stakingV3.stakes(investor1.address, talentToken1.address);
         expect(stake.tokenAmount).to.eq(amount);
@@ -553,7 +547,7 @@ describe("StakingV3", () => {
 
         await stakingV3.connect(talent1).withdrawTalentRewards(talentToken1.address);
         const balanceAfter = await tal.balanceOf(talent1.address);
-        // TODO: should we know how much?
+
         expect(balanceAfter).to.be.gt(0);
       });
 

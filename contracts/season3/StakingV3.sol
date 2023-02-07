@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
@@ -308,7 +309,7 @@ contract StakingV3 is
 
         totalStableStored += _amount;
 
-        IERC20(stableCoin).transferFrom(msg.sender, address(this), _amount);
+        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(stableCoin), msg.sender, address(this), _amount);
 
         emit Stake(msg.sender, _talent, tokenAmount, true);
 
@@ -319,9 +320,7 @@ contract StakingV3 is
     ///
     /// @return true if operation succeeds
     function claimRewardsToVirtualTAL() public stablePhaseOnly returns (bool) {
-        claimRewardsOnBehalf(msg.sender);
-
-        return true;
+        return claimRewardsOnBehalf(msg.sender);
     }
 
     /// Redeems rewards for a given staker and withdraws to Virtual TAL
@@ -352,7 +351,8 @@ contract StakingV3 is
 
         GlobalStakeData storage globalStake = globalStakes[_owner];
 
-        uint256 rewards = ((talentS - globalStake.talentS) * convertTalentToToken(IERC20(_talent).totalSupply())) /
+        uint256 rewards = ((talentS - globalStake.talentS) *
+            convertTalentToToken(IERC20Upgradeable(_talent).totalSupply())) /
             IRewardCalculatorV2(rewardCalculator).mul();
         globalStake.talentS = talentS;
 
@@ -380,7 +380,7 @@ contract StakingV3 is
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return true if operation succeeds
     function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
-        IERC20(token).transfer(msg.sender, _talentRewards(msg.sender, _talent));
+        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, _talentRewards(msg.sender, _talent));
 
         return true;
     }
@@ -389,14 +389,14 @@ contract StakingV3 is
     ///
     /// @return the stable coin balance
     function stableCoinBalance() public view returns (uint256) {
-        return IERC20(stableCoin).balanceOf(address(this));
+        return IERC20Upgradeable(stableCoin).balanceOf(address(this));
     }
 
     /// Calculates TAL token balance of the contract
     ///
     /// @return the amount of TAL tokens
     function tokenBalance() public view returns (uint256) {
-        return IERC20(token).balanceOf(address(this));
+        return IERC20Upgradeable(token).balanceOf(address(this));
     }
 
     /// Queries how much TAL can currently be staked on a given talent token
@@ -430,8 +430,8 @@ contract StakingV3 is
         uint256 tokenAmount = convertUsdToToken(_stableAmount);
         totalStableStored -= _stableAmount;
 
-        IERC20(token).transferFrom(msg.sender, address(this), tokenAmount);
-        IERC20(stableCoin).transfer(msg.sender, _stableAmount);
+        SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(token), msg.sender, address(this), tokenAmount);
+        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(stableCoin), msg.sender, _stableAmount);
     }
 
     //
@@ -515,7 +515,7 @@ contract StakingV3 is
         uint256 amount = rewardsLeft();
         require(amount > 0, "nothing left to withdraw");
 
-        IERC20(token).transfer(msg.sender, amount);
+        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, amount);
         rewardsAdminWithdrawn += amount;
     }
 
@@ -586,11 +586,20 @@ contract StakingV3 is
         // rewards, then returning 1 Talent Token should result in 50.5 TAL
         // being returned, instead of the 50 that would be given under the set
         // exchange rate
-        uint256 proportion = (_talentAmount * IRewardCalculatorV2(rewardCalculator).mul()) / stake.talentAmount;
-        uint256 tokenAmount = (stake.tokenAmount * proportion) / IRewardCalculatorV2(rewardCalculator).mul();
+        uint256 proportion = SafeMath.div(
+            SafeMath.mul(_talentAmount, IRewardCalculatorV2(rewardCalculator).mul()),
+            stake.talentAmount
+        );
+        uint256 tokenAmount = SafeMath.div(
+            SafeMath.mul(stake.tokenAmount, proportion),
+            IRewardCalculatorV2(rewardCalculator).mul()
+        );
 
         if (_action == RewardAction.WITHDRAW) {
-            require(IERC20(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to fulfill request");
+            require(
+                IERC20Upgradeable(token).balanceOf(address(this)) >= tokenAmount,
+                "not enough TAL to fulfill request"
+            );
         }
 
         stake.talentAmount -= _talentAmount;
@@ -704,9 +713,9 @@ contract StakingV3 is
         // Only possible in token phase
         if (_action == RewardAction.WITHDRAW) {
             // transfer talent rewards
-            IERC20(token).transfer(talentOwner, rewards);
+            SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), talentOwner, rewards);
             // transfer staker rewards
-            IERC20(token).transfer(_owner, stakerRewards);
+            SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), _owner, stakerRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, rewards);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
@@ -728,7 +737,7 @@ contract StakingV3 is
 
         // Only possible in token phase
         if (_action == RewardAction.WITHDRAW) {
-            IERC20(token).transfer(_owner, stakerRewards);
+            SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), _owner, stakerRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, 0);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
@@ -757,7 +766,10 @@ contract StakingV3 is
         if (totalTALInvested == 0) {
             talentS = 0;
         } else {
-            talentS = (talentS + (talentRewards * IRewardCalculatorV2(rewardCalculator).mul()) / totalTALInvested);
+            talentS = SafeMath.add(
+                talentS,
+                SafeMath.div(SafeMath.mul(talentRewards, IRewardCalculatorV2(rewardCalculator).mul()), totalTALInvested)
+            );
         }
 
         return (stakerRewards, talentRewards);
@@ -793,9 +805,21 @@ contract StakingV3 is
         returns (uint256 stakerRewards, uint256 talentRewards)
     {
         GlobalStakeData storage globalStake = globalStakes[_owner];
-        uint256 newS = S +
-            (IRewardCalculatorV2(rewardCalculator).calculateGlobalReward(start, end, SAt, _currentTime, rewardsMax)) /
-            totalAdjustedShares;
+        uint256 newS = SafeMath.add(
+            S,
+            SafeMath.div(
+                (
+                    IRewardCalculatorV2(rewardCalculator).calculateGlobalReward(
+                        start,
+                        end,
+                        SAt,
+                        _currentTime,
+                        rewardsMax
+                    )
+                ),
+                totalAdjustedShares
+            )
+        );
 
         (uint256 sRewards, uint256 tRewards) = IRewardCalculatorV2(rewardCalculator).calculateReward(
             globalStake.tokenAmount,
@@ -834,7 +858,7 @@ contract StakingV3 is
 
     /// returns a given amount of TAL to an owner
     function _withdrawToken(address _owner, uint256 _amount) private {
-        IERC20(token).transfer(_owner, _amount);
+        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), _owner, _amount);
     }
 
     function isV3() public pure virtual returns (bool) {
@@ -876,7 +900,7 @@ contract StakingV3 is
         returns (bool)
     {
         require(!disabled, "staking has been disabled");
-        require(IERC20(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
+        require(IERC20Upgradeable(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
 
         uint256 tokenAmount = _checkpointAndUnstake(
             msg.sender,
@@ -928,7 +952,7 @@ contract StakingV3 is
     /// @param _usd The amount of USD, in cents, to convert
     /// @return The converted TAL amount
     function convertUsdToToken(uint256 _usd) public view returns (uint256) {
-        return (_usd * 1 ether) / tokenPrice;
+        return SafeMath.div(SafeMath.mul(_usd, 1 ether), tokenPrice);
     }
 
     /// Converts a given TAL amount to a Talent Token amount
@@ -936,7 +960,7 @@ contract StakingV3 is
     /// @param _tal The amount of TAL to convert
     /// @return The converted Talent Token amount
     function convertTokenToTalent(uint256 _tal) public view returns (uint256) {
-        return (_tal * 1 ether) / talentPrice;
+        return SafeMath.div(SafeMath.mul(_tal, 1 ether), talentPrice);
     }
 
     /// Converts a given Talent Token amount to TAL
@@ -944,7 +968,7 @@ contract StakingV3 is
     /// @param _talent The amount of Talent Tokens to convert
     /// @return The converted TAL amount
     function convertTalentToToken(uint256 _talent) public view returns (uint256) {
-        return (_talent * talentPrice) / 1 ether;
+        return SafeMath.div(SafeMath.mul(_talent, talentPrice), 1 ether);
     }
 
     /// Converts a given USD amount to Talent token

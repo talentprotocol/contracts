@@ -186,7 +186,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         bytes32 childNode
     ) internal {
         // User must have paid enough
-        uint256 ethSubdomainFee = _domainPriceInEth();
+        uint256 ethSubdomainFee = domainPriceInEth();
 
         require(msg.value >= ethSubdomainFee, "TALSUBDOMAIN_REGISTRAR: Amount passed is not enough");
 
@@ -242,7 +242,7 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         ensRegistry.setSubnodeRecord(ROOT_NODE, labelHash, address(0x0), address(0x0), 0);
     }
 
-    function _domainPriceInEth() internal view returns (uint256 price) {
+    function domainPriceInEth() public view returns (uint256 price) {
         if (subdomainFee == 0) {
             return 0;
         }

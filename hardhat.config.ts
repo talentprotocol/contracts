@@ -54,7 +54,12 @@ const config: HardhatUserConfig = {
       url: "https://rpc-mainnet.maticvigil.com/",
       accounts: deployer,
       chainId: 137
-    }
+    },
+    goerli: {
+      url: "https://rpc.ankr.com/eth_goerli",
+      accounts: deployer,
+      chainId: 5,
+    },
   },
   gasReporter: {
     currency: "ETH",

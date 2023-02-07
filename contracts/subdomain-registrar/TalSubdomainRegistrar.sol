@@ -171,6 +171,19 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
         dnsRegistrar.proveAndClaimWithResolver(name, input, proof, address(publicResolver), address(this));
     }
 
+    function domainPriceInEth() public view returns (uint256 price) {
+        if (subdomainFee == 0) {
+            return 0;
+        }
+
+        (, int256 ethUsdPrice, , , ) = priceFeed.latestRoundData();
+        // The priceFeed returns only 8 decimals
+        uint256 adjustedPrice = SafeMath.mul(uint256(ethUsdPrice), 10**10); // 18 decimals
+        uint256 subdomainFeeWithMUL = SafeMath.mul(subdomainFee, MUL);
+
+        return SafeMath.div(SafeMath.mul(subdomainFeeWithMUL, MUL), uint256(adjustedPrice));
+    }
+
     /**
      * @dev Register a name when the correct amount is passed.
      *      Can only be called if and only if the subdomain is free to be registered.
@@ -240,18 +253,5 @@ contract TalSubdomainRegistrar is Ownable, ITalRegistrarInterface {
 
         // Revoke ownership
         ensRegistry.setSubnodeRecord(ROOT_NODE, labelHash, address(0x0), address(0x0), 0);
-    }
-
-    function domainPriceInEth() public view returns (uint256 price) {
-        if (subdomainFee == 0) {
-            return 0;
-        }
-
-        (, int256 ethUsdPrice, , , ) = priceFeed.latestRoundData();
-        // The priceFeed returns only 8 decimals
-        uint256 adjustedPrice = SafeMath.mul(uint256(ethUsdPrice), 10**10); // 18 decimals
-        uint256 subdomainFeeWithMUL = SafeMath.mul(subdomainFee, MUL);
-
-        return SafeMath.div(SafeMath.mul(subdomainFeeWithMUL, MUL), uint256(adjustedPrice));
     }
 }

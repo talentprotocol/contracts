@@ -46,7 +46,7 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
         // require(ERC165(_token).supportsInterface(type(IERC20).interfaceId), "not a valid ERC20 token");
 
         ERC20 erc20 = ERC20(_token);
-        require(strcmp(erc20.symbol(), "TAL"), "token name is not TAL");
+        require(memcmp(bytes(erc20.symbol()), bytes("TAL")), "token name is not TAL");
 
         token = _token;
     }
@@ -65,11 +65,6 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
 
     function _isTokenSet() internal view returns (bool) {
         return token != address(0x0);
-    }
-
-    /// Checks equality of two strings
-    function strcmp(string memory a, string memory b) private pure returns (bool) {
-        return memcmp(bytes(a), bytes(b));
     }
 
     /// Checks equality of two byte sequences, both in length and in content

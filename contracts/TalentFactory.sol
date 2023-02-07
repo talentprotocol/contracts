@@ -131,6 +131,8 @@ contract TalentFactory is
 
         symbolsToTokens[_symbol] = token;
         tokensToTalents[token] = _talent;
+        /// Added for V2
+        talentsToTokens[_talent] = token;
 
         emit TalentCreated(_talent, token);
 

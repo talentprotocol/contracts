@@ -4,7 +4,18 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { TalentProtocol, USDTMock, TalentFactory, TalentFactoryV2, StakingV2, Staking, TalentToken, TalentFactoryV2__factory } from "../../typechain-types";
+import type { ContractFactory } from "ethers";
+
+import type {
+  TalentProtocol,
+  USDTMock,
+  TalentFactory,
+  TalentFactoryV2,
+  StakingV2,
+  Staking,
+  TalentToken,
+  TalentFactoryV2__factory,
+} from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { deployTalentToken, transferAndCall, ensureTimestamp, findEvent } from "../shared/utils";
@@ -128,7 +139,7 @@ describe("Staking", () => {
     ERC165.supportsInterfaces(builder, ["IERC165", "IAccessControl"]);
   });
 
-  describe("upgradabled", ()=> {
+  describe("upgradabled", () => {
     beforeEach(async () => {
       const StakingContract = await ethers.getContractFactory("Staking");
       staking = (await upgrades.deployProxy(StakingContract, [
@@ -782,7 +793,7 @@ describe("Staking", () => {
         expect(await staking.activeStakes()).to.equal(1);
 
         // refundind the remaining 50% decrements
-        const balance = await talentToken1.balanceOf(investor1.address)
+        const balance = await talentToken1.balanceOf(investor1.address);
 
         await transferAndCall(talentToken1, investor1, staking.address, balance, null);
         expect(await staking.activeStakes()).to.equal(0);
@@ -871,9 +882,9 @@ describe("Staking", () => {
     describe("setTokenPrice", () => {
       it("is callable by an admin", async () => {
         const action = await staking.connect(owner).setTokenPrice(parseUnits("1"));
-        
+
         expect(await staking.tokenPrice()).to.eq(parseUnits("1"));
-      })
+      });
 
       it("is not callable by a random user", async () => {
         const action = staking.connect(investor1).setTokenPrice(parseUnits("1"));
@@ -881,7 +892,7 @@ describe("Staking", () => {
         await expect(action).to.be.revertedWith(
           `AccessControl: account ${investor1.address.toLowerCase()} is missing role ${await staking.DEFAULT_ADMIN_ROLE()}`
         );
-      })
+      });
 
       it("changes the token price", async () => {
         await stable.connect(investor1).approve(staking.address, parseUnits("1"));
@@ -895,7 +906,7 @@ describe("Staking", () => {
 
         await staking.connect(investor2).stakeStable(talentToken1.address, parseUnits("1"));
         expect(await talentToken1.balanceOf(investor2.address)).to.equal(parseUnits("1"));
-      })
-    })
+      });
+    });
   });
 });

@@ -10,7 +10,7 @@ const { deployContract } = waffle;
 async function main() {
   const [owner] = await ethers.getSigners();
 
-  const provider =  new ethers.providers.JsonRpcProvider("https://alfajores-forno.celo-testnet.org");
+  const provider = new ethers.providers.JsonRpcProvider("https://alfajores-forno.celo-testnet.org");
 
   // const oldStaking = new ethers.Contract(
   //   "0xC0349e63C1250b408eA11F5492D70A8E5e202B93",
@@ -45,17 +45,13 @@ async function main() {
   //   parseUnits("5"),
   // ])) as StakingMigration;
 
-  const oldStaking = new ethers.Contract(
-    "0xC0349e63C1250b408eA11F5492D70A8E5e202B93",
-    StakingArtifact.abi,
-    provider
-  )
+  const oldStaking = new ethers.Contract("0xC0349e63C1250b408eA11F5492D70A8E5e202B93", StakingArtifact.abi, provider);
 
   const newStaking = new ethers.Contract(
     "0xfc35754091D1540cE605Db87e5284369D766F0bF",
     StakingMigrationArtifact.abi,
     provider
-  )
+  );
 
   console.log("New Staking address: ", newStaking.address);
 
@@ -77,7 +73,6 @@ async function main() {
   // console.log("Migrating tokens");
   // for await (const token of allTokens) {
   //   const talentRewards = await oldStaking.talentRedeemableRewards(token);
-  //   const maxTalentS = await oldStaking.maxSForTalent(token);
 
   //   await newStaking.connect(owner).setTalentState(token, talentRewards, maxTalentS);
   //   console.log("Migrated: ", token);
@@ -100,7 +95,7 @@ async function main() {
 
   // console.log("Done.");
 
-  const allTX: any = []
+  const allTX: any = [];
 
   console.log("Processing events");
 
@@ -119,14 +114,14 @@ async function main() {
 
     const logs = transaction.logs.map((log: any) => {
       try {
-        return oldStaking.interface.parseLog(log)
-      }  catch {
+        return oldStaking.interface.parseLog(log);
+      } catch {
         return null;
       }
     });
 
     // Filter STAKE events
-    const stakeLogs = logs.filter(item => !!item && item.name === "Stake");
+    const stakeLogs = logs.filter((item) => !!item && item.name === "Stake");
 
     if (stakeLogs.length > 0) {
       console.log("Emitting a Stake event");
@@ -139,19 +134,23 @@ async function main() {
     }
 
     // Filter Rewards claim events
-    const rewardClaimLogs = logs.filter(item => !!item && item.name === "RewardClaim");
+    const rewardClaimLogs = logs.filter((item) => !!item && item.name === "RewardClaim");
 
     if (rewardClaimLogs.length > 0) {
       console.log("Emitting a reward claim event");
       for await (const item of rewardClaimLogs) {
         console.log("Reward claim event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
-        await newStaking.connect(owner).emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
+        await newStaking
+          .connect(owner)
+          .emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
         rewardsClaimEmmited += 1;
         txRewardsClaimEmmited += 1;
       }
     }
 
-    console.log(`Migrated Transaction (${txIndex}/${txTotal}) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`);
+    console.log(
+      `Migrated Transaction (${txIndex}/${txTotal}) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`
+    );
     txIndex += 1;
   }
 }

@@ -1,0 +1,18 @@
+name: Slither Analysis
+
+on: [push]
+
+jobs:
+
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Run Slither
+      uses: crytic/slither-action@v0.3.0
+      id: slither
+      with:
+        node-version: 16
+        target: './'

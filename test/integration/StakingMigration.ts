@@ -88,7 +88,7 @@ describe("StakingMigration", () => {
     // deploy talent tokens
     talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");
     talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");
-    talentToken3 = await deployTalentToken(factory, minter, talent2, "Andreas Vilela", "AVIL");
+    talentToken3 = await deployTalentToken(factory, minter, talent3, "Andreas Vilela", "AVIL");
 
     // fund investors
     await stable.connect(owner).transfer(investor1.address, parseUnits("100000"));

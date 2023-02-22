@@ -22,12 +22,13 @@ describe("TalentFactory", () => {
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
   let talent2: SignerWithAddress;
+  let attacker: SignerWithAddress;
   let factory: TalentFactory;
 
   let TalentFactoryFactory: ContractFactory;
 
   beforeEach(async () => {
-    [creator, minter, talent1, talent2] = await ethers.getSigners();
+    [creator, minter, talent1, talent2, attacker] = await ethers.getSigners();
 
     TalentFactoryFactory = await ethers.getContractFactory("TalentFactory");
   });
@@ -96,7 +97,7 @@ describe("TalentFactory", () => {
         expect(await token.balanceOf(talent1.address)).to.eq(parseUnits("2000"));
       });
 
-      it("can deploy two independent talent tokens", async () => {
+      it("minter can deploy two independent talent tokens", async () => {
         const tx1 = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
         const tx2 = await factory.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
 
@@ -114,6 +115,27 @@ describe("TalentFactory", () => {
 
         expect(await leal.balanceOf(talent1.address)).to.eq(parseUnits("0"));
         expect(await leal.balanceOf(talent2.address)).to.eq(parseUnits("2000"));
+      });
+
+      it("cannot create talent token for other talent", async () => {
+        const action = factory.connect(attacker).createTalent(talent1.address, "Miguel Palhas", "NAPЅ");
+
+        await expect(action).to.be.revertedWith("cannot create a talent token for another talent");
+      });
+
+      it("cannot create when talent already has talent token", async () => {
+        // Rightful Creation
+        const validToken = await factory
+          .connect(talent1)
+          .callStatic.createTalent(talent1.address, "Miguel Palhas", "NAPS");
+        await factory.connect(talent1).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+
+        expect(validToken).to.equal(await factory.talentsToTokens(talent1.address));
+
+        // Talent tries to create another talent
+        const action = factory.connect(talent1).createTalent(talent1.address, "Miguel Palhas", "NAPЅ");
+
+        await expect(action).to.be.revertedWith("talent already has talent token");
       });
     });
 

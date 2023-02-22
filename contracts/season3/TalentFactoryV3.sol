@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "hardhat/console.sol";
 
 import {ITalentToken} from "../TalentToken.sol";
-import {TalentFactory} from "../TalentFactory.sol";
+import {TalentFactoryV2} from "../TalentFactoryV2.sol";
 import {IVirtualTAL} from "./VirtualTAL.sol";
 
 interface ITalentFactoryV3 {
@@ -17,7 +17,7 @@ interface ITalentFactoryV3 {
     function hasTalentToken(address addr) external view returns (bool);
 }
 
-contract TalentFactoryV3 is TalentFactory, ITalentFactoryV3 {
+contract TalentFactoryV3 is TalentFactoryV2, ITalentFactoryV3 {
     function version() public pure virtual returns (uint256) {
         return 3;
     }

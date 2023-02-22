@@ -5,7 +5,7 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain-types";
+import type { TalentFactory, TalentToken } from "../../typechain-types";
 import {
   TalentToken__factory,
   TalentTokenV2__factory,
@@ -15,7 +15,6 @@ import {
 
 import TalentTokenV2Artifact from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 
-import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
 
 chai.use(solidity);
@@ -24,7 +23,7 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("TalentFactory", () => {
+describe("TalentFactoryV2", () => {
   let creator: SignerWithAddress;
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
@@ -75,7 +74,7 @@ describe("TalentFactory", () => {
       // state is kept
       // expect(napsv2.balanceOf(creator.address)).to.equal(parseUnits("1.42"));
 
-      const tx = await factory.connect(minter).createTalent(talent1.address, "Francisco Leal", "LEAL");
+      const tx = await factory.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
       const event = await findEvent(tx, "TalentCreated");
       const leal = TalentTokenV2__factory.connect(event?.args?.token, creator);
 
@@ -108,7 +107,7 @@ describe("TalentFactory", () => {
 
       await beacon.upgradeTo(talentTokenV2.address);
       const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
-      const defaultAdminRole = await napsv2.DEFAULT_ADMIN_ROLE()
+      const defaultAdminRole = await napsv2.DEFAULT_ADMIN_ROLE();
 
       await expect(napsv2.connect(talent1).removeMinter(minter.address)).to.be.revertedWith(
         `AccessControl: account ${talent1.address.toLowerCase()} is missing role ${defaultAdminRole}`

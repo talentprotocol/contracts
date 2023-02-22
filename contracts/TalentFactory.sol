@@ -102,6 +102,8 @@ contract TalentFactory is
         string memory _name,
         string memory _symbol
     ) public returns (address) {
+        require(msg.sender == minter || msg.sender == _talent, "talent must be owner");
+        require(talentsToTokens[_talent] == address(0x0), "talent already has talent token");
         require(!isSymbol(_symbol), "symbol already exists");
         require(_isMinterSet(), "minter not yet set");
 

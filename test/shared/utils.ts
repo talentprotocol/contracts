@@ -22,7 +22,7 @@ export async function deployTalentToken(
   name: string,
   symbol: string
 ): Promise<TalentToken> {
-  const tx = await factory.connect(minter).createTalent(owner.address, name, symbol);
+  const tx = await factory.connect(owner).createTalent(owner.address, name, symbol);
   const event = await findEvent(tx, "TalentCreated");
 
   const address = event?.args?.token;

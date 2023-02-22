@@ -46,6 +46,10 @@ describe("TalentFactory", () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
+      await factory.setWhitelister(minter.address);
+
+      await factory.connect(minter).whitelistAddress(talent1.address);
+      await factory.connect(minter).whitelistAddress(talent2.address);
 
       const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
       const event = await findEvent(tx, "TalentCreated");

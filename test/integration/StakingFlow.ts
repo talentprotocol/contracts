@@ -71,6 +71,11 @@ describe("StakingFlow", () => {
     ])) as Staking;
 
     await factory.setMinter(staking.address);
+    await factory.setWhitelister(minter.address);
+
+    await factory.connect(minter).whitelistAddress(talent1.address);
+    await factory.connect(minter).whitelistAddress(talent2.address);
+    await factory.connect(minter).whitelistAddress(talent3.address);
 
     // deploy talent tokens
     talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");

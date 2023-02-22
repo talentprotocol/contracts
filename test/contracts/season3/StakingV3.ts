@@ -212,6 +212,10 @@ describe("StakingV3", () => {
       stakingV3 = await builder();
 
       await factory.setMinter(stakingV3.address);
+      await factory.setWhitelister(minter.address);
+
+      await factory.connect(minter).whitelistAddress(talent1.address);
+      await factory.connect(minter).whitelistAddress(talent2.address);
 
       talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");
       talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");

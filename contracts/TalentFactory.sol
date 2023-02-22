@@ -53,6 +53,9 @@ contract TalentFactory is
     /// creator role
     bytes32 public constant ROLE_MINTER = keccak256("MINTER");
 
+    /// role to add address to whitelist
+    bytes32 public constant WHITELISTER_ROLE = keccak256("WHITELISTER");
+
     /// initial supply of each new token minted
     uint256 public constant INITIAL_SUPPLY = 2000 ether;
 
@@ -70,6 +73,9 @@ contract TalentFactory is
 
     /// implementation template to clone
     address public implementationBeacon;
+
+    /// maps address to a bool that says if address is whitelisted to create talent token
+    mapping(address => bool) public whitelist;
 
     event TalentCreated(address indexed talent, address indexed token);
 
@@ -92,6 +98,14 @@ contract TalentFactory is
         _grantRole(ROLE_MINTER, _minter);
     }
 
+    function setWhitelister(address _whitelister) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(WHITELISTER_ROLE, _whitelister);
+    }
+
+    function revokeWhitelister(address _whitelister) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(WHITELISTER_ROLE, _whitelister);
+    }
+
     /// Creates a new talent token
     ///
     /// @param _talent The talent's address
@@ -102,6 +116,7 @@ contract TalentFactory is
         string memory _name,
         string memory _symbol
     ) public returns (address) {
+        require(whitelist[_talent] == true, "address needs to be whitelisted");
         require(msg.sender == minter || msg.sender == _talent, "talent must be owner");
         require(talentsToTokens[_talent] == address(0x0), "talent already has talent token");
         require(!isSymbol(_symbol), "symbol already exists");
@@ -135,10 +150,18 @@ contract TalentFactory is
         tokensToTalents[token] = _talent;
         /// Added for V2
         talentsToTokens[_talent] = token;
+        whitelist[_talent] = false;
 
         emit TalentCreated(_talent, token);
 
         return token;
+    }
+
+    /// Whitelists an address
+    ///
+    /// @param _address The address to whitelist
+    function whitelistAddress(address _address) public onlyRole(WHITELISTER_ROLE) {
+        whitelist[_address] = true;
     }
 
     //

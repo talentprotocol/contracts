@@ -22,13 +22,14 @@ describe("TalentFactory", () => {
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
   let talent2: SignerWithAddress;
+  let talent3: SignerWithAddress;
   let attacker: SignerWithAddress;
   let factory: TalentFactory;
 
   let TalentFactoryFactory: ContractFactory;
 
   beforeEach(async () => {
-    [creator, minter, talent1, talent2, attacker] = await ethers.getSigners();
+    [creator, minter, talent1, talent2, talent3, attacker] = await ethers.getSigners();
 
     TalentFactoryFactory = await ethers.getContractFactory("TalentFactory");
   });
@@ -43,7 +44,6 @@ describe("TalentFactory", () => {
 
   const builder = async (): Promise<TalentFactory> => {
     return upgrades.deployProxy(TalentFactoryFactory, []) as Promise<TalentFactory>;
-    // return deployContract(creator, Artifacts.TalentFactory, []) as Promise<TalentFactory>;
   };
 
   describe("behaviour", () => {
@@ -66,6 +66,10 @@ describe("TalentFactory", () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
+      await factory.setWhitelister(minter.address);
+
+      await factory.connect(minter).whitelistAddress(talent1.address);
+      await factory.connect(minter).whitelistAddress(talent2.address);
     });
 
     describe("createTalent", () => {
@@ -133,10 +137,17 @@ describe("TalentFactory", () => {
         expect(validToken).to.equal(await factory.talentsToTokens(talent1.address));
 
         // Talent tries to create another talent
+        await factory.connect(minter).whitelistAddress(talent1.address);
         const action = factory.connect(talent1).createTalent(talent1.address, "Miguel Palhas", "NAPЅ");
 
         await expect(action).to.be.revertedWith("talent already has talent token");
       });
+
+      it("cannot create when address is not whitelisted", async () => {
+        const action = factory.connect(attacker).createTalent(attacker.address, "Miguel Palhas", "NAPS");
+
+        await expect(action).to.be.revertedWith("address needs to be whitelisted");
+      })
     });
 
     describe("isTalentToken", () => {
@@ -164,5 +175,25 @@ describe("TalentFactory", () => {
         expect(await factory.isSymbol("NAPS")).not.to.be.true;
       });
     });
+
+    describe('setWhitelister', () => { 
+      it("sets address as whitelister", async () => {
+        expect(await factory.hasRole(factory.WHITELISTER_ROLE(), talent3.address)).to.be.false;
+
+        await factory.connect(creator).setWhitelister(talent3.address);
+
+        expect(await factory.hasRole(factory.WHITELISTER_ROLE(), talent3.address)).to.be.true;
+      })
+     })
+
+     describe('revokeWhitelister', () => { 
+      it("sets address as whitelister", async () => {
+        await factory.connect(creator).setWhitelister(talent3.address);
+        expect(await factory.hasRole(factory.WHITELISTER_ROLE(), talent3.address)).to.be.true;
+
+        await factory.connect(creator).revokeWhitelister(talent3.address);
+        expect(await factory.hasRole(factory.WHITELISTER_ROLE(), talent3.address)).to.be.false;
+      })
+     })
   });
 });

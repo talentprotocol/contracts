@@ -23,7 +23,7 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("TalentFactoryV2", () => {
+describe("TalentTokenV2", () => {
   let creator: SignerWithAddress;
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
@@ -50,6 +50,10 @@ describe("TalentFactoryV2", () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
+      await factory.setWhitelister(minter.address);
+
+      await factory.connect(minter).whitelistAddress(talent1.address);
+      await factory.connect(minter).whitelistAddress(talent2.address);
 
       const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
       const event = await findEvent(tx, "TalentCreated");

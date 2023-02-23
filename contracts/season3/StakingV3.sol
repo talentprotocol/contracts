@@ -307,7 +307,7 @@ contract StakingV3 is
 
         _checkpointAndStake(msg.sender, _talent, tokenAmount, RewardAction.VIRTUAL_TAL_WITHDRAW);
 
-        totalStableStored += _amount;
+        totalStableStored = totalStableStored + _amount;
 
         SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(stableCoin), msg.sender, address(this), _amount);
 
@@ -428,7 +428,7 @@ contract StakingV3 is
         require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
 
         uint256 tokenAmount = convertUsdToToken(_stableAmount);
-        totalStableStored -= _stableAmount;
+        totalStableStored = totalStableStored - _stableAmount;
 
         SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(token), msg.sender, address(this), tokenAmount);
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(stableCoin), msg.sender, _stableAmount);
@@ -516,7 +516,7 @@ contract StakingV3 is
         require(amount > 0, "nothing left to withdraw");
 
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, amount);
-        rewardsAdminWithdrawn += amount;
+        rewardsAdminWithdrawn = rewardsAdminWithdrawn + amount;
     }
 
     function setTokenPrice(uint256 _price) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -602,20 +602,20 @@ contract StakingV3 is
             );
         }
 
-        stake.talentAmount -= _talentAmount;
-        stake.tokenAmount -= tokenAmount;
-        globalStake.tokenAmount -= tokenAmount;
-        totalTokensStaked -= tokenAmount;
+        stake.talentAmount = stake.talentAmount - _talentAmount;
+        stake.tokenAmount = stake.tokenAmount - tokenAmount;
+        globalStake.tokenAmount = globalStake.tokenAmount - tokenAmount;
+        totalTokensStaked = totalTokensStaked - tokenAmount;
 
         if (ITalentFactoryV3(factory).hasTalentToken(_owner)) {
-            totalTalentTALInvested -= tokenAmount;
+            totalTalentTALInvested = totalTalentTALInvested - tokenAmount;
         } else {
-            totalSupporterTALInvested -= tokenAmount;
+            totalSupporterTALInvested = totalSupporterTALInvested - tokenAmount;
         }
 
         // if stake is over, it has to  decrease the counter
         if (stake.tokenAmount == 0) {
-            activeStakes -= 1;
+            activeStakes = activeStakes - 1;
         }
 
         if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
@@ -649,23 +649,23 @@ contract StakingV3 is
 
         // if it's a new stake, increase stake count
         if (stake.tokenAmount == 0) {
-            activeStakes += 1;
+            activeStakes = activeStakes + 1;
             stake.firstPurchaseTimestamp = block.timestamp;
         }
 
         stake.lastPurchaseTimestamp = block.timestamp;
-        globalStake.tokenAmount += _tokenAmount;
-        stake.tokenAmount += _tokenAmount;
-        stake.talentAmount += talentAmount;
-        totalTALInvested += _tokenAmount;
+        globalStake.tokenAmount = globalStake.tokenAmount + _tokenAmount;
+        stake.tokenAmount = stake.tokenAmount + _tokenAmount;
+        stake.talentAmount = stake.talentAmount + talentAmount;
+        totalTALInvested = totalTALInvested + _tokenAmount;
 
         if (ITalentFactoryV3(factory).hasTalentToken(_owner)) {
-            totalTalentTALInvested += _tokenAmount;
+            totalTalentTALInvested = totalTalentTALInvested + _tokenAmount;
         } else {
-            totalSupporterTALInvested += _tokenAmount;
+            totalSupporterTALInvested = totalSupporterTALInvested + _tokenAmount;
         }
 
-        totalTokensStaked += _tokenAmount;
+        totalTokensStaked = totalTokensStaked + _tokenAmount;
 
         _mintTalent(_owner, _talent, talentAmount);
     }
@@ -699,7 +699,7 @@ contract StakingV3 is
         // this forces admins to finish accumulation of all stakes, via `claimRewardsOnBehalf`
         // before withdrawing any remaining TAL from the reward pool
         if (disabled) {
-            activeStakes -= 1;
+            activeStakes = activeStakes - 1;
         }
 
         // no need to proceed if there's no rewards yet
@@ -760,7 +760,7 @@ contract StakingV3 is
             totalTalentTALInvested
         );
 
-        rewardsGiven += stakerRewards + talentRewards;
+        rewardsGiven = rewardsGiven + stakerRewards + talentRewards;
         globalStake.S = S;
         globalStake.lastCheckpointAt = block.timestamp;
         if (totalTALInvested == 0) {

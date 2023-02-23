@@ -70,7 +70,10 @@ abstract contract ERC1363Upgradeable is
         bytes memory data
     ) public virtual override returns (bool) {
         transfer(recipient, amount);
-        require(_checkAndCallTransfer(_msgSender(), recipient, amount, data), "ERC1363: _checkAndCallTransfer reverts");
+        require(
+            _checkOnTransferReceived(_msgSender(), recipient, amount, data),
+            "ERC1363: receiver returned wrong data"
+        );
         return true;
     }
 
@@ -104,12 +107,12 @@ abstract contract ERC1363Upgradeable is
         bytes memory data
     ) public virtual override returns (bool) {
         transferFrom(sender, recipient, amount);
-        require(_checkAndCallTransfer(sender, recipient, amount, data), "ERC1363: _checkAndCallTransfer reverts");
+        require(_checkOnTransferReceived(sender, recipient, amount, data), "ERC1363: receiver returned wrong data");
         return true;
     }
 
     /**
-     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @dev Approve spender to transfer tokens and then execute a callback on `spender`.
      * @param spender The address allowed to transfer to
      * @param amount The amount allowed to be transferred
      * @return A boolean that indicates if the operation was successful.
@@ -119,10 +122,10 @@ abstract contract ERC1363Upgradeable is
     }
 
     /**
-     * @dev Approve spender to transfer tokens and then execute a callback on recipient.
+     * @dev Approve spender to transfer tokens and then execute a callback on `spender`.
      * @param spender The address allowed to transfer to.
      * @param amount The amount allowed to be transferred.
-     * @param data Additional daa with no specified format.
+     * @param data Additional data with no specified format.
      * @return A boolean that indicates if the operation was successful.
      */
     function approveAndCall(
@@ -131,49 +134,73 @@ abstract contract ERC1363Upgradeable is
         bytes memory data
     ) public virtual override returns (bool) {
         approve(spender, amount);
-        require(_checkAndCallApprove(spender, amount, data), "ERC1363: _checkAndCallApprove reverts");
+        require(_checkOnApprovalReceived(spender, amount, data), "ERC1363: spender returned wrong data");
         return true;
     }
 
     /**
-     * @dev Internal function to invoke `onTransferReceived` on a target address
-     *  The call is not executed if the target address is not a contract
-     * @param sender address Representing the previous owner of the given token value
+     * @dev Internal function to invoke {IERC1363Receiver-onTransferReceived} on a target address.
+     *  The call is not executed if the target address is not a contract.
+     * @param sender address Representing the previous owner of the given token amount
      * @param recipient address Target address that will receive the tokens
      * @param amount uint256 The amount mount of tokens to be transferred
      * @param data bytes Optional data to send along with the call
      * @return whether the call correctly returned the expected magic value
      */
-    function _checkAndCallTransfer(
+    function _checkOnTransferReceived(
         address sender,
         address recipient,
         uint256 amount,
         bytes memory data
     ) internal virtual returns (bool) {
         if (!recipient.isContract()) {
-            return false;
+            revert("ERC1363: transfer to non contract address");
         }
-        bytes4 retval = IERC1363ReceiverUpgradeable(recipient).onTransferReceived(_msgSender(), sender, amount, data);
-        return (retval == IERC1363ReceiverUpgradeable(recipient).onTransferReceived.selector);
+
+        try IERC1363ReceiverUpgradeable(recipient).onTransferReceived(_msgSender(), sender, amount, data) returns (
+            bytes4 retval
+        ) {
+            return retval == IERC1363ReceiverUpgradeable.onTransferReceived.selector;
+        } catch (bytes memory reason) {
+            if (reason.length == 0) {
+                revert("ERC1363: transfer to non ERC1363Receiver implementer");
+            } else {
+                /// @solidity memory-safe-assembly
+                assembly {
+                    revert(add(32, reason), mload(reason))
+                }
+            }
+        }
     }
 
     /**
-     * @dev Internal function to invoke `onApprovalReceived` on a target address
-     *  The call is not executed if the target address is not a contract
+     * @dev Internal function to invoke {IERC1363ReceiverUpgradeable-onApprovalReceived} on a target address.
+     *  The call is not executed if the target address is not a contract.
      * @param spender address The address which will spend the funds
      * @param amount uint256 The amount of tokens to be spent
      * @param data bytes Optional data to send along with the call
      * @return whether the call correctly returned the expected magic value
      */
-    function _checkAndCallApprove(
+    function _checkOnApprovalReceived(
         address spender,
         uint256 amount,
         bytes memory data
     ) internal virtual returns (bool) {
         if (!spender.isContract()) {
-            return false;
+            revert("ERC1363: approve a non contract address");
         }
-        bytes4 retval = IERC1363SpenderUpgradeable(spender).onApprovalReceived(_msgSender(), amount, data);
-        return (retval == IERC1363SpenderUpgradeable(spender).onApprovalReceived.selector);
+
+        try IERC1363SpenderUpgradeable(spender).onApprovalReceived(_msgSender(), amount, data) returns (bytes4 retval) {
+            return retval == IERC1363SpenderUpgradeable.onApprovalReceived.selector;
+        } catch (bytes memory reason) {
+            if (reason.length == 0) {
+                revert("ERC1363: approve a non ERC1363Spender implementer");
+            } else {
+                /// @solidity memory-safe-assembly
+                assembly {
+                    revert(add(32, reason), mload(reason))
+                }
+            }
+        }
     }
 }

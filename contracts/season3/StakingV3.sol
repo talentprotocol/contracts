@@ -861,8 +861,8 @@ contract StakingV3 is
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), _owner, _amount);
     }
 
-    function isV3() public pure virtual returns (bool) {
-        return true;
+    function version() public pure virtual returns (uint256) {
+        return 3;
     }
 
     /// Creates stake and burns virtual TAL

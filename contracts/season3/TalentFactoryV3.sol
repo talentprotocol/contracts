@@ -18,8 +18,8 @@ interface ITalentFactoryV3 {
 }
 
 contract TalentFactoryV3 is TalentFactory, ITalentFactoryV3 {
-    function isV3() public pure virtual returns (bool) {
-        return true;
+    function version() public pure virtual returns (uint256) {
+        return 3;
     }
 
     function hasTalentToken(address addr) public view override(ITalentFactoryV3) returns (bool) {

@@ -72,7 +72,7 @@ describe("TalentProtocol", () => {
     it("allows TAL to be upgraded", async () => {
       const talv2 = (await upgrades.upgradeProxy(tal, TalentProtocolFactoryV2)) as TalentProtocolV2;
 
-      expect(await talv2.isV2()).to.eq(true);
+      expect(await talv2.version()).to.eq(2);
 
       await talv2.connect(creator).adminMint(parseUnits("100"));
 

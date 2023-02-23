@@ -43,7 +43,7 @@ describe("TalentFactoryV2", () => {
     it("allows upgrading the factory itself", async () => {
       const factory2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
 
-      expect(await factory2.isV2()).to.eq(true);
+      expect(await factory2.version()).to.eq(2);
     });
 
     it("the factory upgrade allows to change the minter", async () => {

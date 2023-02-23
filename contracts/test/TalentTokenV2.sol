@@ -5,8 +5,8 @@ pragma solidity ^0.8.7;
 import {TalentToken} from "../TalentToken.sol";
 
 contract TalentTokenV2 is TalentToken {
-    function isV2() public pure returns (bool) {
-        return true;
+    function version() public pure virtual returns (uint256) {
+        return 2;
     }
 
     function addNewMinter(address _newMinter) public onlyRole(DEFAULT_ADMIN_ROLE) {

@@ -26,13 +26,13 @@ abstract contract ERC1363Upgradeable is
 {
     using AddressUpgradeable for address;
 
-    function __ERC1363_init(string memory _name, string memory _symbol) internal initializer {
+    function __ERC1363_init(string memory _name, string memory _symbol) internal onlyInitializing {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __ERC20_init_unchained(_name, _symbol);
     }
 
-    function __ERC1363_init_unchained(string memory _name, string memory _symbol) internal initializer {}
+    function __ERC1363_init_unchained(string memory _name, string memory _symbol) internal onlyInitializing {}
 
     /**
      * @dev See {IERC165-supportsInterface}.

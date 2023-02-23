@@ -1016,9 +1016,9 @@ describe("StakingV3", () => {
       });
     });
 
-    describe("isV3", () => {
-      it("returns true", async () => {
-        expect(await stakingV3.isV3()).to.eq(true);
+    describe("version", () => {
+      it("returns 2", async () => {
+        expect(await stakingV3.version()).to.eq(3);
       });
     });
 

@@ -78,7 +78,7 @@ contract TalentFactory is
         __ERC165_init_unchained();
         __AccessControlEnumerable_init_unchained();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
         UpgradeableBeacon _beacon = new UpgradeableBeacon(address(new TalentToken()));
         _beacon.transferOwnership(msg.sender);
@@ -89,7 +89,7 @@ contract TalentFactory is
         require(minter == address(0x0), "minter already set");
 
         minter = _minter;
-        _setupRole(ROLE_MINTER, _minter);
+        _grantRole(ROLE_MINTER, _minter);
     }
 
     /// Creates a new talent token

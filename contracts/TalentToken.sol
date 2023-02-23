@@ -88,9 +88,9 @@ contract TalentToken is
 
         talent = _talent;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(ROLE_TALENT, _talent);
-        _setupRole(ROLE_MINTER, _minter);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(ROLE_TALENT, _talent);
+        _grantRole(ROLE_MINTER, _minter);
 
         _setRoleAdmin(ROLE_TALENT, ROLE_TALENT);
 

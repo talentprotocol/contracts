@@ -71,7 +71,7 @@ contract RewardCalculatorV2 is Initializable, ContextUpgradeable, AccessControlE
         __Context_init_unchained();
         __AccessControlEnumerable_init_unchained();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function mul() external pure returns (uint256) {

@@ -243,7 +243,7 @@ contract Staking is
         talentPrice = _talentPrice;
         SAt = _start;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     //

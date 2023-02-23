@@ -322,7 +322,7 @@ describe("Staking", () => {
 
         const action = staking.connect(owner).stakeStable(talentToken1.address, await stable.balanceOf(owner.address));
 
-        await expect(action).to.be.revertedWith("_amount exceeds minting availability");
+        await expect(action).to.be.revertedWith("not enough minting availability");
       });
     });
 
@@ -388,7 +388,7 @@ describe("Staking", () => {
 
         const action = staking.connect(owner).swapStableForToken(parseUnits("50"));
 
-        await expect(action).to.be.revertedWith("not enough stable coin left in the contract");
+        await expect(action).to.be.revertedWith("not enough stable in contract");
       });
     });
 
@@ -477,7 +477,7 @@ describe("Staking", () => {
 
         const action = staking.connect(talent2).withdrawTalentRewards(talentToken1.address);
 
-        await expect(action).to.be.revertedWith("only the talent can withdraw their own shares");
+        await expect(action).to.be.revertedWith("only owner can withdraw shares");
       });
     });
 
@@ -574,7 +574,7 @@ describe("Staking", () => {
               talentToken1.address
             );
 
-            await expect(action).to.be.revertedWith("_amount exceeds minting availability");
+            await expect(action).to.be.revertedWith("not enough minting availability");
           });
 
           it("accepts TAL stakes in the second phase", async () => {
@@ -874,7 +874,7 @@ describe("Staking", () => {
         const action = staking.adminWithdraw();
 
         await expect(action).to.be.revertedWith(
-          "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them"
+          "there are still active stakes"
         );
       });
     });

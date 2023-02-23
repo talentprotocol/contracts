@@ -348,7 +348,7 @@ contract StakingV3 is
     /// @return rewards if operation succeeds
     function _talentRewards(address _owner, address _talent) internal returns (uint256) {
         // only the talent himself can redeem their own rewards
-        require(_owner == ITalentToken(_talent).talent(), "only the talent can withdraw their own shares");
+        require(_owner == ITalentToken(_talent).talent(), "only owner can withdraw shares");
 
         GlobalStakeData storage globalStake = globalStakes[_owner];
 
@@ -426,7 +426,7 @@ contract StakingV3 is
     ///
     /// @notice Corresponding TAL amount will be enforced based on the set price
     function swapStableForToken(uint256 _stableAmount) public onlyRole(DEFAULT_ADMIN_ROLE) tokenPhaseOnly {
-        require(_stableAmount <= totalStableStored, "not enough stable coin left in the contract");
+        require(_stableAmount <= totalStableStored, "not enough stable in contract");
 
         uint256 tokenAmount = convertUsdToToken(_stableAmount);
         totalStableStored = totalStableStored - _stableAmount;
@@ -457,7 +457,7 @@ contract StakingV3 is
 
             return ERC1363_RECEIVER_RET;
         } else if (_isTalentToken(msg.sender)) {
-            require(_isTokenSet(), "TAL token not yet set. Refund not possible");
+            require(_isTokenSet(), "TAL token not yet set");
 
             // if it's a registered Talent Token, this is a refund
             address talent = msg.sender;
@@ -511,7 +511,7 @@ contract StakingV3 is
     /// Allows the admin to withdraw whatever is left of the reward pool
     function adminWithdraw() public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(disabled || block.timestamp < end, "disabled OR not end of staking");
-        require(activeStakes == 0, "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them");
+        require(activeStakes == 0, "there are still active stakes");
 
         uint256 amount = rewardsLeft();
         require(amount > 0, "nothing left to withdraw");
@@ -599,7 +599,7 @@ contract StakingV3 is
         if (_action == RewardAction.WITHDRAW) {
             require(
                 IERC20Upgradeable(token).balanceOf(address(this)) >= tokenAmount,
-                "not enough TAL to fulfill request"
+                "not enough TAL to withdraw"
             );
         }
 

@@ -30,7 +30,7 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
     /// @param _stableCoin The USD-pegged stable-coin contract to use
     function __StableThenToken_init(address _stableCoin) internal virtual onlyInitializing {
         // USDT does not implement ERC165, so we can't do much more than this
-        require(_stableCoin != address(0), "stable-coin address must be valid");
+        require(_stableCoin != address(0), "stable address must be valid");
 
         stableCoin = _stableCoin;
 

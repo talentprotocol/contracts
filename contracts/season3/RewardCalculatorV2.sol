@@ -7,8 +7,6 @@ import {
     AccessControlEnumerableUpgradeable
 } from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 interface IRewardCalculatorV2 {
     /// Return variable MUL
     function mul() external view returns (uint256);

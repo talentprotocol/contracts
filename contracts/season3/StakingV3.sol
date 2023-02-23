@@ -15,8 +15,6 @@ import {
 } from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 import {StableThenToken} from "../staking_helpers/StableThenToken.sol";
 import {IRewardCalculatorV2} from "./RewardCalculatorV2.sol";
 import {ITalentToken} from "../TalentToken.sol";

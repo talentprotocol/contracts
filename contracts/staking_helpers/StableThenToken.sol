@@ -27,6 +27,9 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
     /// the token to stake
     address public token;
 
+    /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    uint256[49] __gap;
+
     /// @param _stableCoin The USD-pegged stable-coin contract to use
     function __StableThenToken_init(address _stableCoin) public virtual initializer {
         // USDT does not implement ERC165, so we can't do much more than this

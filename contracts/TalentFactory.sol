@@ -71,6 +71,9 @@ contract TalentFactory is
     /// implementation template to clone
     address public implementationBeacon;
 
+    /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    uint256[49] __gap;
+
     event TalentCreated(address indexed talent, address indexed token);
 
     function initialize() public virtual initializer {

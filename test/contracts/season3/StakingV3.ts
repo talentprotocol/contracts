@@ -141,6 +141,29 @@ describe("StakingV3", () => {
 
       await expect(action).to.be.revertedWith("_talentPrice cannot be 0");
     });
+
+    it("fails if start is after end", async () => {
+      const RewardCalculatorV2 = await ethers.getContractFactory("RewardCalculatorV2");
+      const rewardCalculatorV2 = (await upgrades.deployProxy(RewardCalculatorV2, [])) as RewardCalculatorV2;
+
+      const VirtualTALContract = await ethers.getContractFactory("VirtualTAL");
+      const virtualTAL = await upgrades.deployProxy(VirtualTALContract, []);
+
+      const StakingContract = await ethers.getContractFactory("StakingV3");
+      const action = upgrades.deployProxy(StakingContract, [
+        end,
+        start,
+        rewards,
+        stable.address,
+        factory.address,
+        parseUnits("0.02"),
+        parseUnits("5"),
+        rewardCalculatorV2.address,
+        virtualTAL.address,
+      ]);
+
+      await expect(action).to.be.revertedWith("start cannot be after end");
+    });
   });
 
   const virtualTALBuilder = async (): Promise<VirtualTAL> => {

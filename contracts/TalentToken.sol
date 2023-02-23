@@ -73,6 +73,11 @@ contract TalentToken is
     // talent's wallet
     address public override(ITalentToken) talent;
 
+    // talent's proposed address to change ownership
+    address public proposedTalent;
+
+    event OwnershipTransferred(address talent, address proposedTalent);
+
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -137,19 +142,29 @@ contract TalentToken is
         _burn(_from, _amount);
     }
 
-    /// Changes the talent's wallet
+    /// Proposes a new wallet to change ownership
     ///
-    /// @notice Callable by the talent to chance his own ownership address
+    /// @notice Callable by the talent to change their own proposed address
     ///
-    /// @notice onlyRole() is not needed here, since the equivalent check is
-    /// already done by `grantRole`, which only allows the role's admin, which
-    /// is the TALENT role itself, to grant the role.
+    /// @param _proposedTalent address for the new talent's wallet
+    function proposeTalent(address _proposedTalent) public onlyRole(ROLE_TALENT) {
+        require(msg.sender != _proposedTalent, "talent is already the owner");
+
+        proposedTalent = _proposedTalent;
+    }
+
+    /// Claims talent ownership
     ///
-    /// @param _newTalent address for the new talent's wallet
-    function transferTalentWallet(address _newTalent) public {
-        talent = _newTalent;
-        grantRole(ROLE_TALENT, _newTalent);
-        revokeRole(ROLE_TALENT, msg.sender);
+    /// @notice Callable by the proposed talent to claim ownership
+    function claimTalentOwnership() public {
+        require(msg.sender == proposedTalent, "talent is not proposed owner");
+
+        emit OwnershipTransferred(talent, proposedTalent);
+
+        _grantRole(ROLE_TALENT, proposedTalent);
+        _revokeRole(ROLE_TALENT, talent);
+        talent = proposedTalent;
+        proposedTalent = address(0);
     }
 
     //

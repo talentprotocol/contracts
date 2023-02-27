@@ -255,6 +255,7 @@ contract StakingV3 is
     ) public virtual initializer {
         require(_tokenPrice > 0, "_tokenPrice cannot be 0");
         require(_talentPrice > 0, "_talentPrice cannot be 0");
+        require(_end > _start, "start cannot be after end");
 
         __Context_init_unchained();
         __ERC165_init_unchained();

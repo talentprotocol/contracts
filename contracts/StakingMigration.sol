@@ -27,8 +27,8 @@ contract StakingMigration is Staking {
 
         StakeData storage stake = stakes[_owner][_token];
 
-        stake.tokenAmount += _stake.tokenAmount;
-        stake.talentAmount += _stake.talentAmount;
+        stake.tokenAmount = stake.tokenAmount + _stake.tokenAmount;
+        stake.talentAmount = stake.talentAmount + _stake.talentAmount;
         stake.lastCheckpointAt = _stake.lastCheckpointAt;
         stake.S = _stake.S;
         stake.finishedAccumulating = _stake.finishedAccumulating;

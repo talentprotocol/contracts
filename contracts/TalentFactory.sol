@@ -116,11 +116,13 @@ contract TalentFactory is
         string memory _name,
         string memory _symbol
     ) public returns (address) {
-        require(whitelist[_talent] == true, "address needs to be whitelisted");
-        require(msg.sender == minter || msg.sender == _talent, "talent must be owner");
+        require(whitelist[_talent], "address needs to be whitelisted");
+        require(msg.sender == minter || msg.sender == _talent, "talent must be minter or owner");
         require(talentsToTokens[_talent] == address(0x0), "talent already has talent token");
         require(!isSymbol(_symbol), "symbol already exists");
         require(_isMinterSet(), "minter not yet set");
+
+        whitelist[_talent] = false;
 
         BeaconProxy proxy = new BeaconProxy(
             implementationBeacon,
@@ -150,7 +152,6 @@ contract TalentFactory is
         tokensToTalents[token] = _talent;
         /// Added for V2
         talentsToTokens[_talent] = token;
-        whitelist[_talent] = false;
 
         emit TalentCreated(_talent, token);
 

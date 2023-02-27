@@ -18,7 +18,7 @@ interface ITalentFactoryV3 {
 }
 
 contract TalentFactoryV3 is TalentFactoryV2, ITalentFactoryV3 {
-    function version() public pure virtual returns (uint256) {
+    function version() public pure virtual override(TalentFactoryV2) returns (uint256) {
         return 3;
     }
 

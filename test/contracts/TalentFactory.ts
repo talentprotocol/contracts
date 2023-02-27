@@ -124,7 +124,7 @@ describe("TalentFactory", () => {
       it("cannot create talent token for other talent", async () => {
         const action = factory.connect(attacker).createTalent(talent1.address, "Miguel Palhas", "NAPЅ");
 
-        await expect(action).to.be.revertedWith("cannot create a talent token for another talent");
+        await expect(action).to.be.revertedWith("talent must be minter or owner");
       });
 
       it("cannot create when talent already has talent token", async () => {

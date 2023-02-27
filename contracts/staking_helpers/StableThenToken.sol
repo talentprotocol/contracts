@@ -71,4 +71,7 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
     function memcmp(bytes memory a, bytes memory b) private pure returns (bool) {
         return (a.length == b.length) && (keccak256(a) == keccak256(b));
     }
+
+    /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    uint256[49] __gap;
 }

@@ -176,4 +176,7 @@ abstract contract ERC1363Upgradeable is
         bytes4 retval = IERC1363SpenderUpgradeable(spender).onApprovalReceived(_msgSender(), amount, data);
         return (retval == IERC1363SpenderUpgradeable(spender).onApprovalReceived.selector);
     }
+
+    /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    uint256[49] __gap;
 }

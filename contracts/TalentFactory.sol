@@ -176,4 +176,7 @@ contract TalentFactory is
     function _isMinterSet() private view returns (bool) {
         return minter != address(0x0);
     }
+
+    /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
+    uint256[49] __gap;
 }

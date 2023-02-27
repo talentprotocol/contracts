@@ -67,7 +67,7 @@ describe("TalentFactory", () => {
 
       // naps is automatically upgraded
       const napsv2 = TalentTokenV2__factory.connect(naps.address, creator);
-      expect(await napsv2.isV2()).to.be.true;
+      expect(await napsv2.version()).to.eq(2);
 
       // state is kept
       // expect(napsv2.balanceOf(creator.address)).to.equal(parseUnits("1.42"));
@@ -76,7 +76,7 @@ describe("TalentFactory", () => {
       const event = await findEvent(tx, "TalentCreated");
       const leal = TalentTokenV2__factory.connect(event?.args?.token, creator);
 
-      expect(await leal.isV2()).to.be.true;
+      expect(await leal.version()).to.eq(2);
     });
 
     it("allows upgrading the factory itself", async () => {

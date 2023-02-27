@@ -21,7 +21,7 @@ async function main() {
     owner1
   );
   
-  console.log("Factory v2: ", await factory.isV2());
+  console.log("Factory version: ", await factory.version());
 
   console.log("Factory minter is: ", await factory.ROLE_MINTER());
   console.log("Factory Signer: ", await factory.signer.getAddress());

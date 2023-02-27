@@ -15,7 +15,7 @@ async function main() {
   const FactoryFactoryV2 = await ethers.getContractFactory("TalentFactoryV2");
   const factoryv2 = (await upgrades.upgradeProxy(factory, FactoryFactoryV2)) as TalentFactoryV2;
 
-  console.log("is version v2: ", await factoryv2.isV2());
+  console.log("is version version: ", await factoryv2.version());
 }
 
 main()

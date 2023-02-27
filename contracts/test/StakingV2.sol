@@ -5,7 +5,7 @@ pragma solidity ^0.8.7;
 import {Staking} from "../Staking.sol";
 
 contract StakingV2 is Staking {
-    function isV2() public pure returns (bool) {
-        return true;
+    function version() public pure virtual returns (uint256) {
+        return 2;
     }
 }

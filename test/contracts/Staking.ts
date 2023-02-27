@@ -159,14 +159,14 @@ describe("Staking", () => {
       const TalentFactoryV2Factory = (await ethers.getContractFactory("TalentFactoryV2")) as TalentFactoryV2__factory;
       const factory2 = (await upgrades.upgradeProxy(factory, TalentFactoryV2Factory)) as TalentFactoryV2;
 
-      expect(await factory2.isV2()).to.eq(true);
+      expect(await factory2.version()).to.eq(2);
     });
 
     it("allows upgrading the staking contract", async () => {
       const StakingV2Factory = await ethers.getContractFactory("StakingV2");
       const staking2 = (await upgrades.upgradeProxy(staking, StakingV2Factory)) as StakingV2;
 
-      expect(await staking2.isV2()).to.eq(true);
+      expect(await staking2.version()).to.eq(2);
     });
   });
 

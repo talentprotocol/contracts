@@ -232,7 +232,7 @@ describe("TalentToken", () => {
       await coin.connect(talent).transfer(minter.address, 1);
       const coin2 = (await upgrades.upgradeProxy(coin, TalentTokenV2Factory)) as TalentTokenV2;
 
-      expect(await coin2.isV2()).to.be.true;
+      expect(await coin2.version()).to.eq(2);
       expect(await coin2.balanceOf(minter.address)).to.eq(1);
     });
   });

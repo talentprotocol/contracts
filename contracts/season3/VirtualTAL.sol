@@ -89,12 +89,6 @@ contract VirtualTAL is
         emit AdminBurned(_from, _amount);
     }
 
-    /// Changes the owner's wallet
-    ///
-    /// @notice Callable by the owner to chance his own ownership address
-    /// @param _newOwner address for the new owner's wallet
-    function transferownerWallet(address _newOwner) public {}
-
     function getBalance(address _owner) public view override(IVirtualTAL) returns (uint256) {
         return addressToTAL[_owner];
     }

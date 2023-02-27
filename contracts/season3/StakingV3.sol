@@ -294,7 +294,6 @@ contract StakingV3 is
     /// The USD amount will be converted to the equivalent amount in TAL, according to the pre-determined rate
     ///
     /// @param _amount The amount of stable coin to stake
-    /// @return true if operation succeeds
     ///
     /// @notice The contract must be previously approved to spend _amount on behalf of `msg.sender`
     function stakeStable(address _talent, uint256 _amount)
@@ -302,7 +301,6 @@ contract StakingV3 is
         onlyWhileStakingEnabled
         stablePhaseOnly
         updatesAdjustedShares(msg.sender)
-        returns (bool)
     {
         uint256 tokenAmount = convertUsdToToken(_amount);
 
@@ -313,34 +311,24 @@ contract StakingV3 is
         SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(stableCoin), msg.sender, address(this), _amount);
 
         emit Stake(msg.sender, _talent, tokenAmount, true);
-
-        return true;
     }
 
     /// Redeems rewards since last checkpoint and withdraws to Virtual TAL
-    ///
-    /// @return true if operation succeeds
-    function claimRewardsToVirtualTAL() public stablePhaseOnly returns (bool) {
-        return claimRewardsOnBehalf(msg.sender);
+    function claimRewardsToVirtualTAL() public stablePhaseOnly {
+        claimRewardsOnBehalf(msg.sender);
     }
 
     /// Redeems rewards for a given staker and withdraws to Virtual TAL
     ///
     /// @param _owner owner of the stake to process
-    /// @return true if operation succeeds
-    function claimRewardsOnBehalf(address _owner) public stablePhaseOnly returns (bool) {
+    function claimRewardsOnBehalf(address _owner) public stablePhaseOnly {
         _claimCheckpoint(_owner, RewardAction.VIRTUAL_TAL_WITHDRAW);
-
-        return true;
     }
 
     /// Redeems rewards since last checkpoint, and withdraws them to the owner's wallet
     ///
-    /// @return true if operation succeeds
-    function withdrawRewards() public tokenPhaseOnly returns (bool) {
+    function withdrawRewards() public tokenPhaseOnly {
         _claimCheckpoint(msg.sender, RewardAction.WITHDRAW);
-
-        return true;
     }
 
     /// @param _owner The talent from which rewards are to be claimed
@@ -366,11 +354,8 @@ contract StakingV3 is
     ///   the talent to redeem for himself through this function
     ///
     /// @param _talent The talent token from which rewards are to be claimed
-    /// @return true if operation succeeds
-    function withdrawTalentRewardsToVirtualTAL(address _talent) public stablePhaseOnly returns (bool) {
+    function withdrawTalentRewardsToVirtualTAL(address _talent) public stablePhaseOnly {
         IVirtualTAL(virtualTAL).adminMint(msg.sender, _talentRewards(msg.sender, _talent));
-
-        return true;
     }
 
     /// Redeems a talent's share of the staking rewards
@@ -379,11 +364,8 @@ contract StakingV3 is
     ///   the talent to redeem for himself through this function
     ///
     /// @param _talent The talent token from which rewards are to be claimed
-    /// @return true if operation succeeds
-    function withdrawTalentRewards(address _talent) public tokenPhaseOnly returns (bool) {
+    function withdrawTalentRewards(address _talent) public tokenPhaseOnly {
         SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, _talentRewards(msg.sender, _talent));
-
-        return true;
     }
 
     /// Calculates stable coin balance of the contract
@@ -870,13 +852,11 @@ contract StakingV3 is
     ///
     /// @param _talentTokenAddress The talent address
     /// @param _amount The TAL amount
-    /// @return bool
     function createStakeWithVirtualTAL(address _talentTokenAddress, uint256 _amount)
         public
         onlyWhileStakingEnabled
         stablePhaseOnly
         updatesAdjustedShares(msg.sender)
-        returns (bool)
     {
         require(IVirtualTAL(virtualTAL).getBalance(msg.sender) >= _amount, "not enough TAL");
 
@@ -885,20 +865,16 @@ contract StakingV3 is
         IVirtualTAL(virtualTAL).adminBurn(msg.sender, _amount);
 
         emit Stake(msg.sender, _talentTokenAddress, _amount, true);
-
-        return true;
     }
 
     /// Sells talent tokens and mints virtual TAL
     ///
     /// @param _talentTokenAddress The talent address
     /// @param _amount The talent tokens amount
-    /// @return bool
     function sellTalentTokenForVirtualTAL(address _talentTokenAddress, uint256 _amount)
         public
         onlyWhileStakingEnabled
         stablePhaseOnly
-        returns (bool)
     {
         require(!disabled, "staking has been disabled");
         require(IERC20Upgradeable(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
@@ -911,8 +887,6 @@ contract StakingV3 is
         );
 
         emit Unstake(_talentTokenAddress, msg.sender, tokenAmount);
-
-        return true;
     }
 
     modifier updatesAdjustedShares(address _owner) {

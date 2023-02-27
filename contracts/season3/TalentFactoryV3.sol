@@ -29,10 +29,7 @@ contract TalentFactoryV3 is TalentFactory, ITalentFactoryV3 {
     function addAddressToTokensToTalents(address talentAddress, address tokenAddress)
         public
         onlyRole(DEFAULT_ADMIN_ROLE)
-        returns (bool)
     {
         tokensToTalents[talentAddress] = tokenAddress;
-
-        return true;
     }
 }

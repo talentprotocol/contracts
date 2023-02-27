@@ -314,7 +314,7 @@ contract StakingV3 is
 
     /// Redeems rewards since last checkpoint and withdraws to Virtual TAL
     function claimRewardsToVirtualTAL() public stablePhaseOnly {
-        return claimRewardsOnBehalf(msg.sender);
+        claimRewardsOnBehalf(msg.sender);
     }
 
     /// Redeems rewards for a given staker and withdraws to Virtual TAL

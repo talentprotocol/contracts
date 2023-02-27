@@ -102,7 +102,7 @@ contract TalentFactory is
         string memory _name,
         string memory _symbol
     ) public returns (address) {
-        require(!isSymbol(_symbol), "talent token with this symbol already exists");
+        require(!isSymbol(_symbol), "symbol already exists");
         require(_isMinterSet(), "minter not yet set");
 
         BeaconProxy proxy = new BeaconProxy(

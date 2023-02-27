@@ -431,7 +431,7 @@ describe("StakingV3", () => {
           .connect(owner)
           .stakeStable(talentToken1.address, await stable.balanceOf(owner.address));
 
-        await expect(action).to.be.revertedWith("_amount exceeds minting availability");
+        await expect(action).to.be.revertedWith("not enough minting availability");
       });
     });
 
@@ -497,7 +497,7 @@ describe("StakingV3", () => {
 
         const action = stakingV3.connect(owner).swapStableForToken(parseUnits("50"));
 
-        await expect(action).to.be.revertedWith("not enough stable coin left in the contract");
+        await expect(action).to.be.revertedWith("not enough stable in contract");
       });
     });
 
@@ -579,7 +579,7 @@ describe("StakingV3", () => {
 
         const action = stakingV3.connect(talent2).withdrawTalentRewards(talentToken1.address);
 
-        await expect(action).to.be.revertedWith("only the talent can withdraw their own shares");
+        await expect(action).to.be.revertedWith("only owner can withdraw shares");
       });
     });
 
@@ -591,7 +591,7 @@ describe("StakingV3", () => {
       it("fails when talent tries to redeem other talent's rewards", async () => {
         const action = stakingV3.connect(talent2).withdrawTalentRewardsToVirtualTAL(talentToken1.address);
 
-        await expect(action).to.be.revertedWith("only the talent can withdraw their own shares");
+        await expect(action).to.be.revertedWith("only owner can withdraw shares");
       });
 
       it("allows talent to withdraw his redeemable share", async () => {
@@ -704,7 +704,7 @@ describe("StakingV3", () => {
               talentToken1.address
             );
 
-            await expect(action).to.be.revertedWith("_amount exceeds minting availability");
+            await expect(action).to.be.revertedWith("not enough minting availability");
           });
 
           it("accepts TAL stakes in the second phase", async () => {
@@ -1004,7 +1004,7 @@ describe("StakingV3", () => {
         const action = stakingV3.adminWithdraw();
 
         await expect(action).to.be.revertedWith(
-          "there are still stakes accumulating rewards. Call `claimRewardsOnBehalf` on them"
+          "there are still active stakes"
         );
       });
     });

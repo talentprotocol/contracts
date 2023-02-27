@@ -272,7 +272,7 @@ contract StakingV3 is
         rewardCalculator = _rewardCalculator;
         virtualTAL = _virtualTAL;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     //

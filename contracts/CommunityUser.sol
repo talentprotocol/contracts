@@ -10,24 +10,21 @@ contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
     Counters.Counter private _tokenIds;
 
     string private _baseURIExtended;
-    mapping (uint256 => string) _tokenURIs;
+    mapping(uint256 => string) _tokenURIs;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol Community User", _ticker) {
-      _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
     }
 
     // Airdrop tokens to addresses
-    function airdrop(address[] memory addresses)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function airdrop(address[] memory addresses) public onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint256 i = 0; i < addresses.length; i++) {
-          require(addresses[i] != address(0), "Can't add the null address");
+            require(addresses[i] != address(0), "Can't add the null address");
 
-          _tokenIds.increment();
-          uint256 id = _tokenIds.current();
+            _tokenIds.increment();
+            uint256 id = _tokenIds.current();
 
-          _safeMint(addresses[i], id);
+            _safeMint(addresses[i], id);
         }
     }
 
@@ -51,7 +48,7 @@ contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
     }
 
     function addOwner(address _newOwner) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newOwner);
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
@@ -73,7 +70,6 @@ contract CommunityUser is ERC721, ERC721Enumerable, AccessControl {
     ) public override {
         require(false, "Community user NFT is non-transferable");
     }
-
 
     // Disable transfering this NFT
     function transferFrom(

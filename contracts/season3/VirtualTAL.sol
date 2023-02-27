@@ -50,7 +50,7 @@ contract VirtualTAL is
         __AccessControl_init_unchained();
         __ERC20_init_unchained("Virtual TAL", "vTAL");
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     function _authorizeUpgrade(address newImplementation)
@@ -60,7 +60,7 @@ contract VirtualTAL is
     {}
 
     function setAdminRole(address _address) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setupRole(DEFAULT_ADMIN_ROLE, _address);
+        _grantRole(DEFAULT_ADMIN_ROLE, _address);
     }
 
     /// Mints new supply

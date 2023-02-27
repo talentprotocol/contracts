@@ -30,9 +30,9 @@ contract TalentProtocol is
         __ERC20_init_unchained("Talent Protocol", "TAL");
         __AccessControl_init_unchained();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
-        if(startingAmount > 0) {
+        if (startingAmount > 0) {
             _mint(msg.sender, startingAmount);
         }
     }

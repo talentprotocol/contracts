@@ -10,22 +10,25 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     string private _baseURIExtended;
-    mapping (uint256 => string) _tokenURIs;
+    mapping(uint256 => string) _tokenURIs;
     mapping(string => uint256) _NFTCombinationToToken;
     bool private _publicStageFlag = false;
     mapping(address => TIERS) _whitelist;
     mapping(string => TIERS) private _codeWhitelist;
 
     constructor(address _owner, string memory _ticker) ERC721("Talent Protocol NFT Collection", _ticker) {
-      _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
     }
+
     /**
         public stage status setter
         set's _publicStageFlag
      */
     function setPublicStageFlag(bool newFlagValue) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newFlagValue != _publicStageFlag, 
-            "Unable to change _publicStageFlag value because the new value is the same as the current one");
+        require(
+            newFlagValue != _publicStageFlag,
+            "Unable to change _publicStageFlag value because the new value is the same as the current one"
+        );
         _publicStageFlag = newFlagValue;
     }
 
@@ -105,7 +108,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         require(isWhitelisted(msg.sender, code), "Minting not allowed with current sender roles");
         require(balanceOf(msg.sender) == 0, "Address has already minted one Talent NFT");
 
-        if(bytes(code).length > 0 && _codeWhitelist[code] != TIERS.UNDEFINED) {
+        if (bytes(code).length > 0 && _codeWhitelist[code] != TIERS.UNDEFINED) {
             _whitelist[msg.sender] = _codeWhitelist[code];
             delete _codeWhitelist[code];
         }
@@ -122,9 +125,9 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         string memory uri = _tokenURIs[tokenId];
 
         if (bytes(uri).length != 0) {
-          return uri;
+            return uri;
         } else {
-          return base;
+            return base;
         }
     }
 
@@ -140,8 +143,10 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         address owner,
         uint256 selectedSkin
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(selectedSkin <= 5 + uint256(_whitelist[owner]) - uint256(TIERS.USER),
-            "Selected skin is locked for the account tier");
+        require(
+            selectedSkin <= 5 + uint256(_whitelist[owner]) - uint256(TIERS.USER),
+            "Selected skin is locked for the account tier"
+        );
         require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
         require(bytes(_tokenURIs[tokenId]).length == 0, "Metadata was already defined for this token");
 
@@ -149,7 +154,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         // the metadata, then we can allow the metadata to be changed
         if (!isCombinationAvailable(combination) && _NFTCombinationToToken[combination] == tokenId) {
             _tokenURIs[tokenId] = tokenMetadataURI;
-            return;    
+            return;
         }
 
         require(isCombinationAvailable(combination), "This combination was already minted");
@@ -166,7 +171,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     }
 
     function addOwner(address _newOwner) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newOwner);
     }
 
     function supportsInterface(bytes4 interfaceId)

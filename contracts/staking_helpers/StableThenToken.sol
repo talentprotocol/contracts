@@ -34,7 +34,7 @@ abstract contract StableThenToken is Initializable, AccessControlEnumerableUpgra
 
         stableCoin = _stableCoin;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /// Sets the TAL token address

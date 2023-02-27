@@ -48,6 +48,7 @@ contract VirtualTAL is
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
+        __ERC20_init_unchained("Virtual TAL", "vTAL");
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }

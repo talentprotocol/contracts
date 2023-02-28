@@ -97,8 +97,6 @@ contract TalentToken is
         _setupRole(ROLE_TALENT, _talent);
         _setupRole(ROLE_MINTER, _minter);
 
-        _setRoleAdmin(ROLE_TALENT, ROLE_TALENT);
-
         _mint(_talent, _initialSupply);
         mintingAvailability = MAX_SUPPLY - _initialSupply;
     }

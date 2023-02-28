@@ -30,4 +30,12 @@ contract TalentFactoryV3 is TalentFactoryV2, ITalentFactoryV3 {
     {
         tokensToTalents[talentAddress] = tokenAddress;
     }
+
+    function setNewMappingValues(address _oldTalent, address _newTalent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        address token = talentsToTokens[_oldTalent];
+
+        tokensToTalents[token] = _newTalent;
+        talentsToTokens[_oldTalent] = address(0);
+        talentsToTokens[_newTalent] = token;
+    }
 }

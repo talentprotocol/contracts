@@ -5,8 +5,8 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain-types";
-import { TalentToken__factory, TalentTokenV2__factory, TalentFactoryV2__factory } from "../../typechain-types";
+import type { TalentFactory } from "../../typechain-types";
+import { TalentToken__factory } from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";

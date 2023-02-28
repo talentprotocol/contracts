@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.17;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import {IERC1363ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
-
-import "hardhat/console.sol";
+import {
+    AccessControlEnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import {
+    IERC1363ReceiverUpgradeable
+} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
 
 import {StableThenToken} from "./staking_helpers/StableThenToken.sol";
 import {IRewardParameters, RewardCalculator} from "./staking_helpers/RewardCalculator.sol";
@@ -781,7 +783,8 @@ contract Staking is
         } else {
             isAlreadyUpdatingAdjustedShares = true;
             // calculate current adjusted shares for this stake
-            // we don't deduct it directly because other computations wrapped by this modifier depend on the original value
+            // we don't deduct it directly because other computations wrapped by this modifier depend
+            // on the original value
             // (e.g. reward calculation)
             // therefore, we just keep track of it, and do a final update to the stored value at the end;
             // temporarily deduct from adjusted shares

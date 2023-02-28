@@ -1,4 +1,5 @@
-pragma solidity ^0.8.7;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -6,7 +7,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import "./model/Tiers.sol";
 
-contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
+contract TalentNFT is ERC721Enumerable, AccessControl {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
     string private _baseURIExtended;
@@ -177,7 +178,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, AccessControl)
+        override(ERC721Enumerable, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -187,7 +188,7 @@ contract TalentNFT is ERC721, ERC721Enumerable, AccessControl {
         address from,
         address to,
         uint256 tokenId
-    ) internal virtual override(ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId);
+    ) internal virtual {
+        super._beforeTokenTransfer(from, to, tokenId, 1);
     }
 }

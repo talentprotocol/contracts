@@ -1047,12 +1047,12 @@
   resolved "https://registry.yarnpkg.com/@oclif/screen/-/screen-3.0.2.tgz#969054308fe98d130c02844a45cc792199b75670"
   integrity sha512-S/SF/XYJeevwIgHFmVDAFRUvM3m+OjhvCAYMk78ZJQCYCQ5wS7j+LTt1ZEv2jpEEGg2tx/F6TYYWxddNAYHrFQ==
 
-"@openzeppelin/contracts-upgradeable@^4.7.0":
+"@openzeppelin/contracts-upgradeable@^4.8.1":
   version "4.8.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.1.tgz#363f7dd08f25f8f77e16d374350c3d6b43340a7a"
   integrity sha512-1wTv+20lNiC0R07jyIAbHU7TNHKRwGiTGRfiNnA8jOWjKT98g5OgLpYWOi40Vgpk8SPLA9EvfJAbAeIyVn+7Bw==
 
-"@openzeppelin/contracts@^4.7.0":
+"@openzeppelin/contracts@^4.8.1":
   version "4.8.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.1.tgz#709cfc4bbb3ca9f4460d60101f15dac6b7a2d5e4"
   integrity sha512-xQ6eUZl+RDyb/FiZe1h+U7qr/f4p/SrTSQcTPH2bjur3C5DbuW/zFgCU/b1P/xcIaEqJep+9ju4xDRi3rmChdQ==
@@ -9870,7 +9870,7 @@ solidity-comments-extractor@^0.0.7:
   resolved "https://registry.yarnpkg.com/solidity-comments-extractor/-/solidity-comments-extractor-0.0.7.tgz#99d8f1361438f84019795d928b931f4e5c39ca19"
   integrity sha512-wciNMLg/Irp8OKGrh3S2tfvZiZ0NEyILfcRCXCD4mp7SgK/i9gzLfhY2hY7VMCQJ3kH9UB9BzNdibIVMchzyYw==
 
-solidity-docgen@^0.5.17:
+solidity-docgen@^0.5.16:
   version "0.5.17"
   resolved "https://registry.yarnpkg.com/solidity-docgen/-/solidity-docgen-0.5.17.tgz#3b0ab450afc2cd4d29cea895e05e50a07d43fbfc"
   integrity sha512-RX5SPLFL9z0ZVBcZ/o5l/TKXMgSjNhWdumLuuv+Dy1O/66sThpHYd0HVpzdwAjVff0Ajk76bYM2zZYiMnqBfng==

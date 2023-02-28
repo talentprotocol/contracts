@@ -15,7 +15,7 @@ const { expect } = chai;
 const { parseUnits } = ethers.utils;
 const { deployContract } = waffle;
 
-describe("Staking", () => {
+describe("StakingFlow", () => {
   let owner: SignerWithAddress;
   let minter: SignerWithAddress;
   let talent1: SignerWithAddress;
@@ -71,11 +71,16 @@ describe("Staking", () => {
     ])) as Staking;
 
     await factory.setMinter(staking.address);
+    await factory.setWhitelister(minter.address);
+
+    await factory.connect(minter).whitelistAddress(talent1.address);
+    await factory.connect(minter).whitelistAddress(talent2.address);
+    await factory.connect(minter).whitelistAddress(talent3.address);
 
     // deploy talent tokens
     talentToken1 = await deployTalentToken(factory, minter, talent1, "Miguel Palhas", "NAPS");
     talentToken2 = await deployTalentToken(factory, minter, talent2, "Francisco Leal", "LEAL");
-    talentToken3 = await deployTalentToken(factory, minter, talent2, "Andreas Vilela", "AVIL");
+    talentToken3 = await deployTalentToken(factory, minter, talent3, "Andreas Vilela", "AVIL");
 
     // fund investors
     await stable.connect(owner).transfer(investor1.address, parseUnits("100000"));

@@ -46,6 +46,10 @@ describe("TalentFactory", () => {
       factory = (await upgrades.deployProxy(TalentFactoryFactory, [])) as TalentFactory;
 
       await factory.setMinter(minter.address);
+      await factory.setWhitelister(minter.address);
+
+      await factory.connect(minter).whitelistAddress(talent1.address);
+      await factory.connect(minter).whitelistAddress(talent2.address);
 
       const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
       const event = await findEvent(tx, "TalentCreated");
@@ -72,7 +76,7 @@ describe("TalentFactory", () => {
       // state is kept
       // expect(napsv2.balanceOf(creator.address)).to.equal(parseUnits("1.42"));
 
-      const tx = await factory.connect(minter).createTalent(talent1.address, "Francisco Leal", "LEAL");
+      const tx = await factory.connect(minter).createTalent(talent2.address, "Francisco Leal", "LEAL");
       const event = await findEvent(tx, "TalentCreated");
       const leal = TalentTokenV2__factory.connect(event?.args?.token, creator);
 

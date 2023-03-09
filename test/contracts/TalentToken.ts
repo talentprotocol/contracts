@@ -277,6 +277,29 @@ describe("TalentToken", () => {
         expect(await factoryV3.talentsToTokens(investor.address)).to.eq(naps.address);
       });
     });
+
+    describe("setFactory", () => {
+      it("is not callable by another wallet", async () => {
+        const coinAdminRole = await coin.DEFAULT_ADMIN_ROLE();
+        const result = coin.connect(talent).setFactory(factoryV3.address);
+
+        await expect(result).to.be.revertedWith(
+          `AccessControl: account ${talent.address.toLowerCase()} is missing role ${coinAdminRole}`
+        );
+      });
+
+      it("is callable by an admin", async () => {
+        const result = coin.connect(admin).setFactory(factoryV3.address);
+
+        await expect(result).not.to.be.reverted;
+      });
+
+      it("stores factory with given address", async () => {
+        await coin.connect(admin).setFactory(factoryV3.address);
+
+        expect(await coin.factory()).to.eq(factoryV3.address);
+      });
+    });
   });
 
   describe("upgradeability", () => {

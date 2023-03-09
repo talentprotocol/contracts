@@ -155,7 +155,7 @@ contract TalentToken is
     /// @notice Callable by the talent to change their own proposed address
     ///
     /// @param _proposedTalent address for the new talent's wallet
-    function proposeTalent(address _proposedTalent) public onlyRole(ROLE_TALENT) {
+    function proposeTalent(address _proposedTalent) external onlyRole(ROLE_TALENT) {
         require(msg.sender != _proposedTalent, "talent is already the owner");
 
         proposedTalent = _proposedTalent;
@@ -164,7 +164,7 @@ contract TalentToken is
     /// Claims talent ownership
     ///
     /// @notice Callable by the proposed talent to claim ownership
-    function claimTalentOwnership() public {
+    function claimTalentOwnership() external {
         require(msg.sender == proposedTalent, "talent is not proposed owner");
 
         ITalentFactoryV3(factory).setNewMappingValues(talent, proposedTalent);
@@ -176,6 +176,10 @@ contract TalentToken is
 
         talent = proposedTalent;
         proposedTalent = address(0);
+    }
+
+    function setFactory(address _newFactory) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        factory = _newFactory;
     }
 
     //

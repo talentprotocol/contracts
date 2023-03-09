@@ -16,6 +16,8 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
 
+import {ITalentFactoryV3} from "./season3/TalentFactoryV3.sol";
+
 interface ITalentToken is IERC20Upgradeable {
     // mints new talent tokens
     function mint(address _owner, uint256 _amount) external;
@@ -31,6 +33,9 @@ interface ITalentToken is IERC20Upgradeable {
 
     // how much is available to be minted
     function mintingAvailability() external view returns (uint256);
+
+    // proposed talent's wallet
+    function proposedTalent() external view returns (address);
 }
 
 /// @title The base contract for Talent Tokens
@@ -74,7 +79,10 @@ contract TalentToken is
     address public override(ITalentToken) talent;
 
     // talent's proposed address to change ownership
-    address public proposedTalent;
+    address public override(ITalentToken) proposedTalent;
+
+    // factory's address
+    address public factory;
 
     event OwnershipTransferred(address talent, address proposedTalent);
 
@@ -92,6 +100,7 @@ contract TalentToken is
         __AccessControl_init_unchained();
 
         talent = _talent;
+        factory = msg.sender;
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ROLE_TALENT, _talent);
@@ -158,10 +167,13 @@ contract TalentToken is
     function claimTalentOwnership() public {
         require(msg.sender == proposedTalent, "talent is not proposed owner");
 
-        emit OwnershipTransferred(talent, proposedTalent);
+        ITalentFactoryV3(factory).setNewMappingValues(talent, proposedTalent);
 
         _grantRole(ROLE_TALENT, proposedTalent);
         _revokeRole(ROLE_TALENT, talent);
+
+        emit OwnershipTransferred(talent, proposedTalent);
+
         talent = proposedTalent;
         proposedTalent = address(0);
     }

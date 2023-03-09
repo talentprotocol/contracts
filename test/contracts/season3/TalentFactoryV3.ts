@@ -77,13 +77,20 @@ describe("TalentFactoryV3", () => {
     });
 
     describe("setNewMappingValues", () => {
-      it("does not change anything if in not called by admin", async () => {
-        const action = factoryV3.connect(talent1).setNewMappingValues(talent1.address, talent2.address);
+      it("is not callable by another talent", async () => {
+        const result = factoryV3.connect(talent1).setNewMappingValues(talent1.address, talent2.address);
 
-      await expect(action).to.be.reverted;
+        await expect(result).to.be.revertedWith("not called by talent token");
       });
 
-      it("changes mapping values", async () => {
+      it("is not callable directly by proposed talent", async () => {
+        await naps.connect(talent1).proposeTalent(talent2.address);
+        const result = factoryV3.connect(talent2).setNewMappingValues(talent1.address, talent2.address);
+        
+        await expect(result).to.be.revertedWith("not called by talent token");
+      });
+
+      it("changes mapping values when called by an admin", async () => {
         await factoryV3.connect(creator).setNewMappingValues(talent1.address, talent2.address);
         
         expect(await factoryV3.tokensToTalents(naps.address)).to.eq(talent2.address);

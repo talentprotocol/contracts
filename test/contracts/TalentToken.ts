@@ -1,13 +1,15 @@
 import chai from "chai";
 import { ethers, waffle, upgrades } from "hardhat";
 import { solidity } from "ethereum-waffle";
+import { findEvent } from "../shared/utils";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
 import { ERC165 } from "../shared";
 
-import { TalentToken, TalentTokenV2 } from "../../typechain-types";
+import { TalentToken, TalentTokenV2, TalentToken__factory } from "../../typechain-types";
+import type { TalentFactoryV3 } from "../../typechain-types";
 
 chai.use(solidity);
 
@@ -22,7 +24,10 @@ describe("TalentToken", () => {
   let investor: SignerWithAddress;
 
   let TalentTokenFactory: ContractFactory;
+  let TalentFactoryFactoryV3: ContractFactory;
   let coin: TalentToken;
+  let naps: TalentToken;
+  let factoryV3: TalentFactoryV3;
 
   beforeEach(async () => {
     [admin, talent, minter, investor] = await ethers.getSigners();
@@ -210,39 +215,66 @@ describe("TalentToken", () => {
     });
 
     describe("claimTalentOwnership", () => {
+      beforeEach(async () => {
+        TalentFactoryFactoryV3 = await ethers.getContractFactory("TalentFactoryV3");
+
+        factoryV3 = (await upgrades.deployProxy(TalentFactoryFactoryV3, [])) as TalentFactoryV3;
+  
+        await factoryV3.setMinter(minter.address);
+        await factoryV3.setWhitelister(minter.address);
+  
+        await factoryV3.connect(minter).whitelistAddress(talent.address);
+
+        const tx = await factoryV3.connect(talent).createTalent(talent.address, "Miguel Palhas", "NAPS");
+        const event = await findEvent(tx, "TalentCreated");
+
+        naps = TalentToken__factory.connect(event?.args?.token, admin);
+      });
+
       it("is callable by the proposed talent wallet", async () => {
-        await coin.connect(talent).proposeTalent(investor.address);
-        const result = coin.connect(investor).claimTalentOwnership();
+        await naps.connect(talent).proposeTalent(investor.address);
+        const result = naps.connect(investor).claimTalentOwnership();
 
         await expect(result).not.to.be.reverted;
       });
 
       it("is not callable by another wallet", async () => {
-        const result = coin.connect(investor).claimTalentOwnership();
+        const result = naps.connect(investor).claimTalentOwnership();
 
         await expect(result).to.be.revertedWith("talent is not proposed owner");
       });
 
       it("stores proposedTalent with given address", async () => {
-        await coin.connect(talent).proposeTalent(investor.address);
-        await coin.connect(investor).claimTalentOwnership();
+        await naps.connect(talent).proposeTalent(investor.address);
+        await naps.connect(investor).claimTalentOwnership();
 
-        expect(await coin.talent()).to.eq(investor.address);
-        expect(await coin.proposedTalent()).to.eq(ethers.constants.AddressZero);
+        expect(await naps.talent()).to.eq(investor.address);
+        expect(await naps.proposedTalent()).to.eq(ethers.constants.AddressZero);
       });
 
       it("gives ROLE_TALENT to the new wallet", async () => {
-        await coin.connect(talent).proposeTalent(investor.address);
-        await coin.connect(investor).claimTalentOwnership();
+        await naps.connect(talent).proposeTalent(investor.address);
+        await naps.connect(investor).claimTalentOwnership();
 
-        expect(await coin.hasRole(await coin.ROLE_TALENT(), investor.address)).to.be.true;
+        expect(await naps.hasRole(await naps.ROLE_TALENT(), investor.address)).to.be.true;
       });
 
       it("revokes ROLE_TALENT from the old wallet", async () => {
-        await coin.connect(talent).proposeTalent(investor.address);
-        await coin.connect(investor).claimTalentOwnership();
+        await naps.connect(talent).proposeTalent(investor.address);
+        await naps.connect(investor).claimTalentOwnership();
 
-        expect(await coin.hasRole(await coin.ROLE_TALENT(), talent.address)).to.be.false;
+        expect(await naps.hasRole(await naps.ROLE_TALENT(), talent.address)).to.be.false;
+      });
+
+      it("is callable by the proposed talent wallet", async () => {
+        await naps.connect(talent).proposeTalent(investor.address);
+        await naps.connect(investor).claimTalentOwnership();
+
+        expect(await naps.hasRole(await naps.ROLE_TALENT(), investor.address)).to.be.true;
+        expect(await naps.hasRole(await naps.ROLE_TALENT(), talent.address)).not.to.be.true;
+        expect(await factoryV3.tokensToTalents(naps.address)).to.eq(investor.address);
+        expect(await factoryV3.talentsToTokens(talent.address)).to.eq(ethers.constants.AddressZero);
+        expect(await factoryV3.talentsToTokens(investor.address)).to.eq(naps.address);
       });
     });
   });

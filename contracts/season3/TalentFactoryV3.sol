@@ -13,6 +13,10 @@ interface ITalentFactoryV3 {
     /// @param addr address of the talent
     /// @return true if the address has a talent token
     function hasTalentToken(address addr) external view returns (bool);
+
+    /// @param _oldTalent address of the old talent
+    /// @param _newTalent address of the new talent
+    function setNewMappingValues(address _oldTalent, address _newTalent) external;
 }
 
 contract TalentFactoryV3 is TalentFactoryV2, ITalentFactoryV3 {
@@ -31,8 +35,14 @@ contract TalentFactoryV3 is TalentFactoryV2, ITalentFactoryV3 {
         tokensToTalents[talentAddress] = tokenAddress;
     }
 
-    function setNewMappingValues(address _oldTalent, address _newTalent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setNewMappingValues(address _oldTalent, address _newTalent) external override(ITalentFactoryV3) {
         address token = talentsToTokens[_oldTalent];
+
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+            require(msg.sender == token, "not called by talent token");
+            require(tx.origin == _newTalent);
+            require(tx.origin == ITalentToken(token).proposedTalent());
+        }
 
         tokensToTalents[token] = _newTalent;
         talentsToTokens[_oldTalent] = address(0);

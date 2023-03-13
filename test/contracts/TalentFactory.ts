@@ -5,8 +5,8 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractFactory } from "ethers";
 
-import type { TalentFactory, TalentFactoryV2, TalentToken, TalentTokenV2 } from "../../typechain-types";
-import { TalentToken__factory, TalentTokenV2__factory, TalentFactoryV2__factory } from "../../typechain-types";
+import type { TalentFactory } from "../../typechain-types";
+import { TalentToken__factory } from "../../typechain-types";
 
 import { ERC165, Artifacts } from "../shared";
 import { findEvent } from "../shared/utils";
@@ -147,6 +147,14 @@ describe("TalentFactory", () => {
         const action = factory.connect(attacker).createTalent(attacker.address, "Miguel Palhas", "NAPS");
 
         await expect(action).to.be.revertedWith("address needs to be whitelisted");
+      })
+
+      it("creates a talent token with the factory address", async () => {
+        const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
+        const event = await findEvent(tx, "TalentCreated");
+        const naps = TalentToken__factory.connect(event?.args?.token, creator);
+
+        expect(await naps.factory()).to.eq(factory.address);
       })
     });
 

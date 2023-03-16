@@ -70,16 +70,16 @@ contract TalentToken is
     uint256 public constant MAX_SUPPLY = 1000000 ether;
 
     // amount available to be minted
-    uint256 public override(ITalentToken) mintingAvailability;
+    uint256 public mintingAvailability;
 
     // timestamp at which minting reached MAX_SUPPLY
-    uint256 public override(ITalentToken) mintingFinishedAt;
+    uint256 public mintingFinishedAt;
 
     // talent's wallet
-    address public override(ITalentToken) talent;
+    address public talent;
 
     // talent's proposed address to change ownership
-    address public override(ITalentToken) proposedTalent;
+    address public proposedTalent;
 
     // factory's address
     address public factory;

@@ -1,7 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 
 import type { BigNumber } from "ethers";
-import type { TalentProtocol, TalentFactory, Staking, CommunityUser, TalentNFT } from "../typechain-types";
+import type { TalentProtocol, TalentFactory, Staking, CommunityUser, TalentNFT, TalentSponsorship } from "../typechain-types";
 
 export async function deployToken(): Promise<TalentProtocol> {
   const TalentProtocol = await ethers.getContractFactory("TalentProtocol");
@@ -46,6 +46,15 @@ export async function deployTalentNFT(owner: string, ticker: string): Promise<Ta
   await deployedTalentNFT.deployed();
 
   return deployedTalentNFT as TalentNFT;
+}
+
+export async function deploySponsorship(): Promise<TalentSponsorship> {
+  const talentSponsorshipContract = await ethers.getContractFactory("TalentSponsorship");
+
+  const deployedSponsorshipContract = await talentSponsorshipContract.deploy();
+  await deployedSponsorshipContract.deployed();
+
+  return deployedSponsorshipContract as TalentSponsorship;
 }
 
 export async function deployStaking(

@@ -22,7 +22,7 @@
     "hardhat-gas-reporter": "^1.0.9",
     "lodash": "^4.17.15",
     "nft.storage": "^7.0.0",
-    "node-fetch": "3.3.0",
+    "node-fetch": "3.3.1",
     "openzeppelin-solidity": "^4.2.0",
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.8.2",
@@ -32,6 +32,7 @@
     "typescript": "^4.4.2"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@types/chai": "^4.3.4",
     "@types/chai-as-promised": "^7.1.4",
     "@types/mocha": "^10.0.1",
@@ -41,6 +42,7 @@
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^3.0.0",
+    "dotenv": "^16.0.3",
     "eslint": "^8.19.0",
     "ethereum-waffle": "^3.4.0",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",

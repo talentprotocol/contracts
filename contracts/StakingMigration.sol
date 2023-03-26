@@ -18,19 +18,30 @@ contract StakingMigration is Staking {
         talentPrice = _talentPrice;
         rewardsMax = _rewardsMax;
         SAt = _start;
+        S = 0;
+        totalAdjustedShares = 0;
+        totalTokensStaked = 0;
+        activeStakes = 0;
+        rewardsGiven = 0;
     }
 
     function transferStake(
         address _owner,
         address _token,
         uint256 _tokenAmount,
-        uint256 _timestamp
+        uint256 _timestamp,
+        bool firstStake
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_token != address(0x0), "Address must be set");
         require(_owner != address(0x0), "Address must be set");
         require(_isTalentToken(_token), "Token must be a valid talent token");
 
         StakeData storage stake = stakes[_owner][_token];
+
+        if (firstStake) {
+            stake.tokenAmount = 0;
+            stake.talentAmount = 0;
+        }
 
         if (totalTokensStaked != 0) {
             S = S + (calculateGlobalReward(SAt, _timestamp)) / totalAdjustedShares;
@@ -103,8 +114,17 @@ contract StakingMigration is Staking {
         stake.S = S;
         stake.lastCheckpointAt = _timestamp;
 
-        talentRedeemableRewards[_talent] += _talentRewards;
+        stake.tokenAmount = stake.tokenAmount + _stakerRewards;
+        stake.talentAmount = stake.talentAmount + convertTokenToTalent(_stakerRewards);
+
+        totalTokensStaked = totalTokensStaked + _stakerRewards;
+
+        talentRedeemableRewards[_talent] = talentRedeemableRewards[_talent] + _talentRewards;
 
         totalAdjustedShares = totalAdjustedShares + sqrt(stake.tokenAmount) - toDeduct;
+    }
+
+    function setTalentRedeemableRewards(address _talent) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        talentRedeemableRewards[_talent] = 0;
     }
 }

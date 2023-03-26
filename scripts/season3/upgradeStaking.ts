@@ -6,7 +6,7 @@ import { StakingMigrationV2__factory, UpgradeableBeacon__factory } from "../../t
 import { HttpNetworkConfig } from "hardhat/types";
 import { celoTokens, polygonTokens, polygonTransactions, sleep } from "../utils";
 
-const { parseUnits } = ethers.utils;
+const { parseUnits, formatUnits } = ethers.utils;
 const { exit } = process;
 const { deployContract } = waffle;
 
@@ -16,10 +16,7 @@ async function main() {
   console.log("owner", owner.address);
 
   const networkConfig = network.config as HttpNetworkConfig;
-  const provider = new ethers.providers.JsonRpcProvider(
-    "https://polygon-mainnet.infura.io/v3/52812ca3d9f74d13ad593b67a3aa8312",
-    "matic"
-  );
+  const provider = new ethers.providers.JsonRpcProvider(networkConfig.url, "matic");
 
   console.log("network", network.name);
 
@@ -45,6 +42,7 @@ async function main() {
   }
 
   const staking = await ethers.getContractAt("StakingMigrationV2", stakingAddr);
+  const factory = await ethers.getContractAt("TalentFactoryV3", factoryAddr);
   const StakingMigrationV2 = (await ethers.getContractFactory("StakingMigrationV2")) as StakingMigrationV2__factory;
 
   let txIndex = 1;
@@ -97,8 +95,32 @@ async function main() {
   // );
   // console.log("stakes:", stakes);
 
+  // let tokensIndex = 1;
+  // const tokensTotal = tokens.length;
+
+  // for await (const item of tokens) {
+  //   const feeData = await provider.getFeeData();
+  //   console.log("migrating token:", item);
+  //   // const estimateGas = await staking.estimateGas.setTalentRedeemableRewards(item);
+
+  //   const tx = await staking.setTalentRedeemableRewards(item, {
+  //     gasPrice: feeData.gasPrice?.mul(120).div(100),
+  //   });
+  //   await tx.wait();
+
+  //   console.log(`done (${tokensIndex}/${tokensTotal})`);
+  //   tokensIndex += 1;
+  // }
+
   for await (const tx of polygonTransactions) {
-    const feeData = await provider.getFeeData();
+    // let response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    // let estimatedBaseFee = response.data.estimatedBaseFee;
+    // while (estimatedBaseFee > 300) {
+    //   response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    //   estimatedBaseFee = response.data.estimatedBaseFee;
+
+    //   await sleep(10000);
+    // }
     console.log("Running TX: ", tx);
     const transaction = await provider.getTransactionReceipt(tx);
     const timestamp = (await provider.getBlock(transaction.blockNumber)).timestamp;
@@ -111,26 +133,31 @@ async function main() {
       }
     });
 
+    const stakeLogsCheck = logs.filter((item) => !!item && item.name === "Stake");
+    const rewardClaimLogsCheck = logs.filter((item) => !!item && item.name === "RewardClaim");
+    let isFirstStake = false;
+    if (rewardClaimLogsCheck.length === 0 && stakeLogsCheck.length === 1) {
+      isFirstStake = true;
+    }
     // Filter STAKE events
     const stakeLogs = logs.filter((item) => !!item && item.name === "Stake");
 
     if (stakeLogs.length > 0) {
       for await (const item of stakeLogs) {
-        console.log("Stake event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
+        console.log(
+          "Stake event: ",
+          `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${timestamp}, ${isFirstStake}`
+        );
         // await staking.connect(owner).emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
+        const feeData = await provider.getFeeData();
+        const tx = await staking
+          .connect(owner)
+          .transferStake(item?.args[0], item?.args[1], item?.args[2], timestamp, isFirstStake, {
+            gasPrice: feeData.gasPrice?.mul(120).div(100),
+          });
 
-        try {
-          const tx = await staking
-            .connect(owner)
-            .transferStake(item?.args[0], item?.args[1], item?.args[2], timestamp, {
-              gasPrice: feeData.gasPrice?.mul(130).div(100),
-            });
-
-          await tx.wait();
-          await sleep(1000);
-        } catch (error) {
-          console.log("error:", error);
-        }
+        await tx.wait();
+        // await sleep(5000);
         txStakeEventsEmmited += 1;
       }
     }
@@ -140,21 +167,21 @@ async function main() {
 
     if (rewardClaimLogs.length > 0) {
       for await (const item of rewardClaimLogs) {
-        console.log("Reward claim event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
+        console.log(
+          "Reward claim event: ",
+          `${item?.args[0]}, ${item?.args[1]}, ${timestamp}, ${item?.args[2]}, ${item?.args[3]}`
+        );
         // await staking.connect(owner).emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
+        const feeData = await provider.getFeeData();
+        const tx = await staking
+          .connect(owner)
+          .setClaimRewards(item?.args[0], item?.args[1], timestamp, item?.args[2], item?.args[3], {
+            gasPrice: feeData.gasPrice?.mul(120).div(100),
+          });
 
-        try {
-          const tx = await staking
-            .connect(owner)
-            .setClaimRewards(item?.args[0], item?.args[1], timestamp, item?.args[2], item?.args[3], {
-              gasPrice: feeData.gasPrice?.mul(130).div(100),
-            });
+        await tx.wait();
+        // await sleep(5000);
 
-          await tx.wait();
-          await sleep(1000);
-        } catch (error) {
-          console.log("error:", error);
-        }
         txRewardsClaimEmmited += 1;
       }
     }

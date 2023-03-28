@@ -1,5 +1,7 @@
 import { ethers, upgrades, waffle, network } from "hardhat";
 
+import axios from "axios";
+
 import * as TalentTokenArtifactV2 from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 import * as TalentTokenV3 from "../../artifacts/contracts/season3/TalentTokenV3.sol/TalentTokenV3.json";
 import { StakingMigrationV2__factory, UpgradeableBeacon__factory } from "../../typechain-types";
@@ -16,7 +18,7 @@ async function main() {
   console.log("owner", owner.address);
 
   const networkConfig = network.config as HttpNetworkConfig;
-  const provider = new ethers.providers.JsonRpcProvider(networkConfig.url, "matic");
+  const provider = new ethers.providers.JsonRpcProvider(networkConfig.url);
 
   console.log("network", network.name);
 
@@ -32,7 +34,7 @@ async function main() {
 
       break;
     case "polygon":
-      stakingAddr = "0xE23104E89fF4c93A677136C4cBdFD2037B35BE67";
+      stakingAddr = "0xEa998Ff9c0c075cD035b25095D1833E5aF0aF873";
       factoryAddr = "0xA91b75E8aA2Dc62B2957333B1a1412532444FdE0";
       tokens = tokens.concat(polygonTokens);
 
@@ -50,8 +52,26 @@ async function main() {
   let txStakeEventsEmmited = 0;
   let txRewardsClaimEmmited = 0;
 
-  const start = 1662971008;
-  const end = 2925241200;
+  // const start = 1662971008;
+  // const end = 2925241200;
+  // const stableCoin = await staking.stableCoin();
+  // const rewardsMax = await staking.rewardsMax();
+  // const tokenPrice = await staking.tokenPrice();
+  // const talentPrice = await staking.talentPrice();
+  // const factoryAddress = await staking.factory();
+
+  // const newStaking = await upgrades.deployProxy(StakingMigrationV2, [
+  //   start,
+  //   end,
+  //   rewardsMax,
+  //   stableCoin,
+  //   factoryAddress,
+  //   tokenPrice,
+  //   talentPrice,
+  // ]);
+  // await newStaking.deployed();
+
+  // console.log("newStaking address:", newStaking.address);
 
   // const tx = await staking.setInitialState(start, end, parseUnits("0.02"), parseUnits("5"), parseUnits("400000000"), {
   //   maxFeePerGas: feeData.maxFeePerGas,
@@ -113,14 +133,17 @@ async function main() {
   // }
 
   for await (const tx of polygonTransactions) {
-    // let response = await axios.get("https://gasstation-mainnet.matic.network/v2");
-    // let estimatedBaseFee = response.data.estimatedBaseFee;
-    // while (estimatedBaseFee > 300) {
-    //   response = await axios.get("https://gasstation-mainnet.matic.network/v2");
-    //   estimatedBaseFee = response.data.estimatedBaseFee;
+    let response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    let estimatedBaseFee = response.data.estimatedBaseFee;
+    let maxFee = 0;
+    let maxPriorityFee = 0;
+    while (estimatedBaseFee > 400) {
+      console.log("paused because base fee is:", estimatedBaseFee);
+      response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+      estimatedBaseFee = response.data.estimatedBaseFee;
 
-    //   await sleep(10000);
-    // }
+      await sleep(10000);
+    }
     console.log("Running TX: ", tx);
     const transaction = await provider.getTransactionReceipt(tx);
     const timestamp = (await provider.getBlock(transaction.blockNumber)).timestamp;
@@ -148,14 +171,24 @@ async function main() {
           "Stake event: ",
           `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${timestamp}, ${isFirstStake}`
         );
-        // await staking.connect(owner).emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
-        const feeData = await provider.getFeeData();
+        // const feeData = await provider.getFeeData();
+        maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
+        maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
+        const emitStakeEvent = await staking
+          .connect(owner)
+          .emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
+            // gasPrice: feeData.gasPrice?.mul(120).div(100),
+            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+          });
+        await emitStakeEvent.wait();
         const tx = await staking
           .connect(owner)
           .transferStake(item?.args[0], item?.args[1], item?.args[2], timestamp, isFirstStake, {
-            gasPrice: feeData.gasPrice?.mul(120).div(100),
+            // gasPrice: feeData.gasPrice?.mul(120).div(100),
+            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
           });
-
         await tx.wait();
         // await sleep(5000);
         txStakeEventsEmmited += 1;
@@ -171,12 +204,23 @@ async function main() {
           "Reward claim event: ",
           `${item?.args[0]}, ${item?.args[1]}, ${timestamp}, ${item?.args[2]}, ${item?.args[3]}`
         );
-        // await staking.connect(owner).emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3]);
-        const feeData = await provider.getFeeData();
+        // const feeData = await provider.getFeeData();
+        maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
+        maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
+        const emitRewardsClaimEvent = await staking
+          .connect(owner)
+          .emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
+            // gasPrice: feeData.gasPrice?.mul(120).div(100),
+            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+          });
+        await emitRewardsClaimEvent.wait();
         const tx = await staking
           .connect(owner)
           .setClaimRewards(item?.args[0], item?.args[1], timestamp, item?.args[2], item?.args[3], {
-            gasPrice: feeData.gasPrice?.mul(120).div(100),
+            // gasPrice: feeData.gasPrice?.mul(120).div(100),
+            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
           });
 
         await tx.wait();

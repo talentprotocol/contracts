@@ -37,7 +37,7 @@ describe("VirtualTAL", () => {
 
   describe("behaviour", () => {
     beforeEach(async () => {
-      contract = await builder() as TalentSponsorship;
+      contract = (await builder()) as TalentSponsorship;
     });
 
     it("is created with no state", async () => {
@@ -68,7 +68,7 @@ describe("VirtualTAL", () => {
 
       await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
 
-      expect(await contract.connect(talent).amountAvailable(stable.address)).to.eq(amount)
+      expect(await contract.connect(talent).amountAvailable(stable.address)).to.eq(amount);
       expect(await stable.balanceOf(contract.address)).to.eq(amount);
 
       const tx = await contract.connect(talent).withdrawToken(stable.address);
@@ -82,6 +82,31 @@ describe("VirtualTAL", () => {
       expect(event?.args?.symbol).to.equal(await stable.symbol());
 
       expect(await stable.balanceOf(talent.address)).to.eq(amount);
+    });
+
+    it("emits a SponsorshipRevoked Event everytime a sponsorship is revoked", async () => {
+      const amount = parseUnits("10");
+      const sponsorInitialStableAmount = await stable.balanceOf(supporter.address);
+
+      await stable.connect(supporter).approve(contract.address, amount);
+
+      await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
+
+      expect(await contract.connect(talent).amountAvailable(stable.address)).to.eq(amount);
+      expect(await stable.balanceOf(contract.address)).to.eq(amount);
+
+      const tx = await contract.connect(supporter).revokeSponsor(talent.address, amount, stable.address);
+
+      const event = await findEvent(tx, "SponsorshipRevoked");
+
+      expect(event).to.exist;
+      expect(event?.args?.talent).to.be.eq(talent.address);
+      expect(event?.args?.amount).to.equal(amount);
+      expect(event?.args?.token).to.equal(stable.address);
+      expect(event?.args?.symbol).to.equal(await stable.symbol());
+
+      expect(await stable.balanceOf(talent.address)).to.eq(0);
+      expect(await stable.balanceOf(supporter.address)).to.eq(sponsorInitialStableAmount);
     });
   });
 });

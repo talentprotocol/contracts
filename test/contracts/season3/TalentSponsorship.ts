@@ -18,13 +18,14 @@ const { deployContract } = waffle;
 describe("VirtualTAL", () => {
   let admin: SignerWithAddress;
   let supporter: SignerWithAddress;
+  let badActor: SignerWithAddress;
   let talent: SignerWithAddress;
 
   let contract: TalentSponsorship;
   let stable: USDTMock;
 
   beforeEach(async () => {
-    [admin, supporter, talent] = await ethers.getSigners();
+    [admin, supporter, badActor, talent] = await ethers.getSigners();
 
     stable = (await deployContract(admin, Artifacts.USDTMock, [])) as USDTMock;
 
@@ -42,6 +43,7 @@ describe("VirtualTAL", () => {
 
     it("is created with no state", async () => {
       expect(await contract.totalSponsorships()).to.eq(0);
+      expect(await contract.totalRevokedSponsorships()).to.eq(0);
     });
 
     it("emits a SponsorshipCreated event everytime a sponsorship is created", async () => {
@@ -107,6 +109,29 @@ describe("VirtualTAL", () => {
 
       expect(await stable.balanceOf(talent.address)).to.eq(0);
       expect(await stable.balanceOf(supporter.address)).to.eq(sponsorInitialStableAmount);
+      expect(await contract.totalRevokedSponsorships()).to.eq(1);
+    });
+
+    it("prevents bad actors to steal from the contract", async () => {
+      const amount = parseUnits("10");
+      await stable.connect(supporter).approve(contract.address, amount);
+
+      await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
+
+      const action = contract.connect(badActor).withdrawToken(stable.address);
+
+      await expect(action).to.be.revertedWith("There are no funds for you to retrieve");
+    });
+
+    it("prevents bad actors to revoke sponsorships", async () => {
+      const amount = parseUnits("10");
+      await stable.connect(supporter).approve(contract.address, amount);
+
+      await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
+
+      const action = contract.connect(badActor).revokeSponsor(talent.address, amount, stable.address);
+
+      await expect(action).to.be.revertedWith("The amount passed is more than the previous sponsored amount");
     });
   });
 });

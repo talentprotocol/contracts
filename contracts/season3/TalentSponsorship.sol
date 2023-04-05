@@ -66,7 +66,7 @@ contract TalentSponsorship {
 
     // Withdraw all funds for a given token
     function withdrawToken(address _token) public {
-        require(amountAvailableForTalent[msg.sender][_token] >= 0, "There are no funds for you to retrieve");
+        require(amountAvailableForTalent[msg.sender][_token] > 0, "There are no funds for you to retrieve");
 
         // setup the internal state
         uint256 amount = amountAvailableForTalent[msg.sender][_token];
@@ -84,11 +84,11 @@ contract TalentSponsorship {
 
     // Revokes a sponsor position
     function revokeSponsor(address _talent, uint256 _amount, address _token) public {
-        require(IERC20(_token).balanceOf(address(this)) >= _amount, "The contract don't have enough balance");
         require(
             sponsorships[msg.sender][_talent][_token] >= _amount,
             "The amount passed is more than the previous sponsored amount"
         );
+        require(IERC20(_token).balanceOf(address(this)) >= _amount, "The contract don't have enough balance");
 
         // setup the internal state
         totalRevokedSponsorships = totalRevokedSponsorships + 1;

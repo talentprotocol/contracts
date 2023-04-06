@@ -44,6 +44,7 @@ describe("VirtualTAL", () => {
     it("is created with no state", async () => {
       expect(await contract.totalSponsorships()).to.eq(0);
       expect(await contract.totalRevokedSponsorships()).to.eq(0);
+      expect(await contract.totalClaimedSponsorships()).to.eq(0);
     });
 
     it("emits a SponsorshipCreated event everytime a sponsorship is created", async () => {
@@ -62,6 +63,8 @@ describe("VirtualTAL", () => {
       expect(event?.args?.symbol).to.equal(await stable.symbol());
 
       expect(await stable.balanceOf(contract.address)).to.eq(amount);
+
+      expect(await contract.totalSponsorships()).to.eq(1);
     });
 
     it("emits a Withdraw Event everytime a talent withdraws", async () => {
@@ -73,7 +76,7 @@ describe("VirtualTAL", () => {
       expect(await contract.connect(talent).amountAvailable(stable.address)).to.eq(amount);
       expect(await stable.balanceOf(contract.address)).to.eq(amount);
 
-      const tx = await contract.connect(talent).withdrawToken(stable.address);
+      const tx = await contract.connect(talent).withdrawToken(supporter.address, stable.address);
 
       const event = await findEvent(tx, "Withdraw");
 
@@ -83,6 +86,8 @@ describe("VirtualTAL", () => {
       expect(event?.args?.token).to.equal(stable.address);
       expect(event?.args?.symbol).to.equal(await stable.symbol());
 
+      expect(await contract.totalSponsorships()).to.eq(1);
+      expect(await contract.totalClaimedSponsorships()).to.eq(1);
       expect(await stable.balanceOf(talent.address)).to.eq(amount);
     });
 
@@ -97,7 +102,7 @@ describe("VirtualTAL", () => {
       expect(await contract.connect(talent).amountAvailable(stable.address)).to.eq(amount);
       expect(await stable.balanceOf(contract.address)).to.eq(amount);
 
-      const tx = await contract.connect(supporter).revokeSponsor(talent.address, amount, stable.address);
+      const tx = await contract.connect(supporter).revokeSponsor(talent.address, stable.address);
 
       const event = await findEvent(tx, "SponsorshipRevoked");
 
@@ -109,6 +114,7 @@ describe("VirtualTAL", () => {
 
       expect(await stable.balanceOf(talent.address)).to.eq(0);
       expect(await stable.balanceOf(supporter.address)).to.eq(sponsorInitialStableAmount);
+      expect(await contract.totalSponsorships()).to.eq(1);
       expect(await contract.totalRevokedSponsorships()).to.eq(1);
     });
 
@@ -118,7 +124,7 @@ describe("VirtualTAL", () => {
 
       await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
 
-      const action = contract.connect(badActor).withdrawToken(stable.address);
+      const action = contract.connect(badActor).withdrawToken(supporter.address, stable.address);
 
       await expect(action).to.be.revertedWith("There are no funds for you to retrieve");
     });
@@ -129,9 +135,9 @@ describe("VirtualTAL", () => {
 
       await contract.connect(supporter).sponsor(talent.address, amount, stable.address);
 
-      const action = contract.connect(badActor).revokeSponsor(talent.address, amount, stable.address);
+      const action = contract.connect(badActor).revokeSponsor(talent.address, stable.address);
 
-      await expect(action).to.be.revertedWith("The amount passed is more than the previous sponsored amount");
+      await expect(action).to.be.revertedWith("There's no pending sponsorship to revoke");
     });
   });
 });

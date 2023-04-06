@@ -1,8 +1,6 @@
 import { ethers, network } from "hardhat";
 
-import { deploySponsorship } from "./shared";
-
-const imageURI = process.env.LEVEL_ONE_IMAGE_URI!;
+import { deploySponsorship } from "../shared";
 
 async function main() {
   console.log(`Deploying sponsorship package ${network.name}`);
@@ -13,9 +11,12 @@ async function main() {
 
   const sponsorship = await deploySponsorship();
 
+  // Alfajores 0xAaAF2e4e4252101Ed57Be5Faa64Fc87B2d79bD34
+  // Mumbai 0xAaAF2e4e4252101Ed57Be5Faa64Fc87B2d79bD34
+
   console.log(`TalentSponsorship Address: ${sponsorship.address}`);
 
-  console.log("Done")
+  console.log("Done");
 }
 
 main()

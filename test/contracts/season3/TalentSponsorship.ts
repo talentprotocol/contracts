@@ -33,7 +33,7 @@ describe("VirtualTAL", () => {
   });
 
   async function builder() {
-    return deployContract(admin, Artifacts.TalentSponsorship, []);
+    return deployContract(admin, Artifacts.TalentSponsorship, [admin.address]);
   }
 
   describe("behaviour", () => {
@@ -138,6 +138,65 @@ describe("VirtualTAL", () => {
       const action = contract.connect(badActor).revokeSponsor(talent.address, stable.address);
 
       await expect(action).to.be.revertedWith("There's no pending sponsorship to revoke");
+    });
+  });
+
+  describe("testing contract enable and disable", () => {
+    beforeEach(async () => {
+      contract = (await builder()) as TalentSponsorship;
+    });
+
+    it("allows the contract owner to disable and enable the contract", async () => {
+      expect(await contract.disabled()).to.be.equal(false);
+
+      await contract.connect(admin).disable();
+
+      expect(await contract.disabled()).to.be.equal(true);
+
+      await contract.connect(admin).enable();
+
+      expect(await contract.disabled()).to.be.equal(false);
+    });
+
+    it("prevents other accounts to disable the contract", async () => {
+      expect(await contract.disabled()).to.be.equal(false);
+
+      const action = contract.connect(badActor).enable();
+
+      await expect(action).to.be.reverted;
+
+      expect(await contract.disabled()).to.be.equal(false);
+    });
+
+    it("prevents other accounts to enable the contract", async () => {
+      const action = contract.connect(badActor).enable();
+
+      await expect(action).to.be.reverted;
+    });
+
+    it("prevents disable when the contract is already disabled", async () => {
+      expect(await contract.disabled()).to.be.equal(false);
+
+      await contract.connect(admin).disable();
+
+      const action = contract.connect(admin).disable();
+
+      await expect(action).to.be.reverted;
+    });
+
+    it("prevents new sponsors when the contract is disabled", async () => {
+      expect(await contract.disabled()).to.be.equal(false);
+
+      await contract.connect(admin).disable();
+
+      expect(await contract.disabled()).to.be.equal(true);
+
+      const amount = parseUnits("10");
+      await stable.connect(supporter).approve(contract.address, amount);
+
+      const action = contract.connect(supporter).sponsor(talent.address, amount, stable.address);
+
+      await expect(action).to.be.revertedWith("The contract is currently disabled.");
     });
   });
 });

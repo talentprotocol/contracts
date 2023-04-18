@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract TalentSponsorship {
+contract TalentSponsorship is Ownable {
     // sponsor => talent => token => totalAmount
     mapping(address => mapping(address => mapping(address => uint256))) public sponsorships;
 
@@ -22,6 +23,9 @@ contract TalentSponsorship {
 
     // totalNumberOfClaimedSponsorships
     uint256 public totalClaimedSponsorships;
+
+    // disable the contract
+    bool public disabled = false;
 
     // A new sponsorship has been created
     event SponsorshipCreated(
@@ -50,14 +54,20 @@ contract TalentSponsorship {
         string symbol
     );
 
-    constructor() {
+    constructor(address contractOwner) {
         totalSponsorships = 0;
         totalRevokedSponsorships = 0;
         totalClaimedSponsorships = 0;
+        transferOwnership(contractOwner);
+    }
+
+    modifier notDisabled() {
+        require(!disabled, "The contract is currently disabled.");
+        _;
     }
 
     // Create a new sponsor position
-    function sponsor(address _talent, uint256 _amount, address _token) public {
+    function sponsor(address _talent, uint256 _amount, address _token) public notDisabled {
         require(IERC20(_token).balanceOf(msg.sender) >= _amount, "You don't have enough balance");
         require(
             IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
@@ -129,5 +139,23 @@ contract TalentSponsorship {
 
     function amountAvailable(address _token) public view returns (uint256) {
         return amountAvailableForTalent[msg.sender][_token];
+    }
+
+    // Admin
+
+    /**
+     * @notice Disables the contract, disabling future sponsorships.
+     * @dev Can only be called by the owner.
+     */
+    function disable() public notDisabled onlyOwner {
+        disabled = true;
+    }
+
+    /**
+     * @notice Enables the contract, enabling new sponsors.
+     * @dev Can only be called by the owner.
+     */
+    function enable() public onlyOwner {
+        disabled = false;
     }
 }

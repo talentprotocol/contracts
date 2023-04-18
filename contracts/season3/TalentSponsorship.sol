@@ -24,8 +24,8 @@ contract TalentSponsorship is Ownable {
     // totalNumberOfClaimedSponsorships
     uint256 public totalClaimedSponsorships;
 
-    // disable the contract
-    bool public disabled = false;
+    // flag to enable or disable the contract
+    bool public enabled = true;
 
     // A new sponsorship has been created
     event SponsorshipCreated(
@@ -61,13 +61,13 @@ contract TalentSponsorship is Ownable {
         transferOwnership(contractOwner);
     }
 
-    modifier notDisabled() {
-        require(!disabled, "The contract is currently disabled.");
+    modifier onlyWhileEnabled() {
+        require(enabled, "The contract is disabled.");
         _;
     }
 
     // Create a new sponsor position
-    function sponsor(address _talent, uint256 _amount, address _token) public notDisabled {
+    function sponsor(address _talent, uint256 _amount, address _token) public onlyWhileEnabled {
         require(IERC20(_token).balanceOf(msg.sender) >= _amount, "You don't have enough balance");
         require(
             IERC20(_token).allowance(msg.sender, address(this)) >= _amount,
@@ -147,8 +147,8 @@ contract TalentSponsorship is Ownable {
      * @notice Disables the contract, disabling future sponsorships.
      * @dev Can only be called by the owner.
      */
-    function disable() public notDisabled onlyOwner {
-        disabled = true;
+    function disable() public onlyWhileEnabled onlyOwner {
+        enabled = false;
     }
 
     /**
@@ -156,6 +156,6 @@ contract TalentSponsorship is Ownable {
      * @dev Can only be called by the owner.
      */
     function enable() public onlyOwner {
-        disabled = false;
+        enabled = true;
     }
 }

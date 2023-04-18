@@ -147,25 +147,25 @@ describe("VirtualTAL", () => {
     });
 
     it("allows the contract owner to disable and enable the contract", async () => {
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
 
       await contract.connect(admin).disable();
 
-      expect(await contract.disabled()).to.be.equal(true);
+      expect(await contract.enabled()).to.be.equal(false);
 
       await contract.connect(admin).enable();
 
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
     });
 
     it("prevents other accounts to disable the contract", async () => {
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
 
-      const action = contract.connect(badActor).enable();
+      const action = contract.connect(badActor).disable();
 
       await expect(action).to.be.reverted;
 
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
     });
 
     it("prevents other accounts to enable the contract", async () => {
@@ -175,7 +175,7 @@ describe("VirtualTAL", () => {
     });
 
     it("prevents disable when the contract is already disabled", async () => {
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
 
       await contract.connect(admin).disable();
 
@@ -185,18 +185,18 @@ describe("VirtualTAL", () => {
     });
 
     it("prevents new sponsors when the contract is disabled", async () => {
-      expect(await contract.disabled()).to.be.equal(false);
+      expect(await contract.enabled()).to.be.equal(true);
 
       await contract.connect(admin).disable();
 
-      expect(await contract.disabled()).to.be.equal(true);
+      expect(await contract.enabled()).to.be.equal(false);
 
       const amount = parseUnits("10");
       await stable.connect(supporter).approve(contract.address, amount);
 
       const action = contract.connect(supporter).sponsor(talent.address, amount, stable.address);
 
-      await expect(action).to.be.revertedWith("The contract is currently disabled.");
+      await expect(action).to.be.revertedWith("The contract is disabled.");
     });
   });
 });

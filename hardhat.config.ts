@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
+import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
 import "hardhat-gas-reporter";
@@ -12,7 +13,7 @@ const deployer = {
   mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
 };
 
-//const deployer = [""];
+// const deployer = [""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -43,16 +44,19 @@ const config: HardhatUserConfig = {
       accounts: deployer,
       chainId: 42220,
     },
-    mumbai: {
+    polygonMumbai: {
       url: "https://matic-mumbai.chainstacklabs.com",
       accounts: deployer,
       chainId: 80001,
     },
     matic: {
-      url: "https://rpc-mainnet.maticvigil.com/",
+      url: "https://polygon.llamarpc.com",
       accounts: deployer,
       chainId: 137,
     },
+  },
+  etherscan: {
+    // apiKey: <api_key> ,
   },
   gasReporter: {
     currency: "ETH",

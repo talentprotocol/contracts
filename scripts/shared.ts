@@ -1,7 +1,14 @@
 import { ethers, upgrades } from "hardhat";
 
 import type { BigNumber } from "ethers";
-import type { TalentProtocol, TalentFactory, Staking, CommunityUser, TalentNFT } from "../typechain-types";
+import type {
+  TalentProtocol,
+  TalentFactory,
+  Staking,
+  CommunityUser,
+  TalentNFT,
+  TalentSponsorship,
+} from "../typechain-types";
 
 export async function deployToken(): Promise<TalentProtocol> {
   const TalentProtocol = await ethers.getContractFactory("TalentProtocol");
@@ -48,6 +55,15 @@ export async function deployTalentNFT(owner: string, ticker: string): Promise<Ta
   return deployedTalentNFT as TalentNFT;
 }
 
+export async function deploySponsorship(owner: string): Promise<TalentSponsorship> {
+  const talentSponsorshipContract = await ethers.getContractFactory("TalentSponsorship");
+
+  const deployedSponsorshipContract = await talentSponsorshipContract.deploy(owner);
+  await deployedSponsorshipContract.deployed();
+
+  return deployedSponsorshipContract as TalentSponsorship;
+}
+
 export async function deployStaking(
   start: number,
   end: number,
@@ -57,11 +73,17 @@ export async function deployStaking(
   protocolPrice: BigNumber,
   talentPrice: BigNumber
 ): Promise<Staking> {
-
-
   const Staking = await ethers.getContractFactory("Staking");
 
-  const staking = (await upgrades.deployProxy(Staking, [start, end, rewardMax, stableCoin, factory, protocolPrice, talentPrice]))
+  const staking = await upgrades.deployProxy(Staking, [
+    start,
+    end,
+    rewardMax,
+    stableCoin,
+    factory,
+    protocolPrice,
+    talentPrice,
+  ]);
   await staking.deployed();
 
   return staking as Staking;

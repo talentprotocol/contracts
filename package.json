@@ -25,6 +25,7 @@
     "node-fetch": "3.3.0",
     "openzeppelin-solidity": "^4.2.0",
     "solhint": "^3.3.6",
+    "solidity-coverage": "^0.8.2",
     "solidity-docgen": "^0.5.16",
     "ts-node": "^10.8.2",
     "typechain": "^8.1.1",
@@ -42,6 +43,10 @@
     "chai-bignumber": "^3.0.0",
     "eslint": "^8.19.0",
     "ethereum-waffle": "^3.4.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
+    "hardhat-celo": "^0.0.4",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "prettier": "^2.4.1",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "solc": "^0.8.17"

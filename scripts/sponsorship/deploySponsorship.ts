@@ -9,12 +9,13 @@ async function main() {
 
   console.log(`Admin will be ${admin.address}`);
 
-  const sponsorship = await deploySponsorship();
+  const sponsorship = await deploySponsorship(admin.address);
 
   // Alfajores 0xAaAF2e4e4252101Ed57Be5Faa64Fc87B2d79bD34
   // Mumbai 0xAaAF2e4e4252101Ed57Be5Faa64Fc87B2d79bD34
 
   console.log(`TalentSponsorship Address: ${sponsorship.address}`);
+  console.log(`TalentSponsorship owner: ${await sponsorship.owner()}`);
 
   console.log("Done");
 }

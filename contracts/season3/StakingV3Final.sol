@@ -7,12 +7,8 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-import {
-    AccessControlEnumerableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import {
-    IERC1363ReceiverUpgradeable
-} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
+import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import {IERC1363ReceiverUpgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC1363ReceiverUpgradeable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import {StableThenToken} from "../staking_helpers/StableThenToken.sol";
@@ -77,7 +73,7 @@ import {IVirtualTAL} from "./VirtualTAL.sol";
 ///   Once 0 is reached, since no more claims will ever be made,
 ///   the remaining TAL from the reward pool can be safely withdrawn back to the team
 
-contract StakingV3 is
+contract StakingV3Final is
     Initializable,
     ContextUpgradeable,
     ERC165Upgradeable,
@@ -139,9 +135,6 @@ contract StakingV3 is
 
     // How many stakes have finished accumulating rewards
     uint256 finishedAccumulatingStakeCount;
-
-    /// Talent's share of rewards, to be redeemable by each individual talent
-    mapping(address => uint256) public talentRedeemableRewards;
 
     // Ability for admins to disable further stakes and rewards
     bool public disabled;
@@ -279,12 +272,9 @@ contract StakingV3 is
     //
 
     /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165Upgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
     }
 
@@ -294,12 +284,10 @@ contract StakingV3 is
     /// @param _amount The amount of stable coin to stake
     ///
     /// @notice The contract must be previously approved to spend _amount on behalf of `msg.sender`
-    function stakeStable(address _talent, uint256 _amount)
-        public
-        onlyWhileStakingEnabled
-        stablePhaseOnly
-        updatesAdjustedShares(msg.sender)
-    {
+    function stakeStable(
+        address _talent,
+        uint256 _amount
+    ) public onlyWhileStakingEnabled stablePhaseOnly updatesAdjustedShares(msg.sender) {
         uint256 tokenAmount = convertUsdToToken(_amount);
 
         _checkpointAndStake(msg.sender, _talent, tokenAmount, RewardAction.VIRTUAL_TAL_WITHDRAW);
@@ -577,10 +565,7 @@ contract StakingV3 is
         );
 
         if (_action == RewardAction.WITHDRAW) {
-            require(
-                IERC20Upgradeable(token).balanceOf(address(this)) >= tokenAmount,
-                "not enough TAL to withdraw"
-            );
+            require(IERC20Upgradeable(token).balanceOf(address(this)) >= tokenAmount, "not enough TAL to withdraw");
         }
 
         stake.talentAmount = stake.talentAmount - _talentAmount;
@@ -618,11 +603,7 @@ contract StakingV3 is
     /// @param _owner Owner of the stake
     /// @param _talent Talent token to stake on
     /// @param _tokenAmount TAL amount to stake
-    function _stake(
-        address _owner,
-        address _talent,
-        uint256 _tokenAmount
-    ) private {
+    function _stake(address _owner, address _talent, uint256 _tokenAmount) private {
         uint256 talentAmount = convertTokenToTalent(_tokenAmount);
 
         StakeData storage stake = stakes[_owner][_talent];
@@ -659,11 +640,7 @@ contract StakingV3 is
     /// @param _owner Owner of the stake
     /// @param _talent Talent token staked
     /// @param _action Whether to withdraw or restake rewards
-    function _checkpoint(
-        address _owner,
-        address _talent,
-        RewardAction _action
-    ) internal updatesAdjustedShares(_owner) {
+    function _checkpoint(address _owner, address _talent, RewardAction _action) internal updatesAdjustedShares(_owner) {
         _updateS();
 
         // calculate rewards since last checkpoint
@@ -714,7 +691,7 @@ contract StakingV3 is
     function _claimCheckpoint(address _owner, RewardAction _action) internal updatesAdjustedShares(_owner) {
         _updateS();
 
-        (uint256 stakerRewards, uint256 talentRewards) = _updateStakeRewards(_owner);
+        (uint256 stakerRewards, ) = _updateStakeRewards(_owner);
 
         // Only possible in token phase
         if (_action == RewardAction.WITHDRAW) {
@@ -780,11 +757,10 @@ contract StakingV3 is
         SAt = block.timestamp;
     }
 
-    function calculateEstimatedReturns(address _owner, uint256 _currentTime)
-        public
-        view
-        returns (uint256 stakerRewards, uint256 talentRewards)
-    {
+    function calculateEstimatedReturns(
+        address _owner,
+        uint256 _currentTime
+    ) public view returns (uint256 stakerRewards, uint256 talentRewards) {
         GlobalStakeData storage globalStake = globalStakes[_owner];
         uint256 newS = SafeMath.add(
             S,
@@ -807,7 +783,7 @@ contract StakingV3 is
             globalStake.S,
             newS,
             totalSupporterTALInvested,
-            totalSupporterTALInvested
+            totalTalentTALInvested
         );
 
         return (sRewards, tRewards);
@@ -817,11 +793,7 @@ contract StakingV3 is
     /// to be used within a staking update (re-stake or new deposit)
     ///
     /// @notice The staking update itself is assumed to happen on the caller
-    function _mintTalent(
-        address _owner,
-        address _talent,
-        uint256 _amount
-    ) private {
+    function _mintTalent(address _owner, address _talent, uint256 _amount) private {
         ITalentToken(_talent).mint(_owner, _amount);
     }
 
@@ -850,12 +822,10 @@ contract StakingV3 is
     ///
     /// @param _talentTokenAddress The talent address
     /// @param _amount The TAL amount
-    function createStakeWithVirtualTAL(address _talentTokenAddress, uint256 _amount)
-        public
-        onlyWhileStakingEnabled
-        stablePhaseOnly
-        updatesAdjustedShares(msg.sender)
-    {
+    function createStakeWithVirtualTAL(
+        address _talentTokenAddress,
+        uint256 _amount
+    ) public onlyWhileStakingEnabled stablePhaseOnly updatesAdjustedShares(msg.sender) {
         require(IVirtualTAL(virtualTAL).getBalance(msg.sender) >= _amount, "not enough TAL");
 
         _checkpointAndStake(msg.sender, _talentTokenAddress, _amount, RewardAction.VIRTUAL_TAL_WITHDRAW);
@@ -869,11 +839,10 @@ contract StakingV3 is
     ///
     /// @param _talentTokenAddress The talent address
     /// @param _amount The talent tokens amount
-    function sellTalentTokenForVirtualTAL(address _talentTokenAddress, uint256 _amount)
-        public
-        onlyWhileStakingEnabled
-        stablePhaseOnly
-    {
+    function sellTalentTokenForVirtualTAL(
+        address _talentTokenAddress,
+        uint256 _amount
+    ) public onlyWhileStakingEnabled stablePhaseOnly {
         require(!disabled, "staking has been disabled");
         require(IERC20Upgradeable(_talentTokenAddress).balanceOf(msg.sender) >= _amount, "not enough amount");
 

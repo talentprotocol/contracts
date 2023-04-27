@@ -111,11 +111,7 @@ contract TalentFactory is
     /// @param _talent The talent's address
     /// @param _name The new token's name
     /// @param _symbol The new token's symbol
-    function createTalent(
-        address _talent,
-        string memory _name,
-        string memory _symbol
-    ) public returns (address) {
+    function createTalent(address _talent, string memory _name, string memory _symbol) public returns (address) {
         require(whitelist[_talent], "address needs to be whitelisted");
         require(msg.sender == minter || msg.sender == _talent, "talent must be minter or owner");
         require(talentsToTokens[_talent] == address(0x0), "talent already has talent token");
@@ -170,12 +166,9 @@ contract TalentFactory is
     //
 
     /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlEnumerableUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165Upgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return AccessControlEnumerableUpgradeable.supportsInterface(interfaceId);
     }
 

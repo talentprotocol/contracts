@@ -12,11 +12,9 @@ import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {ERC1363Upgradeable} from "./tokens/ERC1363Upgradeable.sol";
-
-import {ITalentFactoryV3} from "./season3/TalentFactoryV3.sol";
 
 interface ITalentToken is IERC20Upgradeable {
     // mints new talent tokens
@@ -33,9 +31,6 @@ interface ITalentToken is IERC20Upgradeable {
 
     // how much is available to be minted
     function mintingAvailability() external view returns (uint256);
-
-    // proposed talent's wallet
-    function proposedTalent() external view returns (address);
 }
 
 /// @title The base contract for Talent Tokens
@@ -78,14 +73,6 @@ contract TalentToken is
     // talent's wallet
     address public override(ITalentToken) talent;
 
-    // talent's proposed address to change ownership
-    address public override(ITalentToken) proposedTalent;
-
-    // factory's address
-    address public factory;
-
-    event OwnershipTransferred(address talent, address proposedTalent);
-
     function initialize(
         string memory _name,
         string memory _symbol,
@@ -93,14 +80,13 @@ contract TalentToken is
         address _talent,
         address _minter,
         address _admin
-    ) public initializer {
+    ) public virtual initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __ERC20_init_unchained(_name, _symbol);
         __AccessControl_init_unchained();
 
         talent = _talent;
-        factory = msg.sender;
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ROLE_TALENT, _talent);
@@ -110,11 +96,9 @@ contract TalentToken is
         mintingAvailability = MAX_SUPPLY - _initialSupply;
     }
 
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override(UUPSUpgradeable)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override(UUPSUpgradeable) onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /// Mints new supply
     ///
@@ -150,49 +134,14 @@ contract TalentToken is
         _burn(_from, _amount);
     }
 
-    /// Proposes a new wallet to change ownership
-    ///
-    /// @notice Callable by the talent to change their own proposed address
-    ///
-    /// @param _proposedTalent address for the new talent's wallet
-    function proposeTalent(address _proposedTalent) external onlyRole(ROLE_TALENT) {
-        require(msg.sender != _proposedTalent, "talent is already the owner");
-
-        proposedTalent = _proposedTalent;
-    }
-
-    /// Claims talent ownership
-    ///
-    /// @notice Callable by the proposed talent to claim ownership
-    function claimTalentOwnership() external {
-        require(msg.sender == proposedTalent, "talent is not proposed owner");
-
-        ITalentFactoryV3(factory).setNewMappingValues(talent, proposedTalent);
-
-        _grantRole(ROLE_TALENT, proposedTalent);
-        _revokeRole(ROLE_TALENT, talent);
-
-        emit OwnershipTransferred(talent, proposedTalent);
-
-        talent = proposedTalent;
-        proposedTalent = address(0);
-    }
-
-    function setFactory(address _newFactory) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        factory = _newFactory;
-    }
-
     //
     // Begin: ERC165
     //
 
     /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable) returns (bool) {
         return
             interfaceId == type(IERC20Upgradeable).interfaceId ||
             interfaceId == type(IERC1363Upgradeable).interfaceId ||

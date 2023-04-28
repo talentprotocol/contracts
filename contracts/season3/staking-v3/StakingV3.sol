@@ -63,9 +63,10 @@ contract StakingV3 is StakingV3State {
         // only the talent himself can redeem their own rewards
         require(_owner == ITalentToken(_talent).talent(), "only owner can withdraw shares");
 
-        uint256 rewards = (talentS - talentsToTalentS[_talent]) *
-            (mintedThroughStaking(_talent) / totalTokensStaked) *
-            mintedThroughStaking(_talent);
+        uint256 rewards = ((talentS - talentsToTalentS[_talent]) *
+            ((mintedThroughStaking(_talent) * IRewardCalculatorV2(rewardCalculator).mul()) / totalTokensStaked) *
+            mintedThroughStaking(_talent)) /
+            (IRewardCalculatorV2(rewardCalculator).mul() * IRewardCalculatorV2(rewardCalculator).mul());
 
         talentsToTalentS[_talent] = talentS;
 
@@ -594,9 +595,10 @@ contract StakingV3 is StakingV3State {
     /// @param _talent The talent token from which rewards are to be claimed
     /// @return rewards if operation succeeds
     function calculateTalentRewards(address _talent) public view returns (uint256) {
-        uint256 rewards = (talentS - talentsToTalentS[_talent]) *
-            (mintedThroughStaking(_talent) / totalTokensStaked) *
-            mintedThroughStaking(_talent);
+        uint256 rewards = ((talentS - talentsToTalentS[_talent]) *
+            ((mintedThroughStaking(_talent) * IRewardCalculatorV2(rewardCalculator).mul()) / totalTokensStaked) *
+            mintedThroughStaking(_talent)) /
+            (IRewardCalculatorV2(rewardCalculator).mul() * IRewardCalculatorV2(rewardCalculator).mul());
 
         return rewards;
     }

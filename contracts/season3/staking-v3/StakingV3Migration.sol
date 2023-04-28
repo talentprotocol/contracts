@@ -117,7 +117,7 @@ contract StakingV3Migration is StakingV3State {
         emit Stake(_owner, _talentToken, _talAmount, _stable);
     }
 
-    function mintedThroughStaking(address _talent) public returns (uint256) {
+    function mintedThroughStaking(address _talent) public view returns (uint256) {
         uint256 amount = IERC20Upgradeable(_talent).totalSupply() -
             ITalentFactoryV3(factory).tokensInitialSupply(_talent);
 

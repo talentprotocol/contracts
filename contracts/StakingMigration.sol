@@ -5,32 +5,22 @@ pragma solidity ^0.8.17;
 import {Staking} from "./Staking.sol";
 
 contract StakingMigration is Staking {
-    function setInitialState(
+    function initialize(
         uint256 _start,
         uint256 _end,
+        uint256 _rewardsMax,
+        address _stableCoin,
+        address _factory,
         uint256 _tokenPrice,
-        uint256 _talentPrice,
-        uint256 _rewardsMax
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        start = _start;
-        end = _end;
-        tokenPrice = _tokenPrice;
-        talentPrice = _talentPrice;
-        rewardsMax = _rewardsMax;
-        SAt = _start;
-        S = 0;
-        totalAdjustedShares = 0;
-        totalTokensStaked = 0;
-        activeStakes = 0;
-        rewardsGiven = 0;
+        uint256 _talentPrice
+    ) public override(Staking) initializer {
+        Staking.initialize(_start, _end, _rewardsMax, _stableCoin, _factory, _tokenPrice, _talentPrice);
     }
 
     function transferStake(
         address _owner,
         address _token,
-        uint256 _tokenAmount,
-        uint256 _timestamp,
-        bool firstStake
+        StakeData memory _stake
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_token != address(0x0), "Address must be set");
         require(_owner != address(0x0), "Address must be set");
@@ -38,31 +28,33 @@ contract StakingMigration is Staking {
 
         StakeData storage stake = stakes[_owner][_token];
 
-        if (firstStake) {
-            stake.tokenAmount = 0;
-            stake.talentAmount = 0;
-        }
+        stake.tokenAmount = stake.tokenAmount + _stake.tokenAmount;
+        stake.talentAmount = stake.talentAmount + _stake.talentAmount;
+        stake.lastCheckpointAt = _stake.lastCheckpointAt;
+        stake.S = _stake.S;
+        stake.finishedAccumulating = _stake.finishedAccumulating;
+    }
 
-        if (totalTokensStaked != 0) {
-            S = S + (calculateGlobalReward(SAt, _timestamp)) / totalAdjustedShares;
-            SAt = _timestamp;
-        }
+    function setAccumulatedState(
+        uint256 _activeStakes,
+        uint256 _totalStableStored,
+        uint256 _totalTokensStaked,
+        uint256 _rewardsGiven
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        activeStakes = _activeStakes;
+        totalStableStored = _totalStableStored;
+        totalTokensStaked = _totalTokensStaked;
+        rewardsGiven = _rewardsGiven;
+    }
 
-        uint256 toDeduct = sqrt(stake.tokenAmount);
-
-        if (stake.tokenAmount == 0) {
-            activeStakes = activeStakes + 1;
-        }
-
-        stake.tokenAmount = stake.tokenAmount + _tokenAmount;
-        stake.talentAmount = stake.talentAmount + convertTokenToTalent(_tokenAmount);
-        stake.lastCheckpointAt = _timestamp;
-
-        stake.S = S;
-        stake.finishedAccumulating = false;
-        totalTokensStaked = totalTokensStaked + _tokenAmount;
-
-        totalAdjustedShares = totalAdjustedShares + sqrt(stake.tokenAmount) - toDeduct;
+    function setRealtimeState(
+        uint256 _S,
+        uint256 _SAt,
+        uint256 _totalAdjustedShares
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        S = _S;
+        SAt = _SAt;
+        totalAdjustedShares = _totalAdjustedShares;
     }
 
     function setTalentState(
@@ -92,39 +84,5 @@ contract StakingMigration is Staking {
         uint256 _talentReward
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         emit RewardClaim(_owner, _talentToken, _stakerReward, _talentReward);
-    }
-
-    function setClaimRewards(
-        address _owner,
-        address _talent,
-        uint256 _timestamp,
-        uint256 _stakerRewards,
-        uint256 _talentRewards
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        StakeData storage stake = stakes[_owner][_talent];
-
-        if (totalTokensStaked != 0) {
-            S = S + (calculateGlobalReward(SAt, _timestamp)) / totalAdjustedShares;
-            SAt = _timestamp;
-        }
-
-        uint256 toDeduct = sqrt(stake.tokenAmount);
-
-        rewardsGiven = rewardsGiven + _stakerRewards + _talentRewards;
-        stake.S = S;
-        stake.lastCheckpointAt = _timestamp;
-
-        stake.tokenAmount = stake.tokenAmount + _stakerRewards;
-        stake.talentAmount = stake.talentAmount + convertTokenToTalent(_stakerRewards);
-
-        totalTokensStaked = totalTokensStaked + _stakerRewards;
-
-        talentRedeemableRewards[_talent] = talentRedeemableRewards[_talent] + _talentRewards;
-
-        totalAdjustedShares = totalAdjustedShares + sqrt(stake.tokenAmount) - toDeduct;
-    }
-
-    function setTalentRedeemableRewards(address _talent) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        talentRedeemableRewards[_talent] = 0;
     }
 }

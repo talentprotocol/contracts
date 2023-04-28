@@ -147,15 +147,7 @@ describe("TalentFactory", () => {
         const action = factory.connect(attacker).createTalent(attacker.address, "Miguel Palhas", "NAPS");
 
         await expect(action).to.be.revertedWith("address needs to be whitelisted");
-      })
-
-      it("creates a talent token with the factory address", async () => {
-        const tx = await factory.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
-        const event = await findEvent(tx, "TalentCreated");
-        const naps = TalentToken__factory.connect(event?.args?.token, creator);
-
-        expect(await naps.factory()).to.eq(factory.address);
-      })
+      });
     });
 
     describe("isTalentToken", () => {

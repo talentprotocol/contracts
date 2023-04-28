@@ -99,9 +99,7 @@ contract StakingV3Migration is StakingV3State {
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_isTalentToken(_token), "Token must be a valid talent token");
 
-        // rewards = (talentS - talentsToTalentS[_talent]) * (mintedThroughStaking(_talent) / totalTokensStaked)
-        // rewards / mintedThroughStaking(_talent) / (mintedThroughStaking(_talent) / totalTokensStaked) = talentS - talentsToTalentS[_talent]
-
+        // TODO: this is missing the MUL in the equation
         talentsToTalentS[_token] =
             talentS -
             (_talentRedeemableRewards / mintedThroughStaking(_token)) /

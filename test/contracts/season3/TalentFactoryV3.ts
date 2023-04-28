@@ -8,10 +8,10 @@ import type { ContractFactory } from "ethers";
 import type {
   TalentFactoryV2,
   TalentFactoryV3,
-  TalentToken,
-  TalentFactoryV3__factory
+  TalentTokenV3,
+  TalentFactoryV3__factory,
 } from "../../../typechain-types";
-import { TalentToken__factory } from "../../../typechain-types";
+import { TalentTokenV3__factory } from "../../../typechain-types";
 import { findEvent } from "../../shared/utils";
 
 chai.use(solidity);
@@ -25,7 +25,7 @@ describe("TalentFactoryV3", () => {
   let talent2: SignerWithAddress;
   let factoryV2: TalentFactoryV2;
   let factoryV3: TalentFactoryV3;
-  let naps: TalentToken;
+  let naps: TalentTokenV3;
 
   let TalentFactoryV2Factory: ContractFactory;
   let TalentFactoryV3Factory: TalentFactoryV3__factory;
@@ -56,14 +56,20 @@ describe("TalentFactoryV3", () => {
       factoryV2 = (await upgrades.deployProxy(TalentFactoryV2Factory, [])) as TalentFactoryV2;
 
       TalentFactoryV3Factory = (await ethers.getContractFactory("TalentFactoryV3")) as TalentFactoryV3__factory;
-      factoryV3 = (await upgrades.deployProxy(TalentFactoryV3Factory, [])) as TalentFactoryV3
+      factoryV3 = (await upgrades.deployProxy(TalentFactoryV3Factory, [])) as TalentFactoryV3;
       await factoryV3.setMinter(minter.address);
       await factoryV3.setWhitelister(minter.address);
       await factoryV3.connect(minter).whitelistAddress(talent1.address);
 
       const tx = await factoryV3.connect(minter).createTalent(talent1.address, "Miguel Palhas", "NAPS");
       const event = await findEvent(tx, "TalentCreated");
-      naps = TalentToken__factory.connect(event?.args?.token, creator);
+      naps = TalentTokenV3__factory.connect(event?.args?.token, creator);
+    });
+
+    describe("createTalent", () => {
+      it("creates a talent token with the factory address", async () => {
+        expect(await naps.factory()).to.eq(factoryV3.address);
+      });
     });
 
     describe("hasTalentToken", () => {
@@ -86,13 +92,13 @@ describe("TalentFactoryV3", () => {
       it("is not callable directly by proposed talent", async () => {
         await naps.connect(talent1).proposeTalent(talent2.address);
         const result = factoryV3.connect(talent2).setNewMappingValues(talent1.address, talent2.address);
-        
+
         await expect(result).to.be.revertedWith("not called by talent token");
       });
 
       it("changes mapping values when called by an admin", async () => {
         await factoryV3.connect(creator).setNewMappingValues(talent1.address, talent2.address);
-        
+
         expect(await factoryV3.tokensToTalents(naps.address)).to.eq(talent2.address);
         expect(await factoryV3.talentsToTokens(talent1.address)).to.eq(ethers.constants.AddressZero);
         expect(await factoryV3.talentsToTokens(talent2.address)).to.eq(naps.address);

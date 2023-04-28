@@ -242,5 +242,5 @@ contract TalentFactoryV3 is
     //
 
     /// https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#storage-gaps
-    uint256[49] __gap;
+    uint256[48] __gap;
 }

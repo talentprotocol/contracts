@@ -92,18 +92,13 @@ contract StakingV3Migration is StakingV3State {
         talentS = SafeMath.div(_allTalentRewards, totalTokensStaked);
     }
 
-    function setClaimRewards(
-        address _token,
-        uint256 _talentRedeemableRewards,
-        uint256 _allTalentRewards
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setClaimRewards(address _token, uint256 _talentRedeemableRewards) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_isTalentToken(_token), "Token must be a valid talent token");
 
-        // TODO: this is missing the MUL in the equation
         talentsToTalentS[_token] =
             talentS -
-            (_talentRedeemableRewards / mintedThroughStaking(_token)) /
-            (mintedThroughStaking(_token) / _allTalentRewards);
+            ((_talentRedeemableRewards * totalTokensStaked) /
+                (mintedThroughStaking(_token) * mintedThroughStaking(_token)));
     }
 
     function emitStakeEvent(

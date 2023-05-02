@@ -89,16 +89,20 @@ contract StakingV3Migration is StakingV3State {
     }
 
     function setGlobalClaimRewards(uint256 _allTalentRewards) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        talentS = SafeMath.div(_allTalentRewards, totalTokensStaked);
+        // TODO 2: where we set the talentS, dividing the sum of all talentRedeemableRewards with the totalTokensStaked
+        talentS = SafeMath.div(
+            SafeMath.mul(_allTalentRewards, IRewardCalculatorV2(rewardCalculator).mul()),
+            totalTokensStaked
+        );
     }
 
     function setClaimRewards(address _token, uint256 _talentRedeemableRewards) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_isTalentToken(_token), "Token must be a valid talent token");
-
+        // TODO 3: where we set the talentsToTalentS by subtracting the talentS with the division of
+        // _talentRedeemableRewards by mintedThroughStaking
         talentsToTalentS[_token] =
             talentS -
-            ((_talentRedeemableRewards * totalTokensStaked) /
-                (mintedThroughStaking(_token) * mintedThroughStaking(_token)));
+            ((_talentRedeemableRewards * IRewardCalculatorV2(rewardCalculator).mul()) / mintedThroughStaking(_token));
     }
 
     function emitStakeEvent(

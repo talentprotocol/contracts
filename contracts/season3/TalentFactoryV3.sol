@@ -207,25 +207,6 @@ contract TalentFactoryV3 is
         return minter != address(0x0);
     }
 
-    function migrateMappings(
-        address _token,
-        address _talent,
-        string memory _symbol
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        /// maps each talent's address to their talent token
-        talentsToTokens[_talent] = _token;
-
-        /// maps each talent tokens' address to their talent
-        tokensToTalents[_token] = _talent;
-
-        /// maps each token's symbol to the token address
-        symbolsToTokens[_symbol] = _token;
-    }
-
-    function migrateImplementationBeacon(address _implementationBeacon) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        implementationBeacon = _implementationBeacon;
-    }
-
     //
     // Begin: ERC165
     //

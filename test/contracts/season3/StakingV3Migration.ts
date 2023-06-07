@@ -50,6 +50,15 @@ describe("StakingV3Migration", () => {
   const rewards = parseUnits("100");
   const margin = parseUnits("0.001") as unknown as number;
 
+  enum MintReason {
+    TalentRedeemableRewards,
+    TalentRewards,
+    SupporterRewards,
+    TalentTokensSold,
+    InAppRewards,
+    Investor,
+  }
+
   beforeEach(async () => {
     const lastBlock = await ethers.provider.getBlockNumber();
     const timestamp = (await ethers.provider.getBlock(lastBlock)).timestamp;
@@ -200,7 +209,8 @@ describe("StakingV3Migration", () => {
       const setRealtimeState = await stakingV3Migration.setRealtimeState(
         await staking.S(),
         await staking.SAt(),
-        await staking.totalAdjustedShares()
+        await staking.totalAdjustedShares(),
+        0
       );
       await setRealtimeState.wait();
 
@@ -221,7 +231,6 @@ describe("StakingV3Migration", () => {
         if (stakeLogs.length > 0) {
           for await (const event of stakeLogs) {
             if (pairs.filter((pair) => pair == `${event?.args?.owner}-${event.args?.talentToken}`).length > 0) {
-              console.log("skipping tx");
               continue;
             }
 
@@ -256,35 +265,21 @@ describe("StakingV3Migration", () => {
         }
       }
 
-      let allTalentRewards = BigNumber.from("0");
-
-      const mul = await rewardCalculatorV2.mul();
-      const totalTokensStaked = await staking.totalTokensStaked();
-      console.log("totalTokensStaked", formatUnits(totalTokensStaked));
-
       const tokens = [talentToken1.address, talentToken2.address];
 
       for await (const token of tokens) {
         const talentRedeemableRewards = await staking.talentRedeemableRewards(token);
-        const mintedThroughStaking = await stakingV3Migration.mintedThroughStaking(token);
-        const mult = talentRedeemableRewards.mul(mul);
-        console.log("talentsToTalentS", formatUnits(mult.div(mintedThroughStaking)));
-        console.log("talentRedeemableRewards", formatUnits(talentRedeemableRewards));
-        console.log("mintedThroughStaking", formatUnits(mintedThroughStaking));
+        const owner = await factory.tokensToTalents(token);
 
-        allTalentRewards = talentRedeemableRewards.add(allTalentRewards);
-      }
-      const allTalentRewardsMul = allTalentRewards.mul(mul);
-      console.log("talentS", formatUnits(allTalentRewardsMul.div(totalTokensStaked)));
-      // TODO 1: where we call the method to set the global talentS, passing the sum of all talentRedeemableRewards
-      const setGlobalClaimRewards = await stakingV3Migration.setGlobalClaimRewards(allTalentRewards);
-      await setGlobalClaimRewards.wait();
+        const adminMint = await virtualTAL.adminMint(
+          owner,
+          talentRedeemableRewards,
+          MintReason.TalentRedeemableRewards
+        );
+        await adminMint.wait();
 
-      for await (const token of tokens) {
-        const talentRedeemableRewards = await staking.talentRedeemableRewards(token);
-
-        const setClaimRewards = await stakingV3Migration.setClaimRewards(token, talentRedeemableRewards);
-        await setClaimRewards.wait();
+        const virtualWalletBalance = await virtualTAL.getBalance(owner);
+        expect(virtualWalletBalance).to.equal(talentRedeemableRewards);
       }
 
       for await (const pair of pairs) {
@@ -308,12 +303,12 @@ describe("StakingV3Migration", () => {
           );
 
           if (stakerRewards.gte(0)) {
-            await virtualTAL.adminMint(pairArr[0], stakerRewards);
+            await virtualTAL.adminMint(pairArr[0], stakerRewards, MintReason.SupporterRewards);
           }
 
           if (talentRewards.gte(0)) {
             const owner = await factory.tokensToTalents(pairArr[1]);
-            await virtualTAL.adminMint(owner, talentRewards);
+            await virtualTAL.adminMint(owner, talentRewards, MintReason.TalentRewards);
           }
 
           expect(stakerRewards.add(talentRewards)).to.be.closeTo(
@@ -355,10 +350,9 @@ describe("StakingV3Migration", () => {
       // check talent rewards
 
       for await (const token of tokens) {
-        const talentRedeemableRewards = await staking.talentRedeemableRewards(token);
         const calculateTalentRewards = await stakingV3.calculateTalentRewards(token);
 
-        expect(talentRedeemableRewards).to.be.closeTo(calculateTalentRewards, margin);
+        expect(calculateTalentRewards).to.equal(0);
       }
     });
   });

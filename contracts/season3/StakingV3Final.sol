@@ -215,7 +215,7 @@ contract StakingV3Final is
     event RewardWithdrawal(address indexed owner, uint256 stakerReward, uint256 talentReward);
 
     // emitted when a talent withdraws his share of rewards
-    event TalentRewardWithdrawal(address indexed talentToken, address indexed talentTokenWallet, uint256 reward);
+    event TalentRewardWithdrawal(address indexed owner, address indexed talentToken, uint256 rewards, bool virtualTAL);
 
     // emitted when a withdrawal is made from an existing stake
     event Unstake(address indexed owner, address indexed talentToken, uint256 talAmount);
@@ -341,7 +341,11 @@ contract StakingV3Final is
     ///
     /// @param _talent The talent token from which rewards are to be claimed
     function withdrawTalentRewardsToVirtualTAL(address _talent) public stablePhaseOnly {
-        IVirtualTAL(virtualTAL).adminMint(msg.sender, _talentRewards(msg.sender, _talent));
+        uint256 rewards = _talentRewards(msg.sender, _talent);
+
+        IVirtualTAL(virtualTAL).adminMint(msg.sender, rewards, IVirtualTAL.MintReason.TalentRewards);
+
+        emit TalentRewardWithdrawal(msg.sender, _talent, rewards, true);
     }
 
     /// Redeems a talent's share of the staking rewards
@@ -351,7 +355,11 @@ contract StakingV3Final is
     ///
     /// @param _talent The talent token from which rewards are to be claimed
     function withdrawTalentRewards(address _talent) public tokenPhaseOnly {
-        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, _talentRewards(msg.sender, _talent));
+        uint256 rewards = _talentRewards(msg.sender, _talent);
+
+        SafeERC20Upgradeable.safeTransfer(IERC20Upgradeable(token), msg.sender, rewards);
+
+        emit TalentRewardWithdrawal(msg.sender, _talent, rewards, false);
     }
 
     /// Calculates stable coin balance of the contract
@@ -586,7 +594,7 @@ contract StakingV3Final is
 
         if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
             ITalentToken(_talent).burn(msg.sender, _talentAmount);
-            IVirtualTAL(virtualTAL).adminMint(msg.sender, tokenAmount);
+            IVirtualTAL(virtualTAL).adminMint(msg.sender, tokenAmount, IVirtualTAL.MintReason.TalentTokensSold);
         } else {
             _burnTalent(_talent, _talentAmount);
             _withdrawToken(_owner, tokenAmount);
@@ -678,9 +686,9 @@ contract StakingV3Final is
             emit RewardWithdrawal(_owner, stakerRewards, rewards);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
             // transfer talent rewards
-            IVirtualTAL(virtualTAL).adminMint(talentOwner, rewards);
+            IVirtualTAL(virtualTAL).adminMint(talentOwner, rewards, IVirtualTAL.MintReason.TalentRewards);
             // transfer staker rewards
-            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards, IVirtualTAL.MintReason.SupporterRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, rewards);
         } else {
@@ -699,7 +707,7 @@ contract StakingV3Final is
 
             emit RewardWithdrawal(_owner, stakerRewards, 0);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
-            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards, IVirtualTAL.MintReason.SupporterRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, 0);
         } else {

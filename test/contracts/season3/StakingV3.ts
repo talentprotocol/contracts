@@ -4,7 +4,6 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { ContractFactory } from "ethers";
 
 import type {
   TalentProtocol,
@@ -45,6 +44,15 @@ describe("StakingV3", () => {
   let end = dayjs.unix(start).add(100, "days").unix();
   const rewards = parseUnits("100");
   const margin = parseUnits("0.001") as unknown as number;
+
+  enum MintReason {
+    TalentRedeemableRewards,
+    TalentRewards,
+    SupporterRewards,
+    TalentTokensSold,
+    InAppRewards,
+    Investor,
+  }
 
   beforeEach(async () => {
     const lastBlock = await ethers.provider.getBlockNumber();
@@ -1061,7 +1069,7 @@ describe("StakingV3", () => {
 
     describe("createStakeWithVirtualTAL", () => {
       it("create stake and burns virtual TAL", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         const action = await stakingV3
           .connect(investor1)
           .createStakeWithVirtualTAL(talentToken1.address, parseUnits("100"));
@@ -1081,14 +1089,14 @@ describe("StakingV3", () => {
       });
 
       it("fails when the investor does not own enough Virtual TAL", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         const action = stakingV3.connect(investor1).createStakeWithVirtualTAL(talentToken1.address, parseUnits("1000"));
 
         await expect(action).to.be.revertedWith("not enough TAL");
       });
 
       it("updates the investor global variables", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         await stakingV3.connect(investor1).createStakeWithVirtualTAL(talentToken1.address, parseUnits("100"));
 
         const investorGlobalStake = await stakingV3.globalStakes(investor1.address);

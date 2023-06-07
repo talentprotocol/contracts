@@ -4,6 +4,7 @@
   "description": "Talent Protocol Smart Contracts",
   "author": "Talent Protocol",
   "dependencies": {
+    "@celo-tools/celo-ethers-wrapper": "^0.4.0",
     "@ethersproject/abi": "^5.0.0",
     "@ethersproject/bytes": "^5.0.0",
     "@ethersproject/providers": "^5.0.0",

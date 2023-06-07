@@ -15,4 +15,23 @@ contract TalentFactoryV3Migration is TalentFactoryV3 {
         minter = _newMinter;
         _grantRole(ROLE_MINTER, _newMinter);
     }
+
+    function migrateMappings(
+        address _token,
+        address _talent,
+        string memory _symbol
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        /// maps each talent's address to their talent token
+        talentsToTokens[_talent] = _token;
+
+        /// maps each talent tokens' address to their talent
+        tokensToTalents[_token] = _talent;
+
+        /// maps each token's symbol to the token address
+        symbolsToTokens[_symbol] = _token;
+    }
+
+    function migrateImplementationBeacon(address _implementationBeacon) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        implementationBeacon = _implementationBeacon;
+    }
 }

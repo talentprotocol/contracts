@@ -9,17 +9,15 @@ const { deployContract } = waffle;
 async function main() {
   const [owner] = await ethers.getSigners();
 
-  const provider =  new ethers.providers.JsonRpcProvider("https://forno.celo.org");
+  const provider = new ethers.providers.JsonRpcProvider("https://forno.celo.org");
 
   // console.log("owner wallet: ", owner.address);
 
-  // const factory = new ethers.Contract(
-  //   "0xa902DA7a40a671B84bA3Dd0BdBA6FD9d2D888246",
-  //   FactoryArtifactV2.abi,
-  //   owner
-  // );
+  const factory = new ethers.Contract("0x8ee4f3044Ef0166A6DB12b0e9Eeb1735f1Fc7cc9", FactoryArtifactV2.abi, owner);
 
-  // const beaconAddr = await factory.implementationBeacon();
+  const beaconAddr = await factory.implementationBeacon();
+
+  console.log({ beaconAddr });
 
   // console.log("beacon address: ", beaconAddr);
   // const talentTokenV2 = await deployContract(owner, TalentTokenArtifactV2, []);
@@ -33,16 +31,16 @@ async function main() {
 
   // console.log("checking token upgrade");
 
-  const token = new ethers.Contract(
-    "0x23Fe4CD8fC306b44C756f3fd4770730867dB5218",
-    TalentTokenArtifactV2.abi,
-    owner
-  );
+  // const token = new ethers.Contract(
+  //   "0x23Fe4CD8fC306b44C756f3fd4770730867dB5218",
+  //   TalentTokenArtifactV2.abi,
+  //   owner
+  // );
 
-  console.log("Is token version: ", await token.version());
+  // console.log("Is token version: ", await token.version());
 
   // const allTokens: any = ["0xbbc37ea38ec834ebf296fee21d059f0528eebdd3","0x543766fc6ab468719ad69d8dc2134b127f56865a","0x615170a6d049c037dad71c1d6fa190ac7f9d903e","0xdbafa5dd56e582bb15805a7b665e5183e82459ca","0xf942f5f6a484d5a2aec915dc133e439f1aa5f2cb","0x9c377f7d83f3f3d1cebbb158a4691344f1f7e17a","0x6608e34fc60e3022111084dd5dea5cd2700745fc","0x08da06e515c801865d6be1008b014cb92141e394","0x5cabd4c99388234b0bf797428a1579254b9effd5","0x9954a7ff41da8ce2bda065d0d1e7096a89fb22a5","0x12bde07008bae57715a18ed7451cbef08c855266","0xecc48d4483109ecef307a300d8acb14893c4d311"];
-    
+
   // for await (const item of allTokens) {
   //   const token = new ethers.Contract(
   //     item,

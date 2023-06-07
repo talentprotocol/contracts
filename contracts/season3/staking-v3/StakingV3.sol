@@ -78,7 +78,11 @@ contract StakingV3 is StakingV3State {
     ///
     /// @param _talent The talent token from which rewards are to be claimed
     function withdrawTalentRewardsToVirtualTAL(address _talent) public stablePhaseOnly {
-        IVirtualTAL(virtualTAL).adminMint(msg.sender, _talentRewards(msg.sender, _talent));
+        IVirtualTAL(virtualTAL).adminMint(
+            msg.sender,
+            _talentRewards(msg.sender, _talent),
+            IVirtualTAL.MintReason.TalentRewards
+        );
     }
 
     /// Redeems a talent's share of the staking rewards
@@ -315,7 +319,7 @@ contract StakingV3 is StakingV3State {
 
         if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
             ITalentToken(_talent).burn(msg.sender, _talentAmount);
-            IVirtualTAL(virtualTAL).adminMint(msg.sender, tokenAmount);
+            IVirtualTAL(virtualTAL).adminMint(msg.sender, tokenAmount, IVirtualTAL.MintReason.TalentTokensSold);
         } else {
             _burnTalent(_talent, _talentAmount);
             _withdrawToken(_owner, tokenAmount);
@@ -405,7 +409,7 @@ contract StakingV3 is StakingV3State {
             emit RewardWithdrawal(_owner, stakerRewards, talentRewards);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
             // transfer staker rewards
-            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards, IVirtualTAL.MintReason.SupporterRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, talentRewards);
         } else {
@@ -424,7 +428,7 @@ contract StakingV3 is StakingV3State {
 
             emit RewardWithdrawal(_owner, stakerRewards, talentRewards);
         } else if (_action == RewardAction.VIRTUAL_TAL_WITHDRAW) {
-            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards);
+            IVirtualTAL(virtualTAL).adminMint(_owner, stakerRewards, IVirtualTAL.MintReason.SupporterRewards);
 
             emit RewardWithdrawal(_owner, stakerRewards, talentRewards);
         } else {

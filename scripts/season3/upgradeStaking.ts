@@ -4,9 +4,14 @@ import axios from "axios";
 
 import * as TalentTokenArtifactV2 from "../../artifacts/contracts/test/TalentTokenV2.sol/TalentTokenV2.json";
 import * as TalentTokenV3 from "../../artifacts/contracts/season3/TalentTokenV3.sol/TalentTokenV3.json";
-import { StakingMigrationV2__factory, UpgradeableBeacon__factory } from "../../typechain-types";
+import {
+  StakingMigrationV2__factory,
+  TalentFactoryV3Migration__factory,
+  TalentFactoryV3__factory,
+  UpgradeableBeacon__factory,
+} from "../../typechain-types";
 import { HttpNetworkConfig } from "hardhat/types";
-import { celoTokens, polygonTokens, polygonTransactions, sleep } from "../utils";
+import { celoTokens, polygonTokens, polygonTransactions, newPolygonTransactions, sleep } from "../utils";
 
 const { parseUnits, formatUnits } = ethers.utils;
 const { exit } = process;
@@ -44,16 +49,31 @@ async function main() {
   }
 
   const staking = await ethers.getContractAt("StakingMigrationV2", stakingAddr);
-  const factory = await ethers.getContractAt("TalentFactoryV3", factoryAddr);
-  const StakingMigrationV2 = (await ethers.getContractFactory("StakingMigrationV2")) as StakingMigrationV2__factory;
+  const factory = await ethers.getContractAt("TalentFactoryV3Migration", factoryAddr);
+  // const StakingMigrationV2 = (await ethers.getContractFactory("StakingMigrationV2")) as StakingMigrationV2__factory;
+
+  // const TalentFactoryV3 = (await ethers.getContractFactory("TalentFactoryV3")) as TalentFactoryV3__factory;
+
+  // const TalentFactoryV3Migration = (await ethers.getContractFactory(
+  //   "TalentFactoryV3Migration"
+  // )) as TalentFactoryV3Migration__factory;
+
+  // console.log("validating upgrade");
+  // await upgrades.validateUpgrade(TalentFactoryV3, TalentFactoryV3Migration);
+  // console.log("upgrade validated");
+
+  // console.log("upgrading proxy");
+  // const newFactory = await upgrades.upgradeProxy(factory, TalentFactoryV3Migration);
+  // await newFactory.deployed();
+  // console.log("proxy upgraded");
 
   let txIndex = 1;
   const txTotal = polygonTransactions.length;
   let txStakeEventsEmmited = 0;
   let txRewardsClaimEmmited = 0;
 
-  // const start = 1662971008;
-  // const end = 2925241200;
+  const start = 1662971008;
+  const end = 2925241200;
   // const stableCoin = await staking.stableCoin();
   // const rewardsMax = await staking.rewardsMax();
   // const tokenPrice = await staking.tokenPrice();
@@ -73,10 +93,8 @@ async function main() {
 
   // console.log("newStaking address:", newStaking.address);
 
-  // const tx = await staking.setInitialState(start, end, parseUnits("0.02"), parseUnits("5"), parseUnits("400000000"), {
-  //   maxFeePerGas: feeData.maxFeePerGas,
-  // });
-  // await tx.wait();
+  const tx = await staking.connect(owner).setTokenPrice(parseUnits("0.02", 6));
+  await tx.wait();
 
   // sleep(5000);
   // const stakingStart = await staking.start();
@@ -132,21 +150,43 @@ async function main() {
   //   tokensIndex += 1;
   // }
 
-  for await (const tx of polygonTransactions) {
-    let response = await axios.get("https://gasstation-mainnet.matic.network/v2");
-    let estimatedBaseFee = response.data.estimatedBaseFee;
-    let maxFee = 0;
-    let maxPriorityFee = 0;
-    while (estimatedBaseFee > 400) {
-      console.log("paused because base fee is:", estimatedBaseFee);
-      response = await axios.get("https://gasstation-mainnet.matic.network/v2");
-      estimatedBaseFee = response.data.estimatedBaseFee;
+  // const tx = "0x1fe5101ba7c1db7c2226aa30d53ac42a5d7eab96773f86760d69db0b962e045d";
+  // const transaction = await provider.getTransactionReceipt(tx);
+  // const logs = transaction.logs.map((log: any) => {
+  //   try {
+  //     return staking.interface.parseLog(log);
+  //   } catch {
+  //     return null;
+  //   }
+  // });
+  // const stakeLogs = logs.filter((item) => !!item && item.name === "Stake");
+  // const rewardClaimLogs = logs.filter((item) => !!item && item.name === "RewardClaim");
 
-      await sleep(10000);
-    }
+  // for await (const item of stakeLogs) {
+  //   console.log("Stake event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}`);
+  // }
+
+  // for await (const item of rewardClaimLogs) {
+  //   console.log("Reward claim event: ", `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${item?.args[3]}`);
+  // }
+
+  return;
+
+  for await (const tx of polygonTransactions) {
+    // let response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    // let estimatedBaseFee = response.data.estimatedBaseFee;
+    // let maxFee = 0;
+    // let maxPriorityFee = 0;
+    // while (estimatedBaseFee > 400) {
+    //   console.log("paused because base fee is:", estimatedBaseFee);
+    //   response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    //   estimatedBaseFee = response.data.estimatedBaseFee;
+
+    //   await sleep(10000);
+    // }
     console.log("Running TX: ", tx);
     const transaction = await provider.getTransactionReceipt(tx);
-    const timestamp = (await provider.getBlock(transaction.blockNumber)).timestamp;
+    // const timestamp = (await provider.getBlock(transaction.blockNumber)).timestamp;
 
     const logs = transaction.logs.map((log: any) => {
       try {
@@ -167,29 +207,29 @@ async function main() {
 
     if (stakeLogs.length > 0) {
       for await (const item of stakeLogs) {
-        console.log(
-          "Stake event: ",
-          `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${timestamp}, ${isFirstStake}`
-        );
-        // const feeData = await provider.getFeeData();
-        maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
-        maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
-        const emitStakeEvent = await staking
-          .connect(owner)
-          .emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
-            // gasPrice: feeData.gasPrice?.mul(120).div(100),
-            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
-            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
-          });
-        await emitStakeEvent.wait();
-        const tx = await staking
-          .connect(owner)
-          .transferStake(item?.args[0], item?.args[1], item?.args[2], timestamp, isFirstStake, {
-            // gasPrice: feeData.gasPrice?.mul(120).div(100),
-            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
-            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
-          });
-        await tx.wait();
+        // console.log(
+        //   "Stake event: ",
+        //   `${item?.args[0]}, ${item?.args[1]}, ${item?.args[2]}, ${timestamp}, ${isFirstStake}`
+        // );
+        // // const feeData = await provider.getFeeData();
+        // maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
+        // maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
+        // const emitStakeEvent = await staking
+        //   .connect(owner)
+        //   .emitStakeEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
+        //     // gasPrice: feeData.gasPrice?.mul(120).div(100),
+        //     maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+        //     maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+        //   });
+        // await emitStakeEvent.wait();
+        // const tx = await staking
+        //   .connect(owner)
+        //   .transferStake(item?.args[0], item?.args[1], item?.args[2], timestamp, isFirstStake, {
+        //     // gasPrice: feeData.gasPrice?.mul(120).div(100),
+        //     maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+        //     maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+        //   });
+        // await tx.wait();
         // await sleep(5000);
         txStakeEventsEmmited += 1;
       }
@@ -200,41 +240,99 @@ async function main() {
 
     if (rewardClaimLogs.length > 0) {
       for await (const item of rewardClaimLogs) {
-        console.log(
-          "Reward claim event: ",
-          `${item?.args[0]}, ${item?.args[1]}, ${timestamp}, ${item?.args[2]}, ${item?.args[3]}`
-        );
-        // const feeData = await provider.getFeeData();
-        maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
-        maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
-        const emitRewardsClaimEvent = await staking
-          .connect(owner)
-          .emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
-            // gasPrice: feeData.gasPrice?.mul(120).div(100),
-            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
-            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
-          });
-        await emitRewardsClaimEvent.wait();
-        const tx = await staking
-          .connect(owner)
-          .setClaimRewards(item?.args[0], item?.args[1], timestamp, item?.args[2], item?.args[3], {
-            // gasPrice: feeData.gasPrice?.mul(120).div(100),
-            maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
-            maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
-          });
+        // console.log(
+        //   "Reward claim event: ",
+        //   `${item?.args[0]}, ${item?.args[1]}, ${timestamp}, ${item?.args[2]}, ${item?.args[3]}`
+        // );
+        // // const feeData = await provider.getFeeData();
+        // maxFee = Math.ceil(response.data.standard.maxFee * 1.1);
+        // maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
+        // const emitRewardsClaimEvent = await staking
+        //   .connect(owner)
+        //   .emitRewardsClaimEvent(item?.args[0], item?.args[1], item?.args[2], item?.args[3], {
+        //     // gasPrice: feeData.gasPrice?.mul(120).div(100),
+        //     maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+        //     maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+        //   });
+        // await emitRewardsClaimEvent.wait();
+        // const tx = await staking
+        //   .connect(owner)
+        //   .setClaimRewards(item?.args[0], item?.args[1], timestamp, item?.args[2], item?.args[3], {
+        //     // gasPrice: feeData.gasPrice?.mul(120).div(100),
+        //     maxFeePerGas: parseUnits(maxFee.toString(), "gwei"),
+        //     maxPriorityFeePerGas: parseUnits(maxPriorityFee.toString(), "gwei"),
+        //   });
 
-        await tx.wait();
+        // await tx.wait();
         // await sleep(5000);
 
         txRewardsClaimEmmited += 1;
       }
     }
 
+    // console.log(
+    //   `Migrated Transaction (${txIndex}/${txTotal}) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`
+    // );
     console.log(
-      `Migrated Transaction (${txIndex}/${txTotal}) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`
+      `Migrated OLD events: (${
+        txStakeEventsEmmited + txRewardsClaimEmmited
+      }) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`
     );
     txIndex += 1;
   }
+
+  let newTxIndex = 1;
+  const newTxTotal = newPolygonTransactions.length;
+  let newTxStakeEventsEmmited = 0;
+  let newTxRewardsClaimEmmited = 0;
+
+  for await (const tx of newPolygonTransactions) {
+    console.log("Running TX: ", tx);
+    const transaction = await provider.getTransactionReceipt(tx);
+    const logs = transaction.logs.map((log: any) => {
+      try {
+        return staking.interface.parseLog(log);
+      } catch {
+        return null;
+      }
+    });
+    // Filter STAKE events
+    const stakeLogs = logs.filter((item) => !!item && item.name === "Stake");
+
+    if (stakeLogs.length > 0) {
+      for await (const item of stakeLogs) {
+        newTxStakeEventsEmmited += 1;
+      }
+    }
+
+    // Filter Rewards claim events
+    const rewardClaimLogs = logs.filter((item) => !!item && item.name === "RewardClaim");
+
+    if (rewardClaimLogs.length > 0) {
+      for await (const item of rewardClaimLogs) {
+        newTxRewardsClaimEmmited += 1;
+      }
+    }
+
+    console.log(
+      `Migrated NEW events: (${
+        newTxStakeEventsEmmited + newTxRewardsClaimEmmited
+      }) - StakeEvents emmited: ${newTxStakeEventsEmmited} - RewardsClaimed emmited: ${newTxRewardsClaimEmmited}`
+    );
+    newTxIndex += 1;
+  }
+
+  console.log(
+    `Migrated OLD events: (${
+      txStakeEventsEmmited + txRewardsClaimEmmited
+    }) - StakeEvents emmited: ${txStakeEventsEmmited} - RewardsClaimed emmited: ${txRewardsClaimEmmited}`
+  );
+
+  console.log(
+    `Migrated NEW events: (${
+      newTxStakeEventsEmmited + newTxRewardsClaimEmmited
+    }) - StakeEvents emmited: ${newTxStakeEventsEmmited} - RewardsClaimed emmited: ${newTxRewardsClaimEmmited}`
+  );
 }
 
 main()

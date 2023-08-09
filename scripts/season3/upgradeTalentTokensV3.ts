@@ -86,7 +86,7 @@ async function main() {
   let options = {};
 
   if (network.name == "polygon") {
-    const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    const response = await axios.get("https://gasstation.polygon.technology/v2");
     const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
     const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
     options = {
@@ -142,7 +142,7 @@ async function main() {
 
   // const mul = await rewardCalculator.mul();
   // const talentS = await staking.talentS();
-  let nonce = 14981;
+  let nonce = 16663;
 
   // const token = await ethers.getContractAt("TalentTokenV3Migration", "0xf942f5f6a484d5a2aec915dc133e439f1aa5f2cb");
 
@@ -176,7 +176,7 @@ async function main() {
 
     if (network.name == "polygon") {
       nonce += 1;
-      const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+      const response = await axios.get("https://gasstation.polygon.technology/v2");
       const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
       const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
       options = {
@@ -195,7 +195,7 @@ async function main() {
     // await migrateMappings.wait();
     if (network.name == "polygon") {
       nonce += 1;
-      const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+      const response = await axios.get("https://gasstation.polygon.technology/v2");
       const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
       const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
       options = {
@@ -214,7 +214,7 @@ async function main() {
     // await emitTalentCreatedEvent.wait();
     if (network.name == "polygon") {
       nonce += 1;
-      const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+      const response = await axios.get("https://gasstation.polygon.technology/v2");
       const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
       const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
       options = {
@@ -237,7 +237,7 @@ async function main() {
     // await transferState.wait();
     if (network.name == "polygon") {
       nonce += 1;
-      const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+      const response = await axios.get("https://gasstation.polygon.technology/v2");
       const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
       const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
       options = {
@@ -256,7 +256,7 @@ async function main() {
     // await addNewMinter.wait();
     // if (network.name == "polygon") {
     //   nonce += 1;
-    //   const response = await axios.get("https://gasstation-mainnet.matic.network/v2");
+    //   const response = await axios.get("https://gasstation.polygon.technology/v2");
     //   const maxFee = Math.ceil(response.data.standard.maxFee * 1.2);
     //   const maxPriorityFee = Math.ceil(response.data.standard.maxPriorityFee * 1.2);
     //   options = {

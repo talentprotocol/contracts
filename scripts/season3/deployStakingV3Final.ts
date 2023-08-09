@@ -17,12 +17,12 @@ async function main() {
 
   switch (network.name) {
     case "celo":
-      stakingAddr = "0x5a6eF881E3707AAf7201dDb7c198fc94B4b12636";
+      stakingAddr = "0x4C9ca5956C4E39ac489081F8b0d85e987c55dB08";
       tokens = tokens.concat(celoTokens);
 
       break;
     case "polygon":
-      stakingAddr = "0xEa998Ff9c0c075cD035b25095D1833E5aF0aF873";
+      stakingAddr = "0xFa236a656A8FBD82801Fe5bA7b127FBbC4B0ed11";
       tokens = tokens.concat(polygonTokens);
 
       break;
@@ -48,13 +48,13 @@ async function main() {
   console.log("upgrade validated");
 
   console.log("upgrading proxy");
-  const newFactory = await upgrades.upgradeProxy(staking, StakingV3);
-  await newFactory.deployed();
+  const newStaking = await upgrades.upgradeProxy(staking, StakingV3);
+  await newStaking.deployed();
   console.log("proxy upgraded");
 
-  console.log("start", await staking.start());
-  console.log("end", await staking.end());
-  console.log("rewardsMax", formatUnits(await staking.rewardsMax()));
+  console.log("start", await newStaking.start());
+  console.log("end", await newStaking.end());
+  console.log("rewardsMax", formatUnits(await newStaking.rewardsMax()));
 }
 
 main()

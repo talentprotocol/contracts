@@ -17,8 +17,18 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ERC1363Upgradeable} from "../tokens/ERC1363Upgradeable.sol";
 
 interface IVirtualTAL is IERC20Upgradeable {
+    // reason for minting Virtual TAL
+    enum MintReason {
+        TalentRedeemableRewards,
+        TalentRewards,
+        SupporterRewards,
+        TalentTokensSold,
+        InAppRewards,
+        Investor
+    }
+
     // admin mints TAL from address
-    function adminMint(address _owner, uint256 _amount) external;
+    function adminMint(address _owner, uint256 _amount, MintReason _reason) external;
 
     // admin burns existing TAL from address
     function adminBurn(address _owner, uint256 _amount) external;
@@ -40,7 +50,7 @@ contract VirtualTAL is
     /// maps each talent's address to their TAL amount
     mapping(address => uint256) public addressToTAL;
 
-    event AdminMinted(address owner, uint256 amount);
+    event AdminMinted(address owner, uint256 amount, MintReason reason);
 
     event AdminBurned(address owner, uint256 amount);
 
@@ -53,11 +63,9 @@ contract VirtualTAL is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function _authorizeUpgrade(address newImplementation)
-        internal
-        override(UUPSUpgradeable)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override(UUPSUpgradeable) onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     function setAdminRole(address _address) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(DEFAULT_ADMIN_ROLE, _address);
@@ -69,10 +77,14 @@ contract VirtualTAL is
     ///
     /// @param _to Recipient of the new TAL
     /// @param _amount Amount to mint
-    function adminMint(address _to, uint256 _amount) public override(IVirtualTAL) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminMint(
+        address _to,
+        uint256 _amount,
+        MintReason _reason
+    ) public override(IVirtualTAL) onlyRole(DEFAULT_ADMIN_ROLE) {
         addressToTAL[_to] = addressToTAL[_to] + _amount;
 
-        emit AdminMinted(_to, _amount);
+        emit AdminMinted(_to, _amount, _reason);
     }
 
     /// Burns existing supply
@@ -98,12 +110,9 @@ contract VirtualTAL is
     //
 
     /// @inheritdoc ERC165Upgradeable
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC165Upgradeable, AccessControlUpgradeable, ERC1363Upgradeable) returns (bool) {
         return
             interfaceId == type(IERC20Upgradeable).interfaceId ||
             interfaceId == type(IERC1363Upgradeable).interfaceId ||

@@ -24,6 +24,15 @@ describe("VirtualTAL", () => {
   let VirtualTALFactory: ContractFactory;
   let contract: VirtualTAL;
 
+  enum MintReason {
+    TalentRedeemableRewards,
+    TalentRewards,
+    SupporterRewards,
+    TalentTokensSold,
+    InAppRewards,
+    Investor,
+  }
+
   beforeEach(async () => {
     [admin, talent, minter, investor] = await ethers.getSigners();
 
@@ -59,23 +68,23 @@ describe("VirtualTAL", () => {
 
     describe("admin mint", () => {
       it("works when called by the admin", async () => {
-        const action = contract.connect(admin).adminMint(investor.address, parseUnits("1"));
+        const action = contract.connect(admin).adminMint(investor.address, parseUnits("1"), MintReason.Investor);
 
         await expect(action).not.to.be.reverted;
         expect(await contract.getBalance(investor.address)).to.equal(parseUnits("1"));
       });
 
       it("adds to previously minted values", async () => {
-        contract.connect(admin).adminMint(investor.address, parseUnits("1"));
+        contract.connect(admin).adminMint(investor.address, parseUnits("1"), MintReason.Investor);
 
-        const action = contract.connect(admin).adminMint(investor.address, parseUnits("2"));
+        const action = contract.connect(admin).adminMint(investor.address, parseUnits("2"), MintReason.Investor);
 
         await expect(action).not.to.be.reverted;
         expect(await contract.getBalance(investor.address)).to.equal(parseUnits("3"));
       });
 
       it("is not callable by a non-admin", async () => {
-        const action = contract.connect(investor).adminMint(investor.address, parseUnits("1"));
+        const action = contract.connect(investor).adminMint(investor.address, parseUnits("1"), MintReason.Investor);
 
         await expect(action).to.be.reverted;
       });
@@ -83,7 +92,7 @@ describe("VirtualTAL", () => {
 
     describe("admin burn", () => {
       it("works when called by the admin", async () => {
-        contract.connect(admin).adminMint(investor.address, parseUnits("3"));
+        contract.connect(admin).adminMint(investor.address, parseUnits("3"), MintReason.Investor);
 
         const action = contract.connect(admin).adminBurn(investor.address, parseUnits("1"));
 
@@ -92,7 +101,7 @@ describe("VirtualTAL", () => {
       });
 
       it("does not work when amount is not enough", async () => {
-        contract.connect(admin).adminMint(investor.address, parseUnits("2"));
+        contract.connect(admin).adminMint(investor.address, parseUnits("2"), MintReason.Investor);
 
         const action = contract.connect(admin).adminBurn(investor.address, parseUnits("3"));
 
@@ -132,31 +141,31 @@ describe("VirtualTAL", () => {
       it("returns 0 when there's no balance", async () => {
         const balance = await contract.getBalance(investor.address);
 
-        expect(balance).to.eq(0)
+        expect(balance).to.eq(0);
       });
 
       it("returns the correct balance after multiple mints and burns", async () => {
         let balance = await contract.getBalance(investor.address);
 
-        expect(balance).to.eq(0)
+        expect(balance).to.eq(0);
 
-        await contract.connect(admin).adminMint(investor.address, parseUnits("1"));
+        await contract.connect(admin).adminMint(investor.address, parseUnits("1"), MintReason.Investor);
 
         balance = await contract.getBalance(investor.address);
 
         expect(balance).to.eq(parseUnits("1"));
 
-        await contract.connect(admin).adminMint(investor.address, parseUnits("9"));
+        await contract.connect(admin).adminMint(investor.address, parseUnits("9"), MintReason.Investor);
 
         balance = await contract.getBalance(investor.address);
 
-        expect(balance).to.eq(parseUnits("10"))
+        expect(balance).to.eq(parseUnits("10"));
 
         await contract.connect(admin).adminBurn(investor.address, parseUnits("5"));
 
         balance = await contract.getBalance(investor.address);
 
-        expect(balance).to.eq(parseUnits("5"))
+        expect(balance).to.eq(parseUnits("5"));
       });
     });
   });

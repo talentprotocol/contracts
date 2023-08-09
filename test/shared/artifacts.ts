@@ -33,5 +33,5 @@ export {
   CommunityUser,
   CommunityMember,
   TalentNFT,
-  TalentSponsorship
+  TalentSponsorship,
 };

@@ -4,7 +4,6 @@ import { solidity } from "ethereum-waffle";
 import dayjs from "dayjs";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { ContractFactory } from "ethers";
 
 import type {
   TalentProtocol,
@@ -45,6 +44,15 @@ describe("StakingV3", () => {
   let end = dayjs.unix(start).add(100, "days").unix();
   const rewards = parseUnits("100");
   const margin = parseUnits("0.001") as unknown as number;
+
+  enum MintReason {
+    TalentRedeemableRewards,
+    TalentRewards,
+    SupporterRewards,
+    TalentTokensSold,
+    InAppRewards,
+    Investor,
+  }
 
   beforeEach(async () => {
     const lastBlock = await ethers.provider.getBlockNumber();
@@ -330,11 +338,13 @@ describe("StakingV3", () => {
         await stakingV3.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
         const stakeBefore = await stakingV3.stakes(investor1.address, talentToken1.address);
         const globalStakeBefore = await stakingV3.globalStakes(investor1.address);
+        const talentSBefore = await stakingV3.talentsToTalentS(talentToken1.address);
         const virtualTALBalanceBefore = await virtualTAL.getBalance(investor1.address);
 
         await stakingV3.connect(investor1).stakeStable(talentToken1.address, parseUnits("25"));
         const stakeAfter = await stakingV3.stakes(investor1.address, talentToken1.address);
         const globalStakeAfter = await stakingV3.globalStakes(investor1.address);
+        const talentSAfter = await stakingV3.talentsToTalentS(talentToken1.address);
         const virtualTALBalanceAfter = await virtualTAL.getBalance(investor1.address);
 
         expect(stakeBefore.talentAmount).to.eq(parseUnits("250"));
@@ -342,8 +352,8 @@ describe("StakingV3", () => {
         expect(globalStakeBefore.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("25")));
         expect(globalStakeAfter.tokenAmount).to.be.closeTo(await stakingV3.convertUsdToToken(parseUnits("50")), margin);
         expect(globalStakeAfter.lastCheckpointAt).to.be.gt(globalStakeBefore.lastCheckpointAt);
-        expect(globalStakeBefore.talentS).to.equal(0);
-        expect(globalStakeAfter.talentS).to.equal(0);
+        expect(talentSBefore).to.equal(0);
+        expect(talentSAfter).to.be.gt(0);
         expect(virtualTALBalanceBefore).to.equal(0);
         expect(virtualTALBalanceAfter).to.be.gt(0);
       });
@@ -353,12 +363,14 @@ describe("StakingV3", () => {
 
         await stakingV3.connect(investor1).stakeStable(talentToken1.address, parseUnits("20"));
         const globalStakeBefore = await stakingV3.globalStakes(investor1.address);
+        const talentS1 = await stakingV3.talentsToTalentS(talentToken1.address); // total tokens staked is still 0
         const virtualTALBalanceBefore = await virtualTAL.getBalance(investor1.address);
 
         await stakingV3.connect(investor1).stakeStable(talentToken2.address, parseUnits("30"));
         const stake1 = await stakingV3.stakes(investor1.address, talentToken1.address);
         const stake2 = await stakingV3.stakes(investor1.address, talentToken2.address);
         const globalStakeAfter = await stakingV3.globalStakes(investor1.address);
+        const talentS2 = await stakingV3.talentsToTalentS(talentToken2.address); // total tokens staked is more than 0
         const virtualTALBalanceAfter = await virtualTAL.getBalance(investor1.address);
 
         expect(stake1.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("20")));
@@ -368,8 +380,8 @@ describe("StakingV3", () => {
         expect(globalStakeBefore.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("20")));
         expect(globalStakeAfter.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("50")));
         expect(globalStakeAfter.lastCheckpointAt).to.be.gt(globalStakeBefore.lastCheckpointAt);
-        expect(globalStakeBefore.talentS).to.equal(0);
-        expect(globalStakeAfter.talentS).to.equal(0);
+        expect(talentS1).to.equal(0);
+        expect(talentS2).to.be.gt(0);
         expect(virtualTALBalanceBefore).to.equal(0);
         expect(virtualTALBalanceAfter).to.be.gt(0);
       });
@@ -380,11 +392,13 @@ describe("StakingV3", () => {
         await stakingV3.connect(talent1).stakeStable(talentToken1.address, parseUnits("25"));
         const stakeBefore = await stakingV3.stakes(talent1.address, talentToken1.address);
         const globalStakeBefore = await stakingV3.globalStakes(talent1.address);
+        const talentSBefore = await stakingV3.talentsToTalentS(talentToken1.address);
         const virtualTALBalanceBefore = await virtualTAL.getBalance(talent1.address);
 
         await stakingV3.connect(talent1).stakeStable(talentToken1.address, parseUnits("25"));
         const stakeAfter = await stakingV3.stakes(talent1.address, talentToken1.address);
         const globalStakeAfter = await stakingV3.globalStakes(talent1.address);
+        const talentSAfter = await stakingV3.talentsToTalentS(talentToken1.address);
         const virtualTALBalanceAfter = await virtualTAL.getBalance(talent1.address);
 
         expect(stakeBefore.talentAmount).to.eq(parseUnits("250"));
@@ -392,10 +406,11 @@ describe("StakingV3", () => {
         expect(globalStakeBefore.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("25")));
         expect(globalStakeAfter.tokenAmount).to.be.closeTo(await stakingV3.convertUsdToToken(parseUnits("50")), margin);
         expect(globalStakeAfter.lastCheckpointAt).to.be.gt(globalStakeBefore.lastCheckpointAt);
-        expect(globalStakeBefore.talentS).to.equal(0);
-        expect(globalStakeAfter.talentS).to.be.gt(0);
+        expect(talentSBefore).to.equal(0);
+        expect(talentSAfter).to.be.gt(0);
         expect(virtualTALBalanceBefore).to.equal(0);
         expect(virtualTALBalanceAfter).to.be.gt(0);
+        console.log(virtualTALBalanceAfter);
       });
 
       it("talent staking twice in different talents also goes through a checkpoint", async () => {
@@ -403,14 +418,18 @@ describe("StakingV3", () => {
 
         await stakingV3.connect(talent1).stakeStable(talentToken1.address, parseUnits("20"));
         const globalStakeBefore = await stakingV3.globalStakes(talent1.address);
+        const talentS1Before = await stakingV3.talentsToTalentS(talentToken1.address);
         const virtualTALBalanceBefore = await virtualTAL.getBalance(talent1.address);
 
         await stakingV3.connect(talent1).stakeStable(talentToken2.address, parseUnits("30"));
         const stake1 = await stakingV3.stakes(talent1.address, talentToken1.address);
         const stake2 = await stakingV3.stakes(talent1.address, talentToken2.address);
         const globalStakeAfter = await stakingV3.globalStakes(talent1.address);
+        const talentS1After = await stakingV3.talentsToTalentS(talentToken1.address);
         const globalStakeTalent2 = await stakingV3.globalStakes(talent2.address);
+        const talentS2After = await stakingV3.talentsToTalentS(talentToken2.address);
         const virtualTALBalanceAfter = await virtualTAL.getBalance(talent1.address);
+        console.log(virtualTALBalanceAfter);
         const virtualTALBalanceTalent2 = await virtualTAL.getBalance(talent2.address);
 
         expect(stake1.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("20")));
@@ -420,12 +439,12 @@ describe("StakingV3", () => {
         expect(globalStakeBefore.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("20")));
         expect(globalStakeAfter.tokenAmount).to.equal(await stakingV3.convertUsdToToken(parseUnits("50")));
         expect(globalStakeAfter.lastCheckpointAt).to.be.gt(globalStakeBefore.lastCheckpointAt);
-        expect(globalStakeBefore.talentS).to.equal(0);
-        expect(globalStakeAfter.talentS).to.equal(0);
-        expect(globalStakeTalent2.talentS).to.be.gt(0);
+        expect(talentS1Before).to.equal(0);
+        expect(talentS1After).to.equal(0);
+        expect(talentS2After).to.be.gt(0);
         expect(virtualTALBalanceBefore).to.equal(0);
-        expect(virtualTALBalanceAfter).to.equal(0);
-        expect(virtualTALBalanceTalent2).to.be.gt(0);
+        expect(virtualTALBalanceAfter).to.be.gt(0); // talent1 receives global rewards from investing in talent1
+        expect(virtualTALBalanceTalent2).to.equal(0); // talent2 didnt invest before so no rewards to give
       });
 
       it("fails if stake exceeds mintingAvailability", async () => {
@@ -519,7 +538,7 @@ describe("StakingV3", () => {
 
         expect(event?.args?.owner).to.eq(investor1.address);
         expect(event?.args?.stakerReward).to.be.gt(0);
-        expect(event?.args?.talentReward).to.equal(0);
+        expect(event?.args?.talentReward).to.be.gt(0); // there's a minimum talentReward
 
         // updates stake amount
         const stake = await stakingV3.stakes(investor1.address, talentToken1.address);
@@ -549,7 +568,7 @@ describe("StakingV3", () => {
 
         expect(event?.args?.owner).to.eq(investor1.address);
         expect(event?.args?.stakerReward).to.be.gt(0);
-        expect(event?.args?.talentReward).to.equal(0);
+        expect(event?.args?.talentReward).to.be.gt(0); // there's a minimum talentReward
 
         // updates stake amount
         const stake = await stakingV3.stakes(investor1.address, talentToken1.address);
@@ -569,6 +588,7 @@ describe("StakingV3", () => {
         const balanceBefore = await tal.balanceOf(talent1.address);
         expect(balanceBefore).to.equal(0);
 
+        await transferAndCall(tal, investor1, stakingV3.address, amount, talentToken1.address);
         await transferAndCall(tal, investor1, stakingV3.address, amount, talentToken1.address);
         ensureTimestamp(end);
 
@@ -1007,9 +1027,7 @@ describe("StakingV3", () => {
 
         const action = stakingV3.adminWithdraw();
 
-        await expect(action).to.be.revertedWith(
-          "there are still active stakes"
-        );
+        await expect(action).to.be.revertedWith("there are still active stakes");
       });
     });
 
@@ -1051,7 +1069,7 @@ describe("StakingV3", () => {
 
     describe("createStakeWithVirtualTAL", () => {
       it("create stake and burns virtual TAL", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         const action = await stakingV3
           .connect(investor1)
           .createStakeWithVirtualTAL(talentToken1.address, parseUnits("100"));
@@ -1071,14 +1089,14 @@ describe("StakingV3", () => {
       });
 
       it("fails when the investor does not own enough Virtual TAL", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         const action = stakingV3.connect(investor1).createStakeWithVirtualTAL(talentToken1.address, parseUnits("1000"));
 
         await expect(action).to.be.revertedWith("not enough TAL");
       });
 
       it("updates the investor global variables", async () => {
-        await virtualTAL.adminMint(investor1.address, parseUnits("100"));
+        await virtualTAL.adminMint(investor1.address, parseUnits("100"), MintReason.Investor);
         await stakingV3.connect(investor1).createStakeWithVirtualTAL(talentToken1.address, parseUnits("100"));
 
         const investorGlobalStake = await stakingV3.globalStakes(investor1.address);

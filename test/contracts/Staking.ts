@@ -877,9 +877,7 @@ describe("Staking", () => {
 
         const action = staking.adminWithdraw();
 
-        await expect(action).to.be.revertedWith(
-          "there are still active stakes"
-        );
+        await expect(action).to.be.revertedWith("there are still active stakes");
       });
     });
 

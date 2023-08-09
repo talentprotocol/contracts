@@ -135,9 +135,14 @@ contract RewardCalculatorV2 is Initializable, ContextUpgradeable, AccessControlE
         uint256 talentWeight = (talentAdjustedWeight * MUL) / ((stakeAdjustedWeight + talentAdjustedWeight));
         uint256 talentRewards = (_rewards * talentWeight) / MUL;
         uint256 minTalentRewards = _rewards / 100;
+        uint256 maxTalentRewards = _rewards - (_rewards / 20);
 
         if (talentRewards < minTalentRewards) {
             talentRewards = minTalentRewards;
+        }
+
+        if (talentRewards > maxTalentRewards) {
+            talentRewards = maxTalentRewards;
         }
 
         return talentRewards;

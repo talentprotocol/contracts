@@ -49,7 +49,7 @@ describe("VirtualTALBuy", () => {
       const amount = parseUnits("10");
       await stable.connect(buyer).approve(contract.address, amount);
 
-      const tx = await contract.connect(buyer).buy(buyer.address, amount);
+      const tx = await contract.connect(buyer).buy(amount);
 
       const event = await findEvent(tx, "Buy");
 
@@ -118,9 +118,23 @@ describe("VirtualTALBuy", () => {
       const amount = parseUnits("10");
       await stable.connect(buyer).approve(contract.address, amount);
 
-      const action = contract.connect(buyer).buy(buyer.address, amount);
+      const action = contract.connect(buyer).buy(amount);
 
       await expect(action).to.be.revertedWith("The contract is disabled.");
+    });
+
+    it("allows the owner to withdraw", async () => {
+      const amount = parseUnits("100");
+
+      const initialBalance = await stable.balanceOf(buyer.address);
+
+      await stable.connect(buyer).approve(contract.address, amount);
+
+      await stable.connect(buyer).transfer(contract.address, amount);
+
+      await contract.connect(admin).adminWithdraw(amount, stable.address, buyer.address);
+
+      expect(await stable.balanceOf(buyer.address)).to.eq(initialBalance);
     });
   });
 });

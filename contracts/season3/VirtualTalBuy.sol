@@ -41,8 +41,7 @@ contract VirtualTALBuy is Ownable {
         _;
     }
 
-    function buy(address _talent, uint256 _amount) public onlyWhileEnabled {
-        require(_talent != address(0), "Invalid talent");
+    function buy(uint256 _amount) public onlyWhileEnabled {
         require(_amount > 0, "Invalid amount");
         require(IERC20Metadata(stableCoinAddress).balanceOf(msg.sender) >= _amount, "You don't have enough balance");
         require(
@@ -55,12 +54,21 @@ contract VirtualTALBuy is Ownable {
 
         // setup the internal state
         totalBuys = SafeMath.add(totalBuys, 1);
-        uint256 totalWalletBoughtAmount = SafeMath.add(walletBoughtAmount[msg.sender], _amount);
         totalAmountBought = SafeMath.add(totalAmountBought, _amount);
-        walletBoughtAmount[msg.sender] = totalWalletBoughtAmount;
+        uint256 _totalWalletBoughtAmount = SafeMath.add(walletBoughtAmount[msg.sender], _amount);
+        walletBoughtAmount[msg.sender] = _totalWalletBoughtAmount;
 
         // emit event
-        emit Buy(msg.sender, _amount, totalWalletBoughtAmount);
+        emit Buy(msg.sender, _amount, _totalWalletBoughtAmount);
+    }
+
+    // Safe method in case someone sends tokens to the smart contract
+    function adminWithdraw(uint256 _amount, address _token, address wallet) public onlyOwner {
+        require(_amount > 0, "Invalid amount");
+
+        require(IERC20Metadata(_token).balanceOf(address(this)) >= _amount, "Not enough funds on contract");
+
+        IERC20Metadata(_token).safeTransfer(wallet, _amount);
     }
 
     // Admin

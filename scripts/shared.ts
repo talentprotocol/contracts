@@ -8,6 +8,7 @@ import type {
   CommunityUser,
   TalentNFT,
   TalentSponsorship,
+  VirtualTALBuy,
 } from "../typechain-types";
 
 export async function deployToken(): Promise<TalentProtocol> {
@@ -62,6 +63,19 @@ export async function deploySponsorship(owner: string): Promise<TalentSponsorshi
   await deployedSponsorshipContract.deployed();
 
   return deployedSponsorshipContract as TalentSponsorship;
+}
+
+export async function deployVirtualTalBuy(
+  owner: string,
+  safeAddress: string,
+  stableAddress: string
+): Promise<VirtualTALBuy> {
+  const virtualTalBuyContract = await ethers.getContractFactory("VirtualTALBuy");
+
+  const deployedVirtualTalBuy = await virtualTalBuyContract.deploy(owner, safeAddress, stableAddress);
+  await deployedVirtualTalBuy.deployed();
+
+  return deployedVirtualTalBuy as VirtualTALBuy;
 }
 
 export async function deployStaking(

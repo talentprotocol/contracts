@@ -9,6 +9,7 @@ import TalentNFT from "../../artifacts/contracts/talent-nft/TalentNFT.sol/Talent
 import StakingMigration from "../../artifacts/contracts/StakingMigration.sol/StakingMigration.json";
 import TalentSponsorship from "../../artifacts/contracts/season3/TalentSponsorship.sol/TalentSponsorship.json";
 import VirtualTALBuy from "../../artifacts/contracts/season3/VirtualTalBuy.sol/VirtualTALBuy.json";
+import PassportRegistry from "../../artifacts/contracts/passport/PassportRegistry.sol/PassportRegistry.json";
 
 // test-only contracts
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
@@ -36,4 +37,5 @@ export {
   TalentNFT,
   TalentSponsorship,
   VirtualTALBuy,
+  PassportRegistry,
 };

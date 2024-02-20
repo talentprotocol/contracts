@@ -13,11 +13,11 @@ dotenv.config();
 
 import type { HardhatUserConfig } from "hardhat/config";
 
-// const deployer = {
-//   mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
-// };
+const deployer = {
+  mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
+};
 
-const deployer = [process.env.PK_1 || "0x1111111111111111111111111111111111111111111111111111111111111111"];
+// const deployer = [""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -59,6 +59,12 @@ const config: HardhatUserConfig = {
       chainId: 137,
       gasMultiplier: 1.5,
     },
+    baseSepolia: {
+      url: "https://sepolia.base.org",
+      accounts: deployer,
+      chainId: 84532,
+      gasMultiplier: 1.5,
+    },
   },
   gasReporter: {
     currency: "ETH",
@@ -70,6 +76,7 @@ const config: HardhatUserConfig = {
       alfajores: process.env.CELO_API_KEY || "",
       polygon: process.env.POLYGON_API_KEY || "",
       polygonMumbai: process.env.POLYGON_API_KEY || "",
+      baseSepolia: process.env.BASE_SEPOLIA_API_KEY || "",
     },
     // Custom chains that are not supported by default
     customChains: [
@@ -87,6 +94,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.celoscan.io/api",
           browserURL: "https://celoscan.io/",
+        },
+      },
+      {
+        network: "baseSepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
         },
       },
     ],

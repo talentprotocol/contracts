@@ -65,6 +65,11 @@ const config: HardhatUserConfig = {
       chainId: 84532,
       gasMultiplier: 1.5,
     },
+    base: {
+      url: "https://api.developer.coinbase.com/rpc/v1/base/w6ubd9S5jJzUzPlMn0yYmuP9UWbjKvrH",
+      accounts: deployer,
+      chainId: 8453,
+    },
   },
   gasReporter: {
     currency: "ETH",
@@ -77,6 +82,7 @@ const config: HardhatUserConfig = {
       polygon: process.env.POLYGON_API_KEY || "",
       polygonMumbai: process.env.POLYGON_API_KEY || "",
       baseSepolia: process.env.BASE_SEPOLIA_API_KEY || "",
+      base: process.env.BASE_SEPOLIA_API_KEY || "",
     },
     // Custom chains that are not supported by default
     customChains: [

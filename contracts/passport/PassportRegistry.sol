@@ -2,9 +2,13 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract PassportRegistry is Ownable {
+contract PassportRegistry is Ownable, Pausable {
+    using Counters for Counters.Counter;
+
     // wallet => passport id
     mapping(address => uint256) public passportId;
 
@@ -24,16 +28,13 @@ contract PassportRegistry is Ownable {
     mapping(string => uint256) public sourcePassports;
 
     // Total number of passports created
-    uint256 public totalCreates;
+    Counters.Counter public totalCreates;
 
     // Total number of passports created by admin
-    uint256 public totalAdminCreates;
+    Counters.Counter public totalAdminCreates;
 
     // Total number of passports publicly created
-    uint256 public totalPublicCreates;
-
-    // flag to enable or disable the contract
-    bool public enabled = true;
+    Counters.Counter public totalPublicCreates;
 
     // Initial id of passport creations
     uint256 public initialPassportId = 1000;
@@ -51,40 +52,35 @@ contract PassportRegistry is Ownable {
         transferOwnership(contractOwner);
     }
 
-    modifier onlyWhileEnabled() {
-        require(enabled, "The contract is disabled.");
-        _;
-    }
-
-    function create(string memory source) public onlyWhileEnabled {
+    function create(string memory source) public whenNotPaused {
         require(passportId[msg.sender] == 0, "Passport already exists");
 
-        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates, 1));
-        totalPublicCreates = SafeMath.add(totalPublicCreates, 1);
+        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates.current(), 1));
+        totalPublicCreates.increment();
 
         _create(msg.sender, newPassportId, false, source);
     }
 
     // Admin
 
-    function adminCreate(address wallet, string memory source) public onlyWhileEnabled onlyOwner {
+    function adminCreate(address wallet, string memory source) public whenNotPaused onlyOwner {
         require(passportId[wallet] == 0, "Passport already exists");
 
-        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates, 1));
+        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates.current(), 1));
 
-        totalAdminCreates = SafeMath.add(totalAdminCreates, 1);
+        totalAdminCreates.increment();
         _create(wallet, newPassportId, true, source);
     }
 
-    function adminCreateWithId(address wallet, uint256 id, string memory source) public onlyWhileEnabled onlyOwner {
+    function adminCreateWithId(address wallet, uint256 id, string memory source) public whenNotPaused onlyOwner {
         require(passportId[wallet] == 0, "Passport already exists");
         require(idPassport[id] == address(0), "Passport id already assigned");
 
-        totalAdminCreates = SafeMath.add(totalAdminCreates, 1);
+        totalAdminCreates.increment();
         _create(wallet, id, true, source);
     }
 
-    function activate(address wallet) public onlyWhileEnabled onlyOwner {
+    function activate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
         require(walletActive[wallet] == false, "Passport must be inactive");
 
@@ -97,7 +93,7 @@ contract PassportRegistry is Ownable {
         emit Activate(wallet, id);
     }
 
-    function deactivate(address wallet) public onlyWhileEnabled onlyOwner {
+    function deactivate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
         require(walletActive[wallet] == true, "Passport must be active");
 
@@ -111,25 +107,25 @@ contract PassportRegistry is Ownable {
     }
 
     /**
-     * @notice Disables the contract, disabling future creations.
+     * @notice Pauses the contract, disabling future creations.
      * @dev Can only be called by the owner.
      */
-    function disable() public onlyWhileEnabled onlyOwner {
-        enabled = false;
+    function pause() public whenNotPaused onlyOwner {
+        _pause();
     }
 
     /**
      * @notice Enables the contract, enabling new creations.
      * @dev Can only be called by the owner.
      */
-    function enable() public onlyOwner {
-        enabled = true;
+    function unpause() public whenPaused onlyOwner {
+        _unpause();
     }
 
     // private
 
     function _create(address wallet, uint256 id, bool admin, string memory source) private {
-        totalCreates = SafeMath.add(totalCreates, 1);
+        totalCreates.increment();
 
         idPassport[id] = wallet;
         passportId[wallet] = id;

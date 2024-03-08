@@ -39,7 +39,7 @@ describe("Passport", () => {
       expect(await contract.totalCreates()).to.eq(0);
       expect(await contract.totalAdminCreates()).to.eq(0);
       expect(await contract.totalPublicCreates()).to.eq(0);
-      expect(await contract.enabled()).to.eq(true);
+      expect(await contract.paused()).to.eq(false);
       expect(await contract.initialPassportId()).to.eq(1000);
     });
 
@@ -143,53 +143,53 @@ describe("Passport", () => {
     });
 
     it("allows the contract owner to disable and enable the contract", async () => {
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
 
-      await contract.connect(admin).disable();
+      await contract.connect(admin).pause();
 
-      expect(await contract.enabled()).to.be.equal(false);
+      expect(await contract.paused()).to.be.equal(true);
 
-      await contract.connect(admin).enable();
+      await contract.connect(admin).unpause();
 
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
     });
 
     it("prevents other accounts to disable the contract", async () => {
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
 
-      const action = contract.connect(holderOne).disable();
+      const action = contract.connect(holderOne).pause();
 
       await expect(action).to.be.reverted;
 
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
     });
 
     it("prevents other accounts to enable the contract", async () => {
-      const action = contract.connect(holderOne).enable();
+      const action = contract.connect(holderOne).unpause();
 
       await expect(action).to.be.reverted;
     });
 
     it("prevents disable when the contract is already disabled", async () => {
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
 
-      await contract.connect(admin).disable();
+      await contract.connect(admin).pause();
 
-      const action = contract.connect(admin).disable();
+      const action = contract.connect(admin).pause();
 
       await expect(action).to.be.reverted;
     });
 
     it("prevents new creates when the contract is disabled", async () => {
-      expect(await contract.enabled()).to.be.equal(true);
+      expect(await contract.paused()).to.be.equal(false);
 
-      await contract.connect(admin).disable();
+      await contract.connect(admin).pause();
 
-      expect(await contract.enabled()).to.be.equal(false);
+      expect(await contract.paused()).to.be.equal(true);
 
       const action = contract.connect(holderOne).create("farcaster");
 
-      await expect(action).to.be.revertedWith("The contract is disabled.");
+      await expect(action).to.be.revertedWith("Pausable: paused");
     });
   });
 });

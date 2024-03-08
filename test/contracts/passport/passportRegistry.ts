@@ -89,6 +89,31 @@ describe("Passport", () => {
       expect(holderThreeActivePassportId).to.eq(true);
     });
 
+    it("emits a tranfer event everytime a passport is tranfered", async () => {
+      let tx = await contract.connect(holderOne).create("farcaster");
+
+      tx = await contract.connect(holderOne).transfer(holderTwo.address);
+
+      const event = await findEvent(tx, "Transfer");
+
+      expect(event).to.exist;
+      expect(event?.args?.passportId).to.eq(1001);
+      expect(event?.args?.oldWallet).to.eq(holderOne.address);
+      expect(event?.args?.newWallet).to.eq(holderTwo.address);
+
+      const holderOnePassportId = await contract.passportId(holderOne.address);
+      const holderTwoPassportId = await contract.passportId(holderTwo.address);
+
+      expect(holderOnePassportId).to.eq(0);
+      expect(holderTwoPassportId).to.eq(1001);
+    });
+
+    it("prevents admin Creates with a wrong passportId", async () => {
+      const action = contract.connect(admin).adminCreateWithId(holderOne.address, 1001, "farcaster");
+
+      await expect(action).to.be.reverted;
+    });
+
     it("prevents other accounts to use admin Create", async () => {
       const action = contract.connect(holderOne).adminCreate(holderOne.address, "farcaster");
 

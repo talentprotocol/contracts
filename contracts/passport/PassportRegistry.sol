@@ -36,11 +36,17 @@ contract PassportRegistry is Ownable, Pausable {
     // Total number of passports publicly created
     Counters.Counter public totalPublicCreates;
 
+    // Total number of passport transfers
+    Counters.Counter public totalPassportTransfers;
+
     // Initial id of passport creations
     uint256 public initialPassportId = 1000;
 
     // A new passport has been created
     event Create(address indexed wallet, uint256 passportId, bool admin, string source);
+
+    // A passport has been tranfered
+    event Transfer(uint256 passportId, address indexed oldWallet, address indexed newWallet);
 
     // A passport has been deactivated
     event Deactivate(address indexed wallet, uint256 passportId);
@@ -61,6 +67,19 @@ contract PassportRegistry is Ownable, Pausable {
         _create(msg.sender, newPassportId, false, source);
     }
 
+    function transfer(address newWallet) public whenNotPaused {
+        uint256 id = passportId[msg.sender];
+        require(id != 0, "Passport does not exist");
+
+        passportId[msg.sender] = 0;
+        passportId[newWallet] = id;
+        idPassport[id] = newWallet;
+        walletActive[msg.sender] = false;
+        totalPassportTransfers.increment();
+
+        emit Transfer(id, msg.sender, newWallet);
+    }
+
     // Admin
 
     function adminCreate(address wallet, string memory source) public whenNotPaused onlyOwner {
@@ -75,6 +94,7 @@ contract PassportRegistry is Ownable, Pausable {
     function adminCreateWithId(address wallet, uint256 id, string memory source) public whenNotPaused onlyOwner {
         require(passportId[wallet] == 0, "Passport already exists");
         require(idPassport[id] == address(0), "Passport id already assigned");
+        require(id <= initialPassportId, "Passport id must be less or equal to 1000");
 
         totalAdminCreates.increment();
         _create(wallet, id, true, source);

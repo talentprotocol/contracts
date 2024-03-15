@@ -37,13 +37,12 @@ describe("Passport", () => {
 
     it("is created with the correct state", async () => {
       expect(await contract.totalCreates()).to.eq(0);
-      expect(await contract.totalAdminCreates()).to.eq(0);
       expect(await contract.totalPublicCreates()).to.eq(0);
       expect(await contract.paused()).to.eq(false);
       expect(await contract.initialPassportId()).to.eq(1000);
     });
 
-    it("emits a create event everytime a create is created", async () => {
+    it("emits a create event everytime a passport is created", async () => {
       let tx = await contract.connect(holderOne).create("farcaster");
 
       let event = await findEvent(tx, "Create");
@@ -51,42 +50,44 @@ describe("Passport", () => {
       expect(event).to.exist;
       expect(event?.args?.wallet).to.eq(holderOne.address);
       expect(event?.args?.passportId).to.eq(1001);
-      expect(event?.args?.admin).to.eq(false);
 
-      tx = await contract.connect(admin).adminCreate(holderTwo.address, "farcaster");
+      tx = await contract.connect(holderTwo).create("farcaster");
 
       event = await findEvent(tx, "Create");
 
       expect(event).to.exist;
       expect(event?.args?.wallet).to.eq(holderTwo.address);
       expect(event?.args?.passportId).to.eq(1002);
-      expect(event?.args?.admin).to.eq(true);
       expect(event?.args?.source).to.eq("farcaster");
     });
 
     it("stores the contract state correctly", async () => {
       await contract.connect(holderOne).create("farcaster");
 
-      await contract.connect(admin).adminCreate(holderTwo.address, "farcaster");
+      await contract.connect(holderTwo).create("passport");
 
-      await contract.connect(admin).adminCreateWithId(holderThree.address, 5, "farcaster");
+      await contract.connect(holderThree).create("passport");
 
-      const adminCreates = await contract.totalAdminCreates();
+      await contract.connect(admin).adminTransfer(holderThree.address, 5);
+
       const publicCreates = await contract.totalPublicCreates();
+      const totalPassportTransfers = await contract.totalPassportTransfers();
 
       const holderOnePassportId = await contract.passportId(holderOne.address);
       const holderTwoPassportId = await contract.passportId(holderTwo.address);
       const holderThreePassportId = await contract.passportId(holderThree.address);
       const holderThreeActivePassport = await contract.walletActive(holderThree.address);
       const holderThreeActivePassportId = await contract.idActive(5);
+      const holderThreePreviousPassportId = await contract.idActive(1003);
 
-      expect(adminCreates).to.eq(2);
-      expect(publicCreates).to.eq(1);
+      expect(publicCreates).to.eq(3);
+      expect(totalPassportTransfers).to.eq(1);
       expect(holderOnePassportId).to.eq(1001);
       expect(holderTwoPassportId).to.eq(1002);
       expect(holderThreePassportId).to.eq(5);
       expect(holderThreeActivePassport).to.eq(true);
       expect(holderThreeActivePassportId).to.eq(true);
+      expect(holderThreePreviousPassportId).to.eq(false);
     });
 
     it("emits a tranfer event everytime a passport is tranfered", async () => {
@@ -97,7 +98,8 @@ describe("Passport", () => {
       const event = await findEvent(tx, "Transfer");
 
       expect(event).to.exist;
-      expect(event?.args?.passportId).to.eq(1001);
+      expect(event?.args?.oldPassportId).to.eq(1001);
+      expect(event?.args?.newPassportId).to.eq(1001);
       expect(event?.args?.oldWallet).to.eq(holderOne.address);
       expect(event?.args?.newWallet).to.eq(holderTwo.address);
 
@@ -108,16 +110,25 @@ describe("Passport", () => {
       expect(holderTwoPassportId).to.eq(1001);
     });
 
-    it("prevents admin Creates with a wrong passportId", async () => {
-      const action = contract.connect(admin).adminCreateWithId(holderOne.address, 1001, "farcaster");
+    it("emits a tranfer event everytime a passport is tranfered by an admin", async () => {
+      let tx = await contract.connect(holderOne).create("farcaster");
 
-      await expect(action).to.be.reverted;
-    });
+      let holderOnePassportId = await contract.passportId(holderOne.address);
+      expect(holderOnePassportId).to.eq(1001);
 
-    it("prevents other accounts to use admin Create", async () => {
-      const action = contract.connect(holderOne).adminCreate(holderOne.address, "farcaster");
+      tx = await contract.connect(admin).adminTransfer(holderOne.address, 1);
 
-      await expect(action).to.be.reverted;
+      const event = await findEvent(tx, "Transfer");
+
+      expect(event).to.exist;
+      expect(event?.args?.oldPassportId).to.eq(1001);
+      expect(event?.args?.newPassportId).to.eq(1);
+      expect(event?.args?.oldWallet).to.eq(holderOne.address);
+      expect(event?.args?.newWallet).to.eq(holderOne.address);
+
+      holderOnePassportId = await contract.passportId(holderOne.address);
+
+      expect(holderOnePassportId).to.eq(1);
     });
 
     it("prevents duplicated passports", async () => {
@@ -125,6 +136,20 @@ describe("Passport", () => {
       const action = contract.connect(holderOne).create("farcaster");
 
       await expect(action).to.be.reverted;
+    });
+
+    it("prevents admin transfers of existing passports", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      const action = contract.connect(admin).adminTransfer(holderOne.address, 1001);
+
+      await expect(action).to.be.revertedWith("New passport id already has a owner");
+    });
+
+    it("prevents admin transfers of wallets without passport", async () => {
+      const action = contract.connect(admin).adminTransfer(holderTwo.address, 2);
+
+      await expect(action).to.be.revertedWith("Wallet does not have a passport to transfer from");
     });
   });
 

@@ -30,9 +30,6 @@ contract PassportRegistry is Ownable, Pausable {
     // Total number of passports created
     Counters.Counter public totalCreates;
 
-    // Total number of passports created by admin
-    Counters.Counter public totalAdminCreates;
-
     // Total number of passports publicly created
     Counters.Counter public totalPublicCreates;
 
@@ -43,10 +40,10 @@ contract PassportRegistry is Ownable, Pausable {
     uint256 public initialPassportId = 1000;
 
     // A new passport has been created
-    event Create(address indexed wallet, uint256 passportId, bool admin, string source);
+    event Create(address indexed wallet, uint256 passportId, string source);
 
     // A passport has been tranfered
-    event Transfer(uint256 passportId, address indexed oldWallet, address indexed newWallet);
+    event Transfer(uint256 oldPassportId, uint256 newPassportId, address indexed oldWallet, address indexed newWallet);
 
     // A passport has been deactivated
     event Deactivate(address indexed wallet, uint256 passportId);
@@ -64,9 +61,13 @@ contract PassportRegistry is Ownable, Pausable {
         uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates.current(), 1));
         totalPublicCreates.increment();
 
-        _create(msg.sender, newPassportId, false, source);
+        _create(msg.sender, newPassportId, source);
     }
 
+    /**
+     * @notice Transfer the passport id of the msg.sender to the newWallet.
+     * @dev Can only be called by the passport owner.
+     */
     function transfer(address newWallet) public whenNotPaused {
         uint256 id = passportId[msg.sender];
         require(id != 0, "Passport does not exist");
@@ -77,29 +78,39 @@ contract PassportRegistry is Ownable, Pausable {
         walletActive[msg.sender] = false;
         totalPassportTransfers.increment();
 
-        emit Transfer(id, msg.sender, newWallet);
+        emit Transfer(id, id, msg.sender, newWallet);
     }
 
     // Admin
 
-    function adminCreate(address wallet, string memory source) public whenNotPaused onlyOwner {
-        require(passportId[wallet] == 0, "Passport already exists");
+    /**
+     * @notice Change the wallet passport id to a new one.
+     * @dev Can only be called by the owner.
+     */
+    function adminTransfer(address wallet, uint256 id) public whenNotPaused onlyOwner {
+        uint256 oldId = passportId[wallet];
+        address idOwner = idPassport[id];
+        require(oldId != 0, "Wallet does not have a passport to transfer from");
+        require(idOwner == address(0), "New passport id already has a owner");
 
-        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates.current(), 1));
+        string memory source = idSource[oldId];
+        idSource[id] = source;
+        idSource[oldId] = "";
+        passportId[wallet] = id;
+        idPassport[oldId] = address(0);
+        walletActive[wallet] = true;
+        idActive[id] = true;
+        idActive[oldId] = false;
 
-        totalAdminCreates.increment();
-        _create(wallet, newPassportId, true, source);
+        totalPassportTransfers.increment();
+
+        emit Transfer(oldId, id, wallet, wallet);
     }
 
-    function adminCreateWithId(address wallet, uint256 id, string memory source) public whenNotPaused onlyOwner {
-        require(passportId[wallet] == 0, "Passport already exists");
-        require(idPassport[id] == address(0), "Passport id already assigned");
-        require(id <= initialPassportId, "Passport id must be less or equal to 1000");
-
-        totalAdminCreates.increment();
-        _create(wallet, id, true, source);
-    }
-
+    /**
+     * @notice Activates the passport of a given walley.
+     * @dev Can only be called by the owner.
+     */
     function activate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
         require(walletActive[wallet] == false, "Passport must be inactive");
@@ -113,6 +124,10 @@ contract PassportRegistry is Ownable, Pausable {
         emit Activate(wallet, id);
     }
 
+    /**
+     * @notice Deactivates the passport of a given walley.
+     * @dev Can only be called by the owner.
+     */
     function deactivate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
         require(walletActive[wallet] == true, "Passport must be active");
@@ -144,7 +159,7 @@ contract PassportRegistry is Ownable, Pausable {
 
     // private
 
-    function _create(address wallet, uint256 id, bool admin, string memory source) private {
+    function _create(address wallet, uint256 id, string memory source) private {
         totalCreates.increment();
 
         idPassport[id] = wallet;
@@ -154,6 +169,6 @@ contract PassportRegistry is Ownable, Pausable {
         idSource[id] = source;
         sourcePassports[source] = SafeMath.add(sourcePassports[source], 1);
         // emit event
-        emit Create(wallet, id, admin, source);
+        emit Create(wallet, id, source);
     }
 }

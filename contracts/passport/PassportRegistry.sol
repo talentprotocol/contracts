@@ -87,7 +87,7 @@ contract PassportRegistry is Ownable, Pausable {
      * @notice Change the wallet passport id to a new one.
      * @dev Can only be called by the owner.
      */
-    function adminTransfer(address wallet, uint256 id) public whenNotPaused onlyOwner {
+    function adminTransfer(address wallet, uint256 id) public onlyOwner {
         uint256 oldId = passportId[wallet];
         address idOwner = idPassport[id];
         require(oldId != 0, "Wallet does not have a passport to transfer from");

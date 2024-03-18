@@ -9,6 +9,7 @@ import type {
   TalentNFT,
   TalentSponsorship,
   VirtualTALBuy,
+  PassportRegistry,
 } from "../typechain-types";
 
 export async function deployToken(): Promise<TalentProtocol> {
@@ -76,6 +77,15 @@ export async function deployVirtualTalBuy(
   await deployedVirtualTalBuy.deployed();
 
   return deployedVirtualTalBuy as VirtualTALBuy;
+}
+
+export async function deployPassport(owner: string): Promise<PassportRegistry> {
+  const passportRegistryContract = await ethers.getContractFactory("PassportRegistry");
+
+  const deployedPassport = await passportRegistryContract.deploy(owner);
+  await deployedPassport.deployed();
+
+  return deployedPassport as PassportRegistry;
 }
 
 export async function deployStaking(

@@ -30,20 +30,54 @@ describe("Passport", () => {
     return deployContract(admin, Artifacts.PassportRegistry, [admin.address]);
   }
 
-  describe("behaviour", () => {
+  describe("admin and sequencial generation behaviour", () => {
+    beforeEach(async () => {
+      contract = (await builder()) as PassportRegistry;
+    });
+
+    it("stores the contract state correctly", async () => {
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
+
+      let tx = await contract.connect(admin).setGenerationMode(true, 1050);
+      let event = await findEvent(tx, "PassportGenerationChanged");
+
+      expect(event).to.exist;
+      expect(event?.args?.sequencial).to.eq(true);
+      expect(event?.args?.nextSequencialPassportId).to.eq(1050);
+
+      tx = await contract.connect(holderTwo).create("farcaster");
+
+      event = await findEvent(tx, "Create");
+
+      expect(event).to.exist;
+      expect(event?.args?.wallet).to.eq(holderTwo.address);
+      expect(event?.args?.passportId).to.eq(1050);
+
+      tx = await contract.connect(holderThree).create("farcaster");
+
+      event = await findEvent(tx, "Create");
+
+      expect(event).to.exist;
+      expect(event?.args?.wallet).to.eq(holderThree.address);
+      expect(event?.args?.passportId).to.eq(1051);
+    });
+  });
+
+  describe("admin generation behaviour", () => {
     beforeEach(async () => {
       contract = (await builder()) as PassportRegistry;
     });
 
     it("is created with the correct state", async () => {
       expect(await contract.totalCreates()).to.eq(0);
-      expect(await contract.totalPublicCreates()).to.eq(0);
+      expect(await contract.totalSequencialCreates()).to.eq(0);
       expect(await contract.paused()).to.eq(false);
-      expect(await contract.initialPassportId()).to.eq(1000);
+      expect(await contract.sequencial()).to.eq(false);
+      expect(await contract.nextId()).to.eq(0);
     });
 
     it("emits a create event everytime a passport is created", async () => {
-      let tx = await contract.connect(holderOne).create("farcaster");
+      let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       let event = await findEvent(tx, "Create");
 
@@ -51,7 +85,7 @@ describe("Passport", () => {
       expect(event?.args?.wallet).to.eq(holderOne.address);
       expect(event?.args?.passportId).to.eq(1001);
 
-      tx = await contract.connect(holderTwo).create("farcaster");
+      tx = await contract.connect(admin).adminCreate("farcaster", holderTwo.address, 1002);
 
       event = await findEvent(tx, "Create");
 
@@ -62,15 +96,15 @@ describe("Passport", () => {
     });
 
     it("stores the contract state correctly", async () => {
-      await contract.connect(holderOne).create("farcaster");
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
-      await contract.connect(holderTwo).create("passport");
+      await contract.connect(admin).adminCreate("passport", holderTwo.address, 1002);
 
-      await contract.connect(holderThree).create("passport");
+      await contract.connect(admin).adminCreate("passport", holderThree.address, 1003);
 
       await contract.connect(admin).adminTransfer(holderThree.address, 5);
 
-      const publicCreates = await contract.totalPublicCreates();
+      const adminCreates = await contract.totalAdminsCreates();
       const totalPassportTransfers = await contract.totalPassportTransfers();
 
       const holderOnePassportId = await contract.passportId(holderOne.address);
@@ -80,7 +114,7 @@ describe("Passport", () => {
       const holderThreeActivePassportId = await contract.idActive(5);
       const holderThreePreviousPassportId = await contract.idActive(1003);
 
-      expect(publicCreates).to.eq(3);
+      expect(adminCreates).to.eq(3);
       expect(totalPassportTransfers).to.eq(1);
       expect(holderOnePassportId).to.eq(1001);
       expect(holderTwoPassportId).to.eq(1002);
@@ -91,7 +125,7 @@ describe("Passport", () => {
     });
 
     it("emits a tranfer event everytime a passport is tranfered", async () => {
-      let tx = await contract.connect(holderOne).create("farcaster");
+      let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       tx = await contract.connect(holderOne).transfer(holderTwo.address);
 
@@ -111,7 +145,7 @@ describe("Passport", () => {
     });
 
     it("emits a tranfer event everytime a passport is tranfered by an admin", async () => {
-      let tx = await contract.connect(holderOne).create("farcaster");
+      let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       let holderOnePassportId = await contract.passportId(holderOne.address);
       expect(holderOnePassportId).to.eq(1001);
@@ -131,15 +165,27 @@ describe("Passport", () => {
       expect(holderOnePassportId).to.eq(1);
     });
 
-    it("prevents duplicated passports", async () => {
-      await contract.connect(holderOne).create("farcaster");
+    it("prevents generation for non admins", async () => {
+      const action = contract.connect(holderOne).adminCreate("farcaster", holderOne.address, 1);
+
+      await expect(action).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it("prevents sequencial generation", async () => {
       const action = contract.connect(holderOne).create("farcaster");
+
+      await expect(action).to.be.revertedWith("Admin generation mode");
+    });
+
+    it("prevents duplicated passports", async () => {
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
+      const action = contract.connect(admin).adminCreate("farcaster", holderOne.address, 1002);
 
       await expect(action).to.be.reverted;
     });
 
     it("prevents admin transfers of existing passports", async () => {
-      await contract.connect(holderOne).create("farcaster");
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       const action = contract.connect(admin).adminTransfer(holderOne.address, 1001);
 
@@ -153,13 +199,82 @@ describe("Passport", () => {
     });
   });
 
+  describe("sequencial generation behaviour", () => {
+    beforeEach(async () => {
+      contract = (await builder()) as PassportRegistry;
+      await contract.connect(admin).setGenerationMode(true, 1);
+    });
+
+    it("is created with the correct state", async () => {
+      expect(await contract.totalCreates()).to.eq(0);
+      expect(await contract.totalSequencialCreates()).to.eq(0);
+      expect(await contract.paused()).to.eq(false);
+      expect(await contract.sequencial()).to.eq(true);
+      expect(await contract.nextId()).to.eq(1);
+    });
+
+    it("emits a create event everytime a passport is created", async () => {
+      let tx = await contract.connect(holderOne).create("farcaster");
+
+      let event = await findEvent(tx, "Create");
+
+      expect(event).to.exist;
+      expect(event?.args?.wallet).to.eq(holderOne.address);
+      expect(event?.args?.passportId).to.eq(1);
+
+      tx = await contract.connect(holderTwo).create("farcaster");
+
+      event = await findEvent(tx, "Create");
+
+      expect(event).to.exist;
+      expect(event?.args?.wallet).to.eq(holderTwo.address);
+      expect(event?.args?.passportId).to.eq(2);
+      expect(event?.args?.source).to.eq("farcaster");
+    });
+
+    it("stores the contract state correctly", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      await contract.connect(holderTwo).create("passport");
+
+      await contract.connect(holderThree).create("passport");
+
+      await contract.connect(admin).adminTransfer(holderThree.address, 5);
+
+      const sequencialCreates = await contract.totalSequencialCreates();
+      const totalPassportTransfers = await contract.totalPassportTransfers();
+
+      const holderOnePassportId = await contract.passportId(holderOne.address);
+      const holderTwoPassportId = await contract.passportId(holderTwo.address);
+      const holderThreePassportId = await contract.passportId(holderThree.address);
+      const holderThreeActivePassport = await contract.walletActive(holderThree.address);
+      const holderThreeActivePassportId = await contract.idActive(5);
+      const holderThreePreviousPassportId = await contract.idActive(1003);
+
+      expect(sequencialCreates).to.eq(3);
+      expect(totalPassportTransfers).to.eq(1);
+      expect(holderOnePassportId).to.eq(1);
+      expect(holderTwoPassportId).to.eq(2);
+      expect(holderThreePassportId).to.eq(5);
+      expect(holderThreeActivePassport).to.eq(true);
+      expect(holderThreeActivePassportId).to.eq(true);
+      expect(holderThreePreviousPassportId).to.eq(false);
+    });
+
+    it("admin generation", async () => {
+      const action = contract.connect(admin).adminCreate("farcaster", holderOne.address, 1010);
+
+      await expect(action).to.be.revertedWith("Sequencial generation mode");
+    });
+  });
+
   describe("testing passport activate and deactivate", () => {
     beforeEach(async () => {
       contract = (await builder()) as PassportRegistry;
     });
 
     it("emits events", async () => {
-      await contract.connect(holderOne).create("farcaster");
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       let holderActivePassport = await contract.walletActive(holderOne.address);
       expect(holderActivePassport).to.eq(true);

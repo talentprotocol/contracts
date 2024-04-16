@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-viem";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
@@ -60,13 +61,13 @@ const config: HardhatUserConfig = {
       gasMultiplier: 1.5,
     },
     baseSepolia: {
-      url: "https://sepolia.base.org",
+      url: "https://api.developer.coinbase.com/rpc/v1/base-sepolia/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
       accounts: deployer,
       chainId: 84532,
       gasMultiplier: 1.5,
     },
     base: {
-      url: "https://mainnet.base.org",
+      url: "https://api.developer.coinbase.com/rpc/v1/base/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
       accounts: deployer,
       chainId: 8453,
       gasMultiplier: 1.5,
@@ -82,8 +83,8 @@ const config: HardhatUserConfig = {
       alfajores: process.env.CELO_API_KEY || "",
       polygon: process.env.POLYGON_API_KEY || "",
       polygonMumbai: process.env.POLYGON_API_KEY || "",
-      baseSepolia: process.env.BASE_SEPOLIA_API_KEY || "",
-      base: process.env.BASE_SEPOLIA_API_KEY || "",
+      base: "",
+      baseSepolia: "",
     },
     // Custom chains that are not supported by default
     customChains: [
@@ -109,6 +110,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
           browserURL: "https://sepolia.basescan.org",
+        },
+      },
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org",
         },
       },
     ],

@@ -3,7 +3,7 @@ import { ethers, network } from "hardhat";
 import { deployPassport } from "../shared";
 
 async function main() {
-  console.log(`Deploying buy vTal package ${network.name}`);
+  console.log(`Deploying passport registry at ${network.name}`);
 
   const [admin] = await ethers.getSigners();
 

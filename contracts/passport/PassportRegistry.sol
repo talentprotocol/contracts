@@ -30,14 +30,20 @@ contract PassportRegistry is Ownable, Pausable {
     // Total number of passports created
     Counters.Counter public totalCreates;
 
-    // Total number of passports publicly created
-    Counters.Counter public totalPublicCreates;
+    // Total number of passports sequencially created
+    Counters.Counter public totalSequencialCreates;
+
+    // Total number of passports created by admins
+    Counters.Counter public totalAdminsCreates;
 
     // Total number of passport transfers
     Counters.Counter public totalPassportTransfers;
 
-    // Initial id of passport creations
-    uint256 public initialPassportId = 1000;
+    // The next id to be issued
+    uint256 private _nextSequencialPassportId;
+
+    // Smart contract id in sequencial mode
+    bool private _sequencial;
 
     // A new passport has been created
     event Create(address indexed wallet, uint256 passportId, string source);
@@ -51,17 +57,58 @@ contract PassportRegistry is Ownable, Pausable {
     // A passport has been activated
     event Activate(address indexed wallet, uint256 passportId);
 
-    constructor(address contractOwner) {
-        transferOwnership(contractOwner);
+    // Passport generation mode changed
+    event PassportGenerationChanged(bool sequencial, uint256 nextSequencialPassportId);
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is in sequencial mode.
+     *
+     * Requirements:
+     *
+     * - The contract must be in sequencial mode.
+     */
+    modifier whenSequencialGeneration() {
+        require(sequencial(), "Admin generation mode");
+        _;
     }
 
-    function create(string memory source) public whenNotPaused {
+    /**
+     * @dev Modifier to make a function callable only when the contract is in admin generation mode.
+     *
+     * Requirements:
+     *
+     * - The contract must be in admin generation mode.
+     */
+    modifier whenAdminGeneration() {
+        require(!sequencial(), "Sequencial generation mode");
+        _;
+    }
+
+    constructor(address contractOwner) {
+        transferOwnership(contractOwner);
+        _sequencial = false;
+    }
+
+    function create(string memory source) public whenNotPaused whenSequencialGeneration {
         require(passportId[msg.sender] == 0, "Passport already exists");
 
-        uint256 newPassportId = SafeMath.add(initialPassportId, SafeMath.add(totalPublicCreates.current(), 1));
-        totalPublicCreates.increment();
+        totalSequencialCreates.increment();
 
-        _create(msg.sender, newPassportId, source);
+        _create(msg.sender, _nextSequencialPassportId, source);
+        _nextSequencialPassportId += 1;
+    }
+
+    function adminCreate(
+        string memory source,
+        address wallet,
+        uint256 id
+    ) public onlyOwner whenNotPaused whenAdminGeneration {
+        require(passportId[wallet] == 0, "Passport already exists");
+        require(idPassport[id] == address(0), "Passport id already issued");
+
+        totalAdminsCreates.increment();
+
+        _create(wallet, id, source);
     }
 
     /**
@@ -155,6 +202,31 @@ contract PassportRegistry is Ownable, Pausable {
      */
     function unpause() public whenPaused onlyOwner {
         _unpause();
+    }
+
+    /**
+     * @notice Changes the contract generation mode.
+     * @dev Can only be called by the owner.
+     */
+    function setGenerationMode(bool sequencialFlag, uint256 nextSequencialPassportId) public whenNotPaused onlyOwner {
+        _sequencial = sequencialFlag;
+        _nextSequencialPassportId = nextSequencialPassportId;
+
+        emit PassportGenerationChanged(sequencialFlag, nextSequencialPassportId);
+    }
+
+    /**
+     * @dev Returns true if the contract is in sequencial mode, and false otherwise.
+     */
+    function sequencial() public view virtual returns (bool) {
+        return _sequencial;
+    }
+
+    /**
+     * @dev Returns the next id to be generated.
+     */
+    function nextId() public view virtual returns (uint256) {
+        return _nextSequencialPassportId;
     }
 
     // private

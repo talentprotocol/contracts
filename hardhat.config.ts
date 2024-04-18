@@ -2,6 +2,7 @@ import { task } from "hardhat/config";
 
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-viem";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
@@ -13,11 +14,11 @@ dotenv.config();
 
 import type { HardhatUserConfig } from "hardhat/config";
 
-// const deployer = {
-//   mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
-// };
+const deployer = {
+  mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
+};
 
-const deployer = [process.env.PK_1 || "0x1111111111111111111111111111111111111111111111111111111111111111"];
+// const deployer = [""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -59,6 +60,18 @@ const config: HardhatUserConfig = {
       chainId: 137,
       gasMultiplier: 1.5,
     },
+    baseSepolia: {
+      url: "https://api.developer.coinbase.com/rpc/v1/base-sepolia/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
+      accounts: deployer,
+      chainId: 84532,
+      gasMultiplier: 1.5,
+    },
+    base: {
+      url: "https://api.developer.coinbase.com/rpc/v1/base/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
+      accounts: deployer,
+      chainId: 8453,
+      gasMultiplier: 1.5,
+    },
   },
   gasReporter: {
     currency: "ETH",
@@ -70,6 +83,8 @@ const config: HardhatUserConfig = {
       alfajores: process.env.CELO_API_KEY || "",
       polygon: process.env.POLYGON_API_KEY || "",
       polygonMumbai: process.env.POLYGON_API_KEY || "",
+      base: "",
+      baseSepolia: "",
     },
     // Custom chains that are not supported by default
     customChains: [
@@ -87,6 +102,22 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.celoscan.io/api",
           browserURL: "https://celoscan.io/",
+        },
+      },
+      {
+        network: "baseSepolia",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api-sepolia.basescan.org/api",
+          browserURL: "https://sepolia.basescan.org",
+        },
+      },
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: "https://api.basescan.org/api",
+          browserURL: "https://basescan.org",
         },
       },
     ],

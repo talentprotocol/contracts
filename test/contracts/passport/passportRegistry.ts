@@ -261,6 +261,27 @@ describe("Passport", () => {
       expect(holderThreePreviousPassportId).to.eq(false);
     });
 
+    it("allows the passport owner to transfer the passport", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      await contract.connect(holderOne).transfer(holderThree.address);
+
+      const holderOnePassportId = await contract.passportId(holderOne.address);
+      const holderThreePassportId = await contract.passportId(holderThree.address);
+
+      expect(holderOnePassportId).to.eq(0);
+      expect(holderThreePassportId).to.eq(1);
+    });
+
+    it("prevents the passport owner to transfer the passport to an existing owner wallet", async () => {
+      await contract.connect(holderOne).create("farcaster");
+      await contract.connect(holderThree).create("lens");
+
+      const action = contract.connect(holderOne).transfer(holderThree.address);
+
+      await expect(action).to.be.revertedWith("Wallet passed already has a passport");
+    });
+
     it("admin generation", async () => {
       const action = contract.connect(admin).adminCreate("farcaster", holderOne.address, 1010);
 

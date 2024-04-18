@@ -104,7 +104,6 @@ contract PassportRegistry is Ownable, Pausable {
         uint256 id
     ) public onlyOwner whenNotPaused whenAdminGeneration {
         require(passportId[wallet] == 0, "Passport already exists");
-        require(idPassport[id] == address(0), "Passport id already issued");
 
         totalAdminsCreates.increment();
 
@@ -117,12 +116,15 @@ contract PassportRegistry is Ownable, Pausable {
      */
     function transfer(address newWallet) public whenNotPaused {
         uint256 id = passportId[msg.sender];
+        uint256 newWalletId = passportId[newWallet];
         require(id != 0, "Passport does not exist");
+        require(newWalletId == 0, "Wallet passed already has a passport");
 
         passportId[msg.sender] = 0;
         passportId[newWallet] = id;
         idPassport[id] = newWallet;
         walletActive[msg.sender] = false;
+        walletActive[newWallet] = true;
         totalPassportTransfers.increment();
 
         emit Transfer(id, id, msg.sender, newWallet);
@@ -208,7 +210,7 @@ contract PassportRegistry is Ownable, Pausable {
      * @notice Changes the contract generation mode.
      * @dev Can only be called by the owner.
      */
-    function setGenerationMode(bool sequencialFlag, uint256 nextSequencialPassportId) public whenNotPaused onlyOwner {
+    function setGenerationMode(bool sequencialFlag, uint256 nextSequencialPassportId) public onlyOwner {
         _sequencial = sequencialFlag;
         _nextSequencialPassportId = nextSequencialPassportId;
 
@@ -232,6 +234,8 @@ contract PassportRegistry is Ownable, Pausable {
     // private
 
     function _create(address wallet, uint256 id, string memory source) private {
+        require(idPassport[id] == address(0), "Passport id already issued");
+
         totalCreates.increment();
 
         idPassport[id] = wallet;

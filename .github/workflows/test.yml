@@ -5,7 +5,7 @@ on:
     branches:
       - master
     tags:
-      - '*'
+      - "*"
   pull_request:
     types: [opened, synchronize]
 
@@ -16,12 +16,13 @@ jobs:
 
     env:
       FORCE_COLOR: true
+      PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: "16"
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path

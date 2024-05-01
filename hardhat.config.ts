@@ -14,11 +14,8 @@ dotenv.config();
 
 import type { HardhatUserConfig } from "hardhat/config";
 
-const deployer = {
-  mnemonic: process.env.MNEMONIC || "test test test test test test test test test test test junk",
-};
-
-// const deployer = [""];
+// Never hardcode a pk here. Use the .env file
+const deployer = [process.env.PRIVATE_KEY];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -83,8 +80,8 @@ const config: HardhatUserConfig = {
       alfajores: process.env.CELO_API_KEY || "",
       polygon: process.env.POLYGON_API_KEY || "",
       polygonMumbai: process.env.POLYGON_API_KEY || "",
-      base: "",
-      baseSepolia: "",
+      base: process.env.POLYGON_API_KEY || "",
+      baseSepolia: process.env.POLYGON_API_KEY || "",
     },
     // Custom chains that are not supported by default
     customChains: [

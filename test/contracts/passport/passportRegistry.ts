@@ -168,7 +168,7 @@ describe("Passport", () => {
     it("prevents generation for non admins", async () => {
       const action = contract.connect(holderOne).adminCreate("farcaster", holderOne.address, 1);
 
-      await expect(action).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(action).to.be.revertedWith(`OwnableUnauthorizedAccount("${holderOne.address}")`);
     });
 
     it("prevents sequencial generation", async () => {
@@ -375,7 +375,7 @@ describe("Passport", () => {
 
       const action = contract.connect(holderOne).create("farcaster");
 
-      await expect(action).to.be.revertedWith("Pausable: paused");
+      await expect(action).to.be.revertedWith("EnforcedPause()");
     });
   });
 });

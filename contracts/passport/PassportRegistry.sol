@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.24;
 
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract PassportRegistry is Ownable, Pausable {
-    using Counters for Counters.Counter;
-
     // wallet => passport id
     mapping(address => uint256) public passportId;
 
@@ -28,16 +25,16 @@ contract PassportRegistry is Ownable, Pausable {
     mapping(string => uint256) public sourcePassports;
 
     // Total number of passports created
-    Counters.Counter public totalCreates;
+    uint256 public totalCreates;
 
     // Total number of passports sequencially created
-    Counters.Counter public totalSequencialCreates;
+    uint256 public totalSequencialCreates;
 
     // Total number of passports created by admins
-    Counters.Counter public totalAdminsCreates;
+    uint256 public totalAdminsCreates;
 
     // Total number of passport transfers
-    Counters.Counter public totalPassportTransfers;
+    uint256 public totalPassportTransfers;
 
     // The next id to be issued
     uint256 private _nextSequencialPassportId;
@@ -84,15 +81,15 @@ contract PassportRegistry is Ownable, Pausable {
         _;
     }
 
-    constructor(address contractOwner) {
-        transferOwnership(contractOwner);
+    constructor(address initialOwner) Ownable(initialOwner) {
+        transferOwnership(initialOwner);
         _sequencial = false;
     }
 
     function create(string memory source) public whenNotPaused whenSequencialGeneration {
         require(passportId[msg.sender] == 0, "Passport already exists");
 
-        totalSequencialCreates.increment();
+        totalSequencialCreates++;
 
         _create(msg.sender, _nextSequencialPassportId, source);
         _nextSequencialPassportId += 1;
@@ -105,7 +102,7 @@ contract PassportRegistry is Ownable, Pausable {
     ) public onlyOwner whenNotPaused whenAdminGeneration {
         require(passportId[wallet] == 0, "Passport already exists");
 
-        totalAdminsCreates.increment();
+        totalAdminsCreates++;
 
         _create(wallet, id, source);
     }
@@ -125,7 +122,7 @@ contract PassportRegistry is Ownable, Pausable {
         idPassport[id] = newWallet;
         walletActive[msg.sender] = false;
         walletActive[newWallet] = true;
-        totalPassportTransfers.increment();
+        totalPassportTransfers++;
 
         emit Transfer(id, id, msg.sender, newWallet);
     }
@@ -151,7 +148,7 @@ contract PassportRegistry is Ownable, Pausable {
         idActive[id] = true;
         idActive[oldId] = false;
 
-        totalPassportTransfers.increment();
+        totalPassportTransfers++;
 
         emit Transfer(oldId, id, wallet, wallet);
     }
@@ -236,14 +233,17 @@ contract PassportRegistry is Ownable, Pausable {
     function _create(address wallet, uint256 id, string memory source) private {
         require(idPassport[id] == address(0), "Passport id already issued");
 
-        totalCreates.increment();
+        totalCreates++;
 
         idPassport[id] = wallet;
         passportId[wallet] = id;
         walletActive[wallet] = true;
         idActive[id] = true;
         idSource[id] = source;
-        sourcePassports[source] = SafeMath.add(sourcePassports[source], 1);
+        
+        (bool success, uint256 result) = Math.tryAdd(sourcePassports[source], 1);
+        require(success, "Incrementing source count failed");
+        sourcePassports[source] = result;
         // emit event
         emit Create(wallet, id, source);
     }

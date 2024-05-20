@@ -5,7 +5,6 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
-import "@openzeppelin/hardhat-upgrades";
 import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan";
 import dotenv from "dotenv";
@@ -15,7 +14,7 @@ dotenv.config();
 import type { HardhatUserConfig } from "hardhat/config";
 
 // Never hardcode a pk here. Use the .env file
-const deployer = [process.env.PRIVATE_KEY];
+const deployer = ["fc90f7b7edbcb758e00cc9c26752e240b8f0bf49d9ce2085047c40693aef6601" ?? ""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();
@@ -27,7 +26,7 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.17",
+    version: "0.8.24",
     settings: {
       optimizer: {
         enabled: true,

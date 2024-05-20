@@ -14,7 +14,7 @@ dotenv.config();
 import type { HardhatUserConfig } from "hardhat/config";
 
 // Never hardcode a pk here. Use the .env file
-const deployer = ["fc90f7b7edbcb758e00cc9c26752e240b8f0bf49d9ce2085047c40693aef6601" ?? ""];
+const deployer = [process.env.PRIVATE_KEY ?? ""];
 
 task("accounts", "Prints the list of accounts", async (args, hre) => {
   const accounts = await hre.ethers.getSigners();

@@ -88,24 +88,35 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       weeksSinceLastClaim = (block.timestamp - user.lastClaimed) / WEEK_DURATION;
       require(weeksSinceLastClaim > 0, "Can only claim once per week");
     } else {
-      weeksPassed = weeksPassed;
       weeksSinceLastClaim = weeksPassed;
     }
 
     if (weeksPassed >= MAX_CLAIM_WEEKS) {
-      // if the MAX_CLAIM_WEEKS have passed then transfer the full owed amount to the user
-      // TODO: We need to check when was the last time the user claim to know how much to burn
+      // Calculate the number of weeks missed
+      uint256 weeksMissed = 0;
+      if (user.lastClaimed != 0) {
+        weeksMissed = weeksPassed - weeksSinceLastClaim;
+      } else {
+        weeksMissed = weeksPassed;
+      }
+
+      // Burn the equivalent amount of tokens for the missed weeks
+      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, user.amountOwed);
+      user.amountOwed -= amountToBurn;
+
+      // Transfer the remaining owed amount to the user
       uint256 amountToTransfer = user.amountOwed;
       user.amountOwed = 0;
       user.lastClaimed = block.timestamp;
+
       talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
       emit TokensClaimed(msg.sender, amountToTransfer);
+
+      if (amountToBurn > 0) {
+        talentToken.burnFrom(holdingWallet, amountToBurn);
+        emit TokensBurned(msg.sender, amountToBurn);
+      }
     } else {
-      // TODO: Create a test case for this
-      // owed 3k
-      // 1 week passed
-      // 2k
-      // 1k
       uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), user.amountOwed);
       user.amountOwed -= amountToBurn;
 
@@ -114,15 +125,18 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
 
       user.lastClaimed = block.timestamp;
 
-      talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-      emit TokensClaimed(msg.sender, amountToTransfer);
+      if (amountToTransfer > 0) {
+        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
+        emit TokensClaimed(msg.sender, amountToTransfer);
+      }
       if (amountToBurn > 0) {
-        user.amountOwed -= amountToBurn;
         talentToken.burnFrom(holdingWallet, amountToBurn);
         emit TokensBurned(msg.sender, amountToBurn);
       }
     }
-  }
+}
+
+
 
   function tokensOwed(address user) external view returns (uint256) {
     return userInfo[user].amountOwed;

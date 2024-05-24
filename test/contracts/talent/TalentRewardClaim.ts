@@ -159,10 +159,36 @@ describe("TalentRewardClaim", () => {
     });
   });
 
+  describe("Claiming & burning Tokens", () => {
+    beforeEach(async () => {
+      const users = [user1.address, user2.address];
+      const amounts = [ethers.utils.parseUnits("3000", 18), ethers.utils.parseUnits("20000", 18)];
+
+      await talentRewardClaim.initializeUsers(users, amounts);
+      await talentRewardClaim.finalizeSetup();
+
+      const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 1 week ago
+      await talentRewardClaim.setStartTime(startTime);
+    });
+
+    it("Should burn more than the amounts transfered", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 10); // Set builder score below 40
+      const initialBalance = await talentToken.totalSupply();
+
+      await talentRewardClaim.connect(user1).claimTokens();
+      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("1000", 18)); // 1k was transfered
+      expect(await talentToken.totalSupply()).to.equal(initialBalance.sub(ethers.utils.parseUnits("2000", 18))); // 2k was burned
+    });
+  });
+
   describe("Unlocking all tokens", () => {
     beforeEach(async () => {
       const users = [user2.address];
-      const amounts = [ethers.utils.parseUnits("50000", 18)];
+      const amounts = [ethers.utils.parseUnits("200000", 18)];
 
       await talentRewardClaim.initializeUsers(users, amounts);
       await talentRewardClaim.finalizeSetup();
@@ -173,7 +199,7 @@ describe("TalentRewardClaim", () => {
       await talentRewardClaim.setStartTime(startTime);
 
       await talentRewardClaim.connect(user2).claimTokens();
-      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("50000", 18));
+      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 96 weeks means 192k will be burned and 8k will be transfered
     });
   });
 });

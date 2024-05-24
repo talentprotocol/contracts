@@ -88,4 +88,37 @@ describe("PassportBuilderScore", () => {
       expect(score).to.equal(0);
     });
   });
+
+  describe("Changing PassportRegistry", () => {
+    let newPassportRegistry: PassportRegistry;
+
+    beforeEach(async () => {
+      newPassportRegistry = (await deployContract(admin, Artifacts.PassportRegistry, [
+        admin.address,
+      ])) as PassportRegistry;
+    });
+
+    it("Should allow the owner to change the PassportRegistry address", async () => {
+      await passportBuilderScore.setPassportRegistry(newPassportRegistry.address);
+      expect(await passportBuilderScore.passportRegistry()).to.equal(newPassportRegistry.address);
+    });
+
+    it("Should emit PassportRegistryChanged event when changing the address", async () => {
+      await expect(passportBuilderScore.setPassportRegistry(newPassportRegistry.address))
+        .to.emit(passportBuilderScore, "PassportRegistryChanged")
+        .withArgs(passportRegistry.address, newPassportRegistry.address);
+    });
+
+    it("Should not allow non-owner to change the PassportRegistry address", async () => {
+      await expect(
+        passportBuilderScore.connect(user1).setPassportRegistry(newPassportRegistry.address)
+      ).to.be.revertedWith(`OwnableUnauthorizedAccount("${user1.address}")`);
+    });
+
+    it("Should revert if the new address is the zero address", async () => {
+      await expect(passportBuilderScore.setPassportRegistry(ethers.constants.AddressZero)).to.be.revertedWith(
+        "Invalid address"
+      );
+    });
+  });
 });

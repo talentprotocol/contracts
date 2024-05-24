@@ -76,12 +76,14 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
 
     uint256 passportId = passportBuilderScore.passportRegistry().passportId(msg.sender);
     uint256 builderScore = passportBuilderScore.getScore(passportId);
+
     uint256 claimMultiplier = (builderScore > 40) ? 5 : 1;
     uint256 maxPerWeekAmountForUser = WEEKLY_CLAIM_AMOUNT * claimMultiplier;
 
     // calculate number of weeks that have passed since start time
     uint256 weeksPassed = (block.timestamp - startTime) / WEEK_DURATION;
     uint256 weeksSinceLastClaim = 0;
+
     if (user.lastClaimed != 0) {
       weeksSinceLastClaim = (block.timestamp - user.lastClaimed) / WEEK_DURATION;
       require(weeksSinceLastClaim > 0, "Can only claim once per week");
@@ -92,16 +94,24 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
 
     if (weeksPassed >= MAX_CLAIM_WEEKS) {
       // if the MAX_CLAIM_WEEKS have passed then transfer the full owed amount to the user
+      // TODO: We need to check when was the last time the user claim to know how much to burn
       uint256 amountToTransfer = user.amountOwed;
       user.amountOwed = 0;
       user.lastClaimed = block.timestamp;
-      talentToken.transferFrom(holdingWallet ,msg.sender, amountToTransfer);
+      talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
       emit TokensClaimed(msg.sender, amountToTransfer);
     } else {
+      // TODO: Create a test case for this
+      // owed 3k
+      // 1 week passed
+      // 2k
+      // 1k
+      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), user.amountOwed);
+      user.amountOwed -= amountToBurn;
+
       uint256 amountToTransfer = Math.min(maxPerWeekAmountForUser, user.amountOwed);
       user.amountOwed -= amountToTransfer;
 
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), user.amountOwed);
       user.lastClaimed = block.timestamp;
 
       talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);

@@ -11,6 +11,7 @@ contract PassportBuilderScore is Ownable {
     mapping(uint256 => uint256) private passportScores;
 
     event ScoreUpdated(uint256 indexed passportId, uint256 score);
+    event PassportRegistryChanged(address indexed oldAddress, address indexed newAddress);
 
     constructor(address passportRegistryAddress, address initialOwner) Ownable(initialOwner) {
         passportRegistry = PassportRegistry(passportRegistryAddress);
@@ -35,5 +36,17 @@ contract PassportBuilderScore is Ownable {
      */
     function getScore(uint256 passportId) external view returns (uint256) {
         return passportScores[passportId];
+    }
+
+    /**
+     * @notice Changes the address of the PassportRegistry contract.
+     * @dev Can only be called by the owner.
+     * @param newPassportRegistryAddress The address of the new PassportRegistry contract.
+     */
+    function setPassportRegistry(address newPassportRegistryAddress) external onlyOwner {
+        require(newPassportRegistryAddress != address(0), "Invalid address");
+        address oldAddress = address(passportRegistry);
+        passportRegistry = PassportRegistry(newPassportRegistryAddress);
+        emit PassportRegistryChanged(oldAddress, newPassportRegistryAddress);
     }
 }

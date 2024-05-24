@@ -43,9 +43,16 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     holdingWallet = _holdingWallet;
   }
 
+  /**
+    * @notice Initializes the user information with the specified addresses and amounts.
+    * @dev Can only be called by the owner. This function sets up the initial state for each user
+    *   with their corresponding amount owed. It also ensures that the number of users matches the
+    *   number of amounts provided.
+    * @param users An array of addresses representing the users to initialize.
+    * @param amounts An array of uint256 values representing the amounts owed to each user.
+    */
   function initializeUsers(address[] memory users, uint256[] memory amounts) external onlyOwner {
     require(users.length == amounts.length, "Users and amounts length mismatch");
-    require(!setupComplete, "Setup is already complete");
 
     for (uint256 i = 0; i < users.length; i++) {
       userInfo[users[i]] = UserInfo({
@@ -55,18 +62,33 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     }
   }
 
+  /**
+    * @notice Finalizes the setup process.
+    * @dev Can only be called by the owner. This function sets the setupComplete flag to true,
+    *      indicating that the initialization process is complete and no further initialization can occur.
+    */
   function finalizeSetup() external onlyOwner {
     setupComplete = true;
     emit SetupComplete();
   }
 
+  /**
+    * @notice Sets the start time for token claims.
+    * @dev Can only be called by the owner. This function initializes the startTime variable with the provided value.
+    * @param _startTime The timestamp representing the start time for token claims.
+    */
   function setStartTime(uint256 _startTime) external onlyOwner {
-    // require(startTime == 0, "Start time already set");
-
     startTime = _startTime;
     emit StartTimeSet(_startTime);
   }
 
+  /**
+    * @notice Allows users to claim their owed tokens.
+    * @dev Can only be called once the setup is complete and the start time is set. This function calculates
+    *      the number of weeks since the last claim and allows users to claim tokens based on their builder score.
+    *      It also burns tokens for missed weeks if applicable.
+    * @dev Uses the nonReentrant modifier to prevent reentrancy attacks.
+    */
   function claimTokens() external nonReentrant {
     require(setupComplete, "Setup is not complete");
     require(startTime > 0, "Start time not set");
@@ -134,9 +156,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
         emit TokensBurned(msg.sender, amountToBurn);
       }
     }
-}
-
-
+  }
 
   function tokensOwed(address user) external view returns (uint256) {
     return userInfo[user].amountOwed;

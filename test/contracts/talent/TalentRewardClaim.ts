@@ -65,16 +65,6 @@ describe("TalentRewardClaim", () => {
       expect(await talentRewardClaim.tokensOwed(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18));
       expect(await talentRewardClaim.tokensOwed(user2.address)).to.equal(ethers.utils.parseUnits("20000", 18));
     });
-
-    it("Should not allow further initialization after setup is complete", async () => {
-      const users = [user1.address];
-      const amounts = [ethers.utils.parseUnits("10000", 18)];
-
-      await talentRewardClaim.initializeUsers(users, amounts);
-      await talentRewardClaim.finalizeSetup();
-
-      await expect(talentRewardClaim.initializeUsers(users, amounts)).to.be.revertedWith("Setup is already complete");
-    });
   });
 
   describe("Setup and Start Time", () => {

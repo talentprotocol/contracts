@@ -16,7 +16,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   address public holdingWallet;
   uint256 public constant WEEKLY_CLAIM_AMOUNT = 2000 ether;
   uint256 public constant WEEK_DURATION = 7 days;
-  uint256 public constant MAX_CLAIM_WEEKS = 96;
+  uint256 public constant MAX_CLAIM_WEEKS = 104;
   bool public setupComplete = false;  // Setup flag
   uint256 public startTime;  // Track the start time
 

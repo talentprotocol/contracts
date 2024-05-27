@@ -178,18 +178,18 @@ describe("TalentRewardClaim", () => {
   describe("Unlocking all tokens", () => {
     beforeEach(async () => {
       const users = [user2.address];
-      const amounts = [ethers.utils.parseUnits("200000", 18)];
+      const amounts = [ethers.utils.parseUnits("216000", 18)];
 
       await talentRewardClaim.initializeUsers(users, amounts);
       await talentRewardClaim.finalizeSetup();
     });
 
-    it("Should unlock all tokens if 96 weeks have passed", async () => {
-      const startTime = Math.floor(Date.now() / 1000) - 96 * 7 * 24 * 60 * 60; // Set start time to 96 weeks ago
+    it("Should unlock all tokens if 104 weeks have passed", async () => {
+      const startTime = Math.floor(Date.now() / 1000) - 104 * 7 * 24 * 60 * 60; // Set start time to 104 weeks ago
       await talentRewardClaim.setStartTime(startTime);
 
       await talentRewardClaim.connect(user2).claimTokens();
-      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 96 weeks means 192k will be burned and 8k will be transfered
+      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 192k will be burned and 8k will be transfered
     });
   });
 });

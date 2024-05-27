@@ -52,7 +52,11 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     * @param users An array of addresses representing the users to initialize.
     * @param amounts An array of uint256 values representing the amounts owed to each user.
     */
-  function initializeUsers(address[] memory users, uint256[] memory amounts, uint256[] memory lastClaims) external onlyOwner {
+  function initializeUsers(
+    address[] memory users,
+    uint256[] memory amounts,
+    uint256[] memory lastClaims
+  ) external onlyOwner {
     require(users.length == amounts.length, "Users and amounts length mismatch");
     require(users.length == lastClaims.length, "Users and lastClaims length mismatch");
 

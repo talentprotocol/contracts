@@ -59,8 +59,8 @@ describe("TalentRewardClaim", () => {
     it("Should initialize users correctly", async () => {
       const users = [user1.address, user2.address];
       const amounts = [ethers.utils.parseUnits("10000", 18), ethers.utils.parseUnits("20000", 18)];
-
-      await talentRewardClaim.initializeUsers(users, amounts);
+      const startTimes = [0, 0];
+      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
 
       expect(await talentRewardClaim.tokensOwed(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18));
       expect(await talentRewardClaim.tokensOwed(user2.address)).to.equal(ethers.utils.parseUnits("20000", 18));
@@ -84,8 +84,9 @@ describe("TalentRewardClaim", () => {
     it("Should not allow claims before start time is set", async () => {
       const users = [user1.address];
       const amounts = [ethers.utils.parseUnits("10000", 18)];
+      const startTimes = [0];
 
-      await talentRewardClaim.initializeUsers(users, amounts);
+      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
       await talentRewardClaim.finalizeSetup();
 
       await expect(talentRewardClaim.connect(user1).claimTokens()).to.be.revertedWith("Start time not set");
@@ -96,8 +97,9 @@ describe("TalentRewardClaim", () => {
     beforeEach(async () => {
       const users = [user1.address, user2.address];
       const amounts = [ethers.utils.parseUnits("10000", 18), ethers.utils.parseUnits("20000", 18)];
+      const startTimes = [0, 0];
 
-      await talentRewardClaim.initializeUsers(users, amounts);
+      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
       await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
@@ -153,8 +155,9 @@ describe("TalentRewardClaim", () => {
     beforeEach(async () => {
       const users = [user1.address, user2.address];
       const amounts = [ethers.utils.parseUnits("3000", 18), ethers.utils.parseUnits("20000", 18)];
+      const startTimes = [0, 0];
 
-      await talentRewardClaim.initializeUsers(users, amounts);
+      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
       await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 1 week ago
@@ -179,8 +182,9 @@ describe("TalentRewardClaim", () => {
     beforeEach(async () => {
       const users = [user2.address];
       const amounts = [ethers.utils.parseUnits("216000", 18)];
+      const startTimes = [0];
 
-      await talentRewardClaim.initializeUsers(users, amounts);
+      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
       await talentRewardClaim.finalizeSetup();
     });
 

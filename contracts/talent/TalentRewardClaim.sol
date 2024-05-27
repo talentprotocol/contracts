@@ -31,6 +31,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   event TokensBurned(address indexed user, uint256 amount);
   event SetupComplete();
   event StartTimeSet(uint256 startTime);
+  event UserInitialized(address indexed user, uint256 amount, uint256 lastClaimed);
 
   constructor(
     TalentProtocolToken _talentToken,
@@ -51,14 +52,16 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     * @param users An array of addresses representing the users to initialize.
     * @param amounts An array of uint256 values representing the amounts owed to each user.
     */
-  function initializeUsers(address[] memory users, uint256[] memory amounts) external onlyOwner {
+  function initializeUsers(address[] memory users, uint256[] memory amounts, uint256[] memory lastClaims) external onlyOwner {
     require(users.length == amounts.length, "Users and amounts length mismatch");
+    require(users.length == lastClaims.length, "Users and lastClaims length mismatch");
 
     for (uint256 i = 0; i < users.length; i++) {
       userInfo[users[i]] = UserInfo({
         amountOwed: amounts[i],
-        lastClaimed: 0
+        lastClaimed: lastClaims[i]
       });
+      emit UserInitialized(users[i], amounts[i], lastClaims[i]);
     }
   }
 
@@ -131,8 +134,10 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       user.amountOwed = 0;
       user.lastClaimed = block.timestamp;
 
-      talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-      emit TokensClaimed(msg.sender, amountToTransfer);
+      if (amountToTransfer > 0) {
+        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
+        emit TokensClaimed(msg.sender, amountToTransfer);
+      }
 
       if (amountToBurn > 0) {
         talentToken.burnFrom(holdingWallet, amountToBurn);

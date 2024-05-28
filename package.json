@@ -13,6 +13,7 @@
     "@nomiclabs/hardhat-waffle": "2.0.1",
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@openzeppelin/merkle-tree": "^1.0.6",
     "@openzeppelin/upgrades-core": "^1.33.1",
     "@typechain/ethers-v5": "^11.1.2",
     "@typechain/hardhat": "^6.1.6",

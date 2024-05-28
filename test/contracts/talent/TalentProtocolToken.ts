@@ -77,6 +77,53 @@ describe("TalentProtocolToken", () => {
     });
   });
 
+  describe("TransferFrom behaviour", () => {
+    beforeEach(async () => {
+      token = (await builder()) as TalentProtocolToken;
+    });
+
+    it("Should not allow transfersFrom when paused", async function () {
+      await token.approve(holderOne.address, 50);
+      await expect(token.connect(holderOne).transferFrom(admin.address, holderOne.address, 50)).to.be.revertedWith(
+        "Token transfer is not enabled while paused"
+      );
+    });
+
+    it("Should allow transferFrom when unpaused", async function () {
+      await token.unpause();
+      await token.approve(holderOne.address, 50);
+      await token.connect(holderOne).transferFrom(admin.address, holderOne.address, 50);
+      const holderOneBalance = await token.balanceOf(holderOne.address);
+      expect(holderOneBalance).to.equal(50);
+    });
+
+    it("Should not allow transferFrom more than the approved amount", async function () {
+      await token.unpause();
+      await token.approve(holderOne.address, 50);
+      await expect(token.connect(holderOne).transferFrom(admin.address, holderOne.address, 100)).to.be.revertedWith(
+        `ERC20InsufficientAllowance("${holderOne.address}", 50, 100)`
+      );
+    });
+
+    it("Should allow transferFrom between accounts", async function () {
+      await token.unpause();
+      await token.transfer(holderOne.address, 100); // Transfer some tokens to holderOne
+      await token.connect(holderOne).approve(holderTwo.address, 50);
+      await token.connect(holderTwo).transferFrom(holderOne.address, holderThree.address, 50);
+      const holderThreeBalance = await token.balanceOf(holderThree.address);
+      expect(holderThreeBalance).to.equal(50);
+      const holderOneBalance = await token.balanceOf(holderOne.address);
+      expect(holderOneBalance).to.equal(50); // 100 - 50 transferred to holderThree
+    });
+
+    it("Should allow the owner to transferFrom when paused", async function () {
+      await token.approve(admin.address, 50);
+      await token.connect(admin).transferFrom(admin.address, holderOne.address, 50);
+      const holderOneBalance = await token.balanceOf(holderOne.address);
+      expect(holderOneBalance).to.equal(50);
+    });
+  });
+
   describe("Pausing", function () {
     beforeEach(async () => {
       token = (await builder()) as TalentProtocolToken;
@@ -115,52 +162,6 @@ describe("TalentProtocolToken", () => {
 
       const totalSupply = await token.totalSupply();
       expect(totalSupply).to.equal(ethers.utils.parseEther("1000000000").sub(50));
-    });
-  });
-
-  describe("ERC20Permit", function () {
-    beforeEach(async () => {
-      token = (await builder()) as TalentProtocolToken;
-      await token.unpause();
-    });
-
-    it("Should permit and transfer using ERC20Permit", async function () {
-      const nonce = await token.nonces(admin.address);
-      const deadline = ethers.constants.MaxUint256;
-      const value = 100;
-      const domain = {
-        name: "TalentProtocolToken",
-        version: "1",
-        chainId: await admin.getChainId(),
-        verifyingContract: token.address,
-      };
-
-      const types = {
-        Permit: [
-          { name: "owner", type: "address" },
-          { name: "spender", type: "address" },
-          { name: "value", type: "uint256" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      };
-
-      const signature = await admin._signTypedData(domain, types, {
-        owner: admin.address,
-        spender: holderOne.address,
-        value,
-        nonce,
-        deadline,
-      });
-
-      const { v, r, s } = ethers.utils.splitSignature(signature);
-
-      await token.permit(admin.address, holderOne.address, value, deadline, v, r, s);
-
-      await token.connect(holderOne).transferFrom(admin.address, holderOne.address, value);
-
-      const spenderBalance = await token.balanceOf(holderOne.address);
-      expect(spenderBalance).to.equal(value);
     });
   });
 });

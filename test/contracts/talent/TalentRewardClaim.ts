@@ -10,6 +10,9 @@ import {
   PassportBuilderScore,
 } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
+import generateMerkleTree from "../../../functions/generateMerkleTree";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
+import { BigNumber } from "ethers";
 
 chai.use(solidity);
 
@@ -26,11 +29,10 @@ describe("TalentRewardClaim", () => {
   let passportRegistry: PassportRegistry;
   let passportBuilderScore: PassportBuilderScore;
   let talentRewardClaim: TalentRewardClaim;
+  let merkleTree: StandardMerkleTree<(string | BigNumber)[]>;
 
   beforeEach(async () => {
     [admin, user1, user2, user3] = await ethers.getSigners();
-
-    console.log("Admin address:", admin.address);
 
     talentToken = (await deployContract(admin, Artifacts.TalentProtocolToken, [admin.address])) as TalentProtocolToken;
     passportRegistry = (await deployContract(admin, Artifacts.PassportRegistry, [admin.address])) as PassportRegistry;
@@ -38,11 +40,18 @@ describe("TalentRewardClaim", () => {
       passportRegistry.address,
       admin.address,
     ])) as PassportBuilderScore;
+
+    merkleTree = generateMerkleTree({
+      [user1.address]: ethers.utils.parseUnits("10000", 18),
+      [user2.address]: ethers.utils.parseUnits("20000", 18),
+    });
+
     talentRewardClaim = (await deployContract(admin, Artifacts.TalentRewardClaim, [
       talentToken.address,
       passportBuilderScore.address,
       admin.address,
       admin.address,
+      merkleTree.root,
     ])) as TalentRewardClaim;
 
     // Approve TalentRewardClaim contract to spend tokens on behalf of the admin
@@ -54,16 +63,6 @@ describe("TalentRewardClaim", () => {
   describe("Deployment", () => {
     it("Should set the right owner", async () => {
       expect(await talentRewardClaim.owner()).to.equal(admin.address);
-    });
-
-    it("Should initialize users correctly", async () => {
-      const users = [user1.address, user2.address];
-      const amounts = [ethers.utils.parseUnits("10000", 18), ethers.utils.parseUnits("20000", 18)];
-      const startTimes = [0, 0];
-      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
-
-      expect(await talentRewardClaim.tokensOwed(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18));
-      expect(await talentRewardClaim.tokensOwed(user2.address)).to.equal(ethers.utils.parseUnits("20000", 18));
     });
   });
 
@@ -82,24 +81,32 @@ describe("TalentRewardClaim", () => {
     });
 
     it("Should not allow claims before start time is set", async () => {
-      const users = [user1.address];
-      const amounts = [ethers.utils.parseUnits("10000", 18)];
-      const startTimes = [0];
+      const amount = ethers.utils.parseUnits("10000", 18);
+      const merkleTree = generateMerkleTree({
+        [user1.address]: amount,
+      });
 
-      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
+      await talentRewardClaim.setMerkleRoot(merkleTree.root);
       await talentRewardClaim.finalizeSetup();
 
-      await expect(talentRewardClaim.connect(user1).claimTokens()).to.be.revertedWith("Start time not set");
+      const proof1 = merkleTree.getProof([user1.address, amount]);
+
+      await expect(talentRewardClaim.connect(user1).claimTokens(proof1, amount)).to.be.revertedWith(
+        "Start time not set"
+      );
     });
   });
 
   describe("Claiming Tokens", () => {
     beforeEach(async () => {
-      const users = [user1.address, user2.address];
       const amounts = [ethers.utils.parseUnits("10000", 18), ethers.utils.parseUnits("20000", 18)];
-      const startTimes = [0, 0];
 
-      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
+      merkleTree = generateMerkleTree({
+        [user1.address]: amounts[0],
+        [user2.address]: amounts[1],
+      });
+
+      await talentRewardClaim.setMerkleRoot(merkleTree.root);
       await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
@@ -115,7 +122,9 @@ describe("TalentRewardClaim", () => {
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
 
-      await talentRewardClaim.connect(user1).claimTokens();
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
+
+      await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("2000", 18));
     });
 
@@ -129,7 +138,9 @@ describe("TalentRewardClaim", () => {
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
 
-      await talentRewardClaim.connect(user1).claimTokens();
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
+
+      await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18)); // 5x the weekly amount
     });
 
@@ -145,7 +156,9 @@ describe("TalentRewardClaim", () => {
       const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 2 weeks ago
       await talentRewardClaim.setStartTime(startTime);
 
-      await talentRewardClaim.connect(user1).claimTokens();
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
+
+      await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("2000", 18));
       expect(await talentToken.totalSupply()).to.equal(initialBalance.sub(ethers.utils.parseUnits("2000", 18)));
     });
@@ -153,11 +166,14 @@ describe("TalentRewardClaim", () => {
 
   describe("Claiming & burning Tokens", () => {
     beforeEach(async () => {
-      const users = [user1.address, user2.address];
       const amounts = [ethers.utils.parseUnits("3000", 18), ethers.utils.parseUnits("20000", 18)];
-      const startTimes = [0, 0];
 
-      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
+      merkleTree = generateMerkleTree({
+        [user1.address]: amounts[0],
+        [user2.address]: amounts[1],
+      });
+
+      await talentRewardClaim.setMerkleRoot(merkleTree.root);
       await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 1 week ago
@@ -172,7 +188,9 @@ describe("TalentRewardClaim", () => {
       await passportBuilderScore.setScore(passportId, 10); // Set builder score below 40
       const initialBalance = await talentToken.totalSupply();
 
-      await talentRewardClaim.connect(user1).claimTokens();
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("3000", 18)]);
+
+      await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("3000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("1000", 18)); // 1k was transfered
       expect(await talentToken.totalSupply()).to.equal(initialBalance.sub(ethers.utils.parseUnits("2000", 18))); // 2k was burned
     });
@@ -180,11 +198,13 @@ describe("TalentRewardClaim", () => {
 
   describe("Unlocking all tokens", () => {
     beforeEach(async () => {
-      const users = [user2.address];
       const amounts = [ethers.utils.parseUnits("216000", 18)];
-      const startTimes = [0];
 
-      await talentRewardClaim.initializeUsers(users, amounts, startTimes);
+      merkleTree = generateMerkleTree({
+        [user1.address]: amounts[0],
+      });
+
+      await talentRewardClaim.setMerkleRoot(merkleTree.root);
       await talentRewardClaim.finalizeSetup();
     });
 
@@ -192,8 +212,9 @@ describe("TalentRewardClaim", () => {
       const startTime = Math.floor(Date.now() / 1000) - 104 * 7 * 24 * 60 * 60; // Set start time to 104 weeks ago
       await talentRewardClaim.setStartTime(startTime);
 
-      await talentRewardClaim.connect(user2).claimTokens();
-      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 192k will be burned and 8k will be transfered
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("216000", 18)]);
+      await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("216000", 18));
+      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 192k will be burned and 8k will be transfered
     });
   });
 });

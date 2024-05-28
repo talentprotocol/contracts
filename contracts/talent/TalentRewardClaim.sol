@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./TalentProtocolToken.sol";
 import "../passport/PassportBuilderScore.sol";
+import "../merkle/MerkleProof.sol";
 
 contract TalentRewardClaim is Ownable, ReentrancyGuard {
   using Math for uint256;
@@ -19,9 +20,10 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   uint256 public constant MAX_CLAIM_WEEKS = 104;
   bool public setupComplete = false;  // Setup flag
   uint256 public startTime;  // Track the start time
+  bytes32 public merkleRoot; // Track the merkle root with the information of user owed amounts
 
   struct UserInfo {
-    uint256 amountOwed;
+    uint256 amountClaimed;
     uint256 lastClaimed;
   }
 
@@ -37,36 +39,25 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     TalentProtocolToken _talentToken,
     PassportBuilderScore _passportBuilderScore,
     address _holdingWallet,
-    address initialOwner
+    address initialOwner,
+    bytes32 _merkleRoot
   ) Ownable(initialOwner) {
+    merkleRoot = _merkleRoot;
     talentToken = _talentToken;
     passportBuilderScore = _passportBuilderScore;
     holdingWallet = _holdingWallet;
   }
 
   /**
-    * @notice Initializes the user information with the specified addresses and amounts.
-    * @dev Can only be called by the owner. This function sets up the initial state for each user
-    *   with their corresponding amount owed. It also ensures that the number of users matches the
-    *   number of amounts provided.
-    * @param users An array of addresses representing the users to initialize.
-    * @param amounts An array of uint256 values representing the amounts owed to each user.
+    * @notice Initializes the user information via changing the root of the merkle tree.
+    * @dev Can only be called by the owner. This function sets up the root of the merkle tree
+    *   that was calculated with the wallet and amount owed for each user.
+    * @param _newMerkleRoot The new merkle root to be set.
     */
-  function initializeUsers(
-    address[] memory users,
-    uint256[] memory amounts,
-    uint256[] memory lastClaims
+  function setMerkleRoot(
+    bytes32 _newMerkleRoot
   ) external onlyOwner {
-    require(users.length == amounts.length, "Users and amounts length mismatch");
-    require(users.length == lastClaims.length, "Users and lastClaims length mismatch");
-
-    for (uint256 i = 0; i < users.length; i++) {
-      userInfo[users[i]] = UserInfo({
-        amountOwed: amounts[i],
-        lastClaimed: lastClaims[i]
-      });
-      emit UserInitialized(users[i], amounts[i], lastClaims[i]);
-    }
+    merkleRoot = _newMerkleRoot;
   }
 
   /**
@@ -96,14 +87,22 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     *      It also burns tokens for missed weeks if applicable.
     * @dev Uses the nonReentrant modifier to prevent reentrancy attacks.
     */
-  function claimTokens() external nonReentrant {
+  function claimTokens(
+    bytes32[] calldata merkleProof,
+    uint256 amountAllocated
+  ) external nonReentrant {
     require(setupComplete, "Setup is not complete");
     require(startTime > 0, "Start time not set");
 
-    UserInfo storage user = userInfo[msg.sender];
-    require(user.amountOwed > 0, "No tokens owed");
+    verify(merkleProof, amountAllocated);
 
-    uint256 passportId = passportBuilderScore.passportRegistry().passportId(msg.sender);
+    address beneficiary = msg.sender;
+    uint256 amountToClaim = calculate(beneficiary, amountAllocated);
+
+    UserInfo storage user = userInfo[msg.sender];
+    require(amountToClaim > 0, "No tokens owed");
+
+    uint256 passportId = passportBuilderScore.passportRegistry().passportId(beneficiary);
     uint256 builderScore = passportBuilderScore.getScore(passportId);
 
     uint256 claimMultiplier = (builderScore > 40) ? 5 : 1;
@@ -130,12 +129,12 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       }
 
       // Burn the equivalent amount of tokens for the missed weeks
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, user.amountOwed);
-      user.amountOwed -= amountToBurn;
+      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, amountToClaim);
+      user.amountClaimed += amountToBurn;
 
       // Transfer the remaining owed amount to the user
-      uint256 amountToTransfer = user.amountOwed;
-      user.amountOwed = 0;
+      uint256 amountToTransfer = amountToClaim - amountToBurn;
+      user.amountClaimed += amountToTransfer;
       user.lastClaimed = block.timestamp;
 
       if (amountToTransfer > 0) {
@@ -148,11 +147,11 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
         emit TokensBurned(msg.sender, amountToBurn);
       }
     } else {
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), user.amountOwed);
-      user.amountOwed -= amountToBurn;
+      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), amountToClaim);
+      user.amountClaimed += amountToBurn;
 
-      uint256 amountToTransfer = Math.min(maxPerWeekAmountForUser, user.amountOwed);
-      user.amountOwed -= amountToTransfer;
+      uint256 amountToTransfer = Math.min(maxPerWeekAmountForUser, amountToClaim - amountToBurn);
+      user.amountClaimed += amountToTransfer;
 
       user.lastClaimed = block.timestamp;
 
@@ -167,11 +166,36 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     }
   }
 
-  function tokensOwed(address user) external view returns (uint256) {
-    return userInfo[user].amountOwed;
+  function tokensClaimed(address user) external view returns (uint256) {
+    return userInfo[user].amountClaimed;
   }
 
   function lastClaimed(address user) external view returns (uint256) {
     return userInfo[user].lastClaimed;
+  }
+
+  function verify(
+    bytes32[] calldata proof,
+    uint256 amountAllocated
+  ) internal view {
+    // Computing proof using leaf double hashing
+    // https://flawed.net.nz/2018/02/21/attacking-merkle-trees-with-a-second-preimage-attack/
+
+    bytes32 root = merkleRoot;
+    bytes32 leaf = keccak256(
+      bytes.concat(keccak256(abi.encode(msg.sender, amountAllocated)))
+    );
+
+    require(MerkleProof.verify(proof, root, leaf), "Invalid Allocation Proof");
+  }
+
+  function calculate(
+    address beneficiary,
+    uint256 amountAllocated
+  ) internal view returns (uint256 amountToClaim) {
+    UserInfo storage user = userInfo[beneficiary];
+    assert(user.amountClaimed <= amountAllocated);
+
+    amountToClaim = amountAllocated - user.amountClaimed;
   }
 }

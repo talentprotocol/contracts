@@ -28,3 +28,4 @@ typechain/
 typechain-types/
 docs/
 .openzeppelin/
+/scripts/data/*

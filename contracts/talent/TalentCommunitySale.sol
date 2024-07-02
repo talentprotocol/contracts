@@ -23,6 +23,8 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   uint32 public tier3Bought;
   uint32 public tier4Bought;
 
+  uint256 public totalRaised;
+
   event Tier1Bought(address indexed buyer, uint256 amount);
   event Tier2Bought(address indexed buyer, uint256 amount);
   event Tier3Bought(address indexed buyer, uint256 amount);
@@ -39,6 +41,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
     paymentToken = IERC20(_paymentToken);
     receivingWallet = _receivingWallet;
     tokenDecimals = _tokenDecimals;
+    totalRaised = 0;
   }
 
   function buyTier1() external nonReentrant {
@@ -52,6 +55,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier1Bought++;
     listOfBuyers[msg.sender] = true;
+    totalRaised += 100 * 10**tokenDecimals;
     emit Tier1Bought(msg.sender, 100 * 10**tokenDecimals);
   }
 
@@ -66,6 +70,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier2Bought++;
     listOfBuyers[msg.sender] = true;
+    totalRaised += 100 * 10**tokenDecimals;
     emit Tier2Bought(msg.sender, 250 * 10**tokenDecimals);
   }
 
@@ -80,6 +85,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier3Bought++;
     listOfBuyers[msg.sender] = true;
+    totalRaised += 100 * 10**tokenDecimals;
     emit Tier3Bought(msg.sender, 500 * 10**tokenDecimals);
   }
 
@@ -94,6 +100,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier4Bought++;
     listOfBuyers[msg.sender] = true;
+    totalRaised += 100 * 10**tokenDecimals;
     emit Tier4Bought(msg.sender, 1000 * 10**tokenDecimals);
   }
 }

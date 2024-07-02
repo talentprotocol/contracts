@@ -10,6 +10,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   using Math for uint256;
 
   IERC20 public paymentToken;
+  uint256 private tokenDecimals;
   address public receivingWallet;
 
   uint32 public constant TIER1_MAX_BUYS = 300;
@@ -32,53 +33,67 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   constructor(
     address initialOwner,
     address _paymentToken,
-    address _receivingWallet
+    address _receivingWallet,
+    uint256 _tokenDecimals
   ) Ownable(initialOwner) {
     paymentToken = IERC20(_paymentToken);
     receivingWallet = _receivingWallet;
+    tokenDecimals = _tokenDecimals;
   }
 
   function buyTier1() external nonReentrant {
-    require(paymentToken.allowance(msg.sender, address(this)) >= 100 ether, "TalentCommunitySale: Insufficient allowance");
+    require(
+      paymentToken.allowance(msg.sender, address(this)) >= 100 * 10**tokenDecimals,
+      "TalentCommunitySale: Insufficient allowance"
+    );
     require(tier1Bought < TIER1_MAX_BUYS, "TalentCommunitySale: Tier 1 sold out");
     require(!listOfBuyers[msg.sender], "TalentCommunitySale: Address already bought");
-    require(paymentToken.transferFrom(msg.sender, receivingWallet, 100 ether), "Transfer failed");
+    require(paymentToken.transferFrom(msg.sender, receivingWallet, 100 * 10**tokenDecimals), "Transfer failed");
 
     tier1Bought++;
     listOfBuyers[msg.sender] = true;
-    emit Tier1Bought(msg.sender, 100 ether);
+    emit Tier1Bought(msg.sender, 100 * 10**tokenDecimals);
   }
 
   function buyTier2() external nonReentrant {
-    require(paymentToken.allowance(msg.sender, address(this)) >= 250 ether, "TalentCommunitySale: Insufficient allowance");
+    require(
+      paymentToken.allowance(msg.sender, address(this)) >= 250 * 10**tokenDecimals,
+      "TalentCommunitySale: Insufficient allowance"
+    );
     require(tier2Bought < TIER2_MAX_BUYS, "TalentCommunitySale: Tier 2 sold out");
     require(!listOfBuyers[msg.sender], "TalentCommunitySale: Address already bought");
-    require(paymentToken.transferFrom(msg.sender, receivingWallet, 250 ether), "Transfer failed");
+    require(paymentToken.transferFrom(msg.sender, receivingWallet, 250 * 10**tokenDecimals), "Transfer failed");
 
     tier2Bought++;
     listOfBuyers[msg.sender] = true;
-    emit Tier2Bought(msg.sender, 250 ether);
+    emit Tier2Bought(msg.sender, 250 * 10**tokenDecimals);
   }
 
   function buyTier3() external nonReentrant {
-    require(paymentToken.allowance(msg.sender, address(this)) >= 500 ether, "TalentCommunitySale: Insufficient allowance");
+    require(
+      paymentToken.allowance(msg.sender, address(this)) >= 500 * 10**tokenDecimals,
+      "TalentCommunitySale: Insufficient allowance"
+    );
     require(tier3Bought < TIER3_MAX_BUYS, "TalentCommunitySale: Tier 3 sold out");
     require(!listOfBuyers[msg.sender], "TalentCommunitySale: Address already bought");
-    require(paymentToken.transferFrom(msg.sender, receivingWallet, 500 ether), "Transfer failed");
+    require(paymentToken.transferFrom(msg.sender, receivingWallet, 500 * 10**tokenDecimals), "Transfer failed");
 
     tier3Bought++;
     listOfBuyers[msg.sender] = true;
-    emit Tier3Bought(msg.sender, 500 ether);
+    emit Tier3Bought(msg.sender, 500 * 10**tokenDecimals);
   }
 
   function buyTier4() external nonReentrant {
-    require(paymentToken.allowance(msg.sender, address(this)) >= 1000 ether, "TalentCommunitySale: Insufficient allowance");
+    require(
+      paymentToken.allowance(msg.sender, address(this)) >= 1000 * 10**tokenDecimals,
+      "TalentCommunitySale: Insufficient allowance"
+    );
     require(tier4Bought < TIER4_MAX_BUYS, "TalentCommunitySale: Tier 4 sold out");
     require(!listOfBuyers[msg.sender], "TalentCommunitySale: Address already bought");
-    require(paymentToken.transferFrom(msg.sender, receivingWallet, 1000 ether), "Transfer failed");
+    require(paymentToken.transferFrom(msg.sender, receivingWallet, 1000 * 10**tokenDecimals), "Transfer failed");
 
     tier4Bought++;
     listOfBuyers[msg.sender] = true;
-    emit Tier4Bought(msg.sender, 1000 ether);
+    emit Tier4Bought(msg.sender, 1000 * 10**tokenDecimals);
   }
 }

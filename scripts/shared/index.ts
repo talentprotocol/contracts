@@ -4,7 +4,8 @@ import type {
   PassportRegistry,
   TalentProtocolToken,
   TalentRewardClaim,
-  PassportBuilderScore
+  PassportBuilderScore,
+  TalentCommunitySale,
 } from "../../typechain-types";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
@@ -25,7 +26,12 @@ export async function deployTalentToken(): Promise<TalentProtocolToken> {
   return deployedTalentToken as TalentProtocolToken;
 }
 
-export async function deployTalentRewardClaim(token: string, scoreContract: string, holdingWallet: string, owner: string): Promise<TalentRewardClaim> {
+export async function deployTalentRewardClaim(
+  token: string,
+  scoreContract: string,
+  holdingWallet: string,
+  owner: string
+): Promise<TalentRewardClaim> {
   const talentRewardClaimContract = await ethers.getContractFactory("TalentRewardClaim");
 
   const deployedRewardClaim = await talentRewardClaimContract.deploy(
@@ -47,4 +53,22 @@ export async function deployPassportBuilderScore(registry: string, owner: string
   await deployedPassportBuilderScore.deployed();
 
   return deployedPassportBuilderScore as PassportBuilderScore;
+}
+
+export async function deployTalentCommunitySale(
+  owner: string,
+  tokenAddress: string,
+  decimals: number
+): Promise<TalentCommunitySale> {
+  const talentTokenContract = await ethers.getContractFactory("TalentCommunitySale");
+
+  const deployedTalentToken = await talentTokenContract.deploy(
+    owner,
+    tokenAddress,
+    "0xcAc42Ecd516AF7bBbd54B93D637332cEB34FE21D",
+    decimals
+  );
+  await deployedTalentToken.deployed();
+
+  return deployedTalentToken as TalentCommunitySale;
 }

@@ -2,5 +2,16 @@ import PassportRegistry from "../../artifacts/contracts/passport/PassportRegistr
 import TalentProtocolToken from "../../artifacts/contracts/talent/TalentProtocolToken.sol/TalentProtocolToken.json";
 import TalentRewardClaim from "../../artifacts/contracts/talent/TalentRewardClaim.sol/TalentRewardClaim.json";
 import PassportBuilderScore from "../../artifacts/contracts/passport/PassportBuilderScore.sol/PassportBuilderScore.json";
+import ERC20Mock from "../../artifacts/contracts/test/ERC20Mock.sol/ERC20Mock.json";
+import TalentCommunitySale from "../../artifacts/contracts/talent/TalentCommunitySale.sol/TalentCommunitySale.json";
+import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
 
-export { PassportRegistry, TalentProtocolToken, TalentRewardClaim, PassportBuilderScore };
+export {
+  PassportRegistry,
+  TalentProtocolToken,
+  TalentRewardClaim,
+  PassportBuilderScore,
+  ERC20Mock,
+  TalentCommunitySale,
+  USDTMock,
+};

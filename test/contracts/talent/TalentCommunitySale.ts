@@ -36,6 +36,7 @@ describe("TalentProtocolToken", () => {
     beforeEach(async () => {
       paymentToken = (await deployContract(admin, Artifacts.USDTMock, [])) as USDTMock;
       communitySaleContract = (await builder(paymentToken.address)) as TalentCommunitySale;
+      await communitySaleContract.enableSale();
     });
 
     it("Should set the correct admin", async () => {
@@ -55,6 +56,7 @@ describe("TalentProtocolToken", () => {
     beforeEach(async () => {
       paymentToken = (await deployContract(admin, Artifacts.USDTMock, [])) as USDTMock;
       communitySaleContract = (await builder(paymentToken.address)) as TalentCommunitySale;
+      await communitySaleContract.enableSale();
 
       await paymentToken.connect(admin).transfer(holderOne.address, ethers.utils.parseUnits("2000", 6));
       await paymentToken.connect(admin).transfer(holderTwo.address, ethers.utils.parseUnits("2000", 6));
@@ -96,7 +98,7 @@ describe("TalentProtocolToken", () => {
     });
 
     it("Should not allow a user to buy if tier 1 is sold out", async () => {
-      for (let i = 0; i < 300; i++) {
+      for (let i = 0; i < 100; i++) {
         const newSigner = await ethers.Wallet.createRandom().connect(ethers.provider);
         await admin.sendTransaction({
           to: newSigner.address,

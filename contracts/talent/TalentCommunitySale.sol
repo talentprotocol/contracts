@@ -13,10 +13,10 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   uint256 private tokenDecimals;
   address public receivingWallet;
 
-  uint32 public constant TIER1_MAX_BUYS = 300;
+  uint32 public constant TIER1_MAX_BUYS = 100;
   uint32 public constant TIER2_MAX_BUYS = 500;
   uint32 public constant TIER3_MAX_BUYS = 1250;
-  uint32 public constant TIER4_MAX_BUYS = 500;
+  uint32 public constant TIER4_MAX_BUYS = 520;
 
   uint32 public tier1Bought;
   uint32 public tier2Bought;
@@ -24,6 +24,8 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   uint32 public tier4Bought;
 
   uint256 public totalRaised;
+
+  bool public saleActive;
 
   event Tier1Bought(address indexed buyer, uint256 amount);
   event Tier2Bought(address indexed buyer, uint256 amount);
@@ -42,9 +44,19 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
     receivingWallet = _receivingWallet;
     tokenDecimals = _tokenDecimals;
     totalRaised = 0;
+    saleActive = false;
+  }
+
+  function enableSale() external onlyOwner {
+    saleActive = true;
+  }
+
+  function disableSale() external onlyOwner {
+    saleActive = false;
   }
 
   function buyTier1() external nonReentrant {
+    require(saleActive, "TalentCommunitySale: Sale is not active");
     require(
       paymentToken.allowance(msg.sender, address(this)) >= 100 * 10**tokenDecimals,
       "TalentCommunitySale: Insufficient allowance"
@@ -60,6 +72,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   }
 
   function buyTier2() external nonReentrant {
+    require(saleActive, "TalentCommunitySale: Sale is not active");
     require(
       paymentToken.allowance(msg.sender, address(this)) >= 250 * 10**tokenDecimals,
       "TalentCommunitySale: Insufficient allowance"
@@ -75,6 +88,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   }
 
   function buyTier3() external nonReentrant {
+    require(saleActive, "TalentCommunitySale: Sale is not active");
     require(
       paymentToken.allowance(msg.sender, address(this)) >= 500 * 10**tokenDecimals,
       "TalentCommunitySale: Insufficient allowance"
@@ -90,6 +104,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   }
 
   function buyTier4() external nonReentrant {
+    require(saleActive, "TalentCommunitySale: Sale is not active");
     require(
       paymentToken.allowance(msg.sender, address(this)) >= 1000 * 10**tokenDecimals,
       "TalentCommunitySale: Insufficient allowance"

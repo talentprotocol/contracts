@@ -14,7 +14,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
   address public receivingWallet;
 
   uint32 public constant TIER1_MAX_BUYS = 100;
-  uint32 public constant TIER2_MAX_BUYS = 500;
+  uint32 public constant TIER2_MAX_BUYS = 580;
   uint32 public constant TIER3_MAX_BUYS = 1250;
   uint32 public constant TIER4_MAX_BUYS = 520;
 
@@ -83,7 +83,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier2Bought++;
     listOfBuyers[msg.sender] = true;
-    totalRaised += 100 * 10**tokenDecimals;
+    totalRaised += 250 * 10**tokenDecimals;
     emit Tier2Bought(msg.sender, 250 * 10**tokenDecimals);
   }
 
@@ -99,7 +99,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier3Bought++;
     listOfBuyers[msg.sender] = true;
-    totalRaised += 100 * 10**tokenDecimals;
+    totalRaised += 500 * 10**tokenDecimals;
     emit Tier3Bought(msg.sender, 500 * 10**tokenDecimals);
   }
 
@@ -115,7 +115,7 @@ contract TalentCommunitySale is Ownable, ReentrancyGuard {
 
     tier4Bought++;
     listOfBuyers[msg.sender] = true;
-    totalRaised += 100 * 10**tokenDecimals;
+    totalRaised += 1000 * 10**tokenDecimals;
     emit Tier4Bought(msg.sender, 1000 * 10**tokenDecimals);
   }
 }

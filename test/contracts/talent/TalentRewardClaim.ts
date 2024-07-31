@@ -13,6 +13,7 @@ import { Artifacts } from "../../shared";
 import generateMerkleTree from "../../../functions/generateMerkleTree";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { BigNumber } from "ethers";
+import { zeroAddress } from "viem";
 
 chai.use(solidity);
 
@@ -87,7 +88,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const proof1 = merkleTree.getProof([user1.address, amount]);
 
@@ -107,7 +107,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
@@ -162,6 +161,23 @@ describe("TalentRewardClaim", () => {
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("2000", 18));
       expect(await talentToken.totalSupply()).to.equal(initialBalance.sub(ethers.utils.parseUnits("2000", 18)));
     });
+
+    it("Shouldn't allow users to abuse the fact that the zero address can have a score to claim more tokens then they should", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 50); // Set builder score above 40
+      await passportRegistry.connect(user1).transfer(zeroAddress);
+
+      const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
+      await talentRewardClaim.setStartTime(startTime);
+
+      const proof1 = merkleTree.getProof([user2.address, ethers.utils.parseUnits("20000", 18)]);
+
+      await talentRewardClaim.connect(user2).claimTokens(proof1, ethers.utils.parseUnits("20000", 18));
+      expect(await talentToken.balanceOf(user2.address)).to.equal(ethers.utils.parseUnits("2000", 18)); // 1x the weekly amount
+    });
   });
 
   describe("Claiming & burning Tokens", () => {
@@ -174,7 +190,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
@@ -205,7 +220,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
     });
 
     it("Should unlock all tokens if 104 weeks have passed", async () => {

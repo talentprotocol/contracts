@@ -228,7 +228,7 @@ describe("TalentRewardClaim", () => {
 
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("216000", 18)]);
       await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("216000", 18));
-      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 192k will be burned and 8k will be transfered
+      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 208k will be burned and 8k will be transfered
     });
   });
 });

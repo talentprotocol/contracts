@@ -106,6 +106,9 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       weeksSinceLastClaim = weeksPassed;
     }
 
+    uint256 amountToBurn = 0;
+    uint256 amountToTransfer = 0;
+
     if (weeksPassed >= MAX_CLAIM_WEEKS) {
       // Calculate the number of weeks missed
       uint256 weeksMissed = 0;
@@ -116,40 +119,30 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       }
 
       // Burn the equivalent amount of tokens for the missed weeks
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, amountToClaim);
+      amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, amountToClaim);
       user.amountClaimed += amountToBurn;
 
       // Transfer the remaining owed amount to the user
-      uint256 amountToTransfer = amountToClaim - amountToBurn;
+      amountToTransfer = amountToClaim - amountToBurn;
       user.amountClaimed += amountToTransfer;
       user.lastClaimed = block.timestamp;
-
-      if (amountToTransfer > 0) {
-        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-        emit TokensClaimed(msg.sender, amountToTransfer);
-      }
-
-      if (amountToBurn > 0) {
-        talentToken.burnFrom(holdingWallet, amountToBurn);
-        emit TokensBurned(msg.sender, amountToBurn);
-      }
     } else {
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), amountToClaim);
+      amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), amountToClaim);
       user.amountClaimed += amountToBurn;
 
-      uint256 amountToTransfer = Math.min(maxPerWeekAmountForUser, amountToClaim - amountToBurn);
+      amountToTransfer = Math.min(maxPerWeekAmountForUser, amountToClaim - amountToBurn);
       user.amountClaimed += amountToTransfer;
 
       user.lastClaimed = block.timestamp;
+    }
 
-      if (amountToTransfer > 0) {
-        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-        emit TokensClaimed(msg.sender, amountToTransfer);
-      }
-      if (amountToBurn > 0) {
-        talentToken.burnFrom(holdingWallet, amountToBurn);
-        emit TokensBurned(msg.sender, amountToBurn);
-      }
+    if (amountToTransfer > 0) {
+      talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
+      emit TokensClaimed(msg.sender, amountToTransfer);
+    }
+    if (amountToBurn > 0) {
+      talentToken.burnFrom(holdingWallet, amountToBurn);
+      emit TokensBurned(msg.sender, amountToBurn);
     }
   }
 

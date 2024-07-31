@@ -144,6 +144,14 @@ describe("Passport", () => {
       expect(holderTwoPassportId).to.eq(1001);
     });
 
+    it("does not allow for a user to transfer the passport to themselves", async () => {
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
+
+      const action = contract.connect(holderOne).transfer(holderOne.address);
+
+      await expect(action).to.be.revertedWith("You can not transfer to yourself");
+    });
+
     it("emits a tranfer event everytime a passport is tranfered by an admin", async () => {
       let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 

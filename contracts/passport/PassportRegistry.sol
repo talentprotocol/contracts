@@ -37,7 +37,7 @@ contract PassportRegistry is Ownable, Pausable {
     uint256 public totalPassportTransfers;
 
     // The next id to be issued
-    uint256 private _nextSequencialPassportId;
+    uint256 private _nextSequentialPassportId;
 
     // Smart contract id in sequencial mode
     bool private _sequencial;
@@ -82,19 +82,30 @@ contract PassportRegistry is Ownable, Pausable {
     }
 
     constructor(address initialOwner) Ownable(initialOwner) {
-        transferOwnership(initialOwner);
         _sequencial = false;
     }
 
+    /**
+     * @notice Creates a new passport with the next sequential ID.
+     * @dev Can only be called when the contract is in sequential generation mode and not paused.
+     * @param source The source of the passport creation.
+     */
     function create(string memory source) public whenNotPaused whenSequencialGeneration {
         require(passportId[msg.sender] == 0, "Passport already exists");
 
         totalSequencialCreates++;
 
-        _create(msg.sender, _nextSequencialPassportId, source);
-        _nextSequencialPassportId += 1;
+        _create(msg.sender, _nextSequentialPassportId, source);
+        _nextSequentialPassportId += 1;
     }
 
+    /**
+     * @notice Creates a new passport with a specified ID for a specific wallet.
+     * @dev Can only be called by the owner when the contract is in admin generation mode and not paused.
+     * @param source The source of the passport creation.
+     * @param wallet The address of the wallet to associate with the new passport.
+     * @param id The ID to assign to the new passport.
+     */
     function adminCreate(
         string memory source,
         address wallet,
@@ -108,8 +119,9 @@ contract PassportRegistry is Ownable, Pausable {
     }
 
     /**
-     * @notice Transfer the passport id of the msg.sender to the newWallet.
-     * @dev Can only be called by the passport owner.
+     * @notice Transfers the passport ID of the msg.sender to the new wallet.
+     * @dev Can only be called by the passport owner and when the contract is not paused.
+     * @param newWallet The address of the new wallet to transfer the passport to.
      */
     function transfer(address newWallet) public whenNotPaused {
         uint256 id = passportId[msg.sender];
@@ -130,8 +142,10 @@ contract PassportRegistry is Ownable, Pausable {
     // Admin
 
     /**
-     * @notice Change the wallet passport id to a new one.
-     * @dev Can only be called by the owner.
+     * @notice Transfers the passport ID from one wallet to another.
+     * @dev Can only be called by the owner (aka admin).
+     * @param wallet The address of the wallet to transfer the passport from.
+     * @param id The new passport ID to assign to the wallet.
      */
     function adminTransfer(address wallet, uint256 id) public onlyOwner {
         uint256 oldId = passportId[wallet];
@@ -154,8 +168,9 @@ contract PassportRegistry is Ownable, Pausable {
     }
 
     /**
-     * @notice Activates the passport of a given walley.
-     * @dev Can only be called by the owner.
+     * @notice Activates the passport of a given wallet.
+     * @dev Can only be called by the owner (aka admin) when the contract is not paused.
+     * @param wallet The address of the wallet to activate the passport for.
      */
     function activate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
@@ -171,8 +186,9 @@ contract PassportRegistry is Ownable, Pausable {
     }
 
     /**
-     * @notice Deactivates the passport of a given walley.
-     * @dev Can only be called by the owner.
+     * @notice Deactivates the passport of a given wallet.
+     * @dev Can only be called by the owner when the contract is not paused.
+     * @param wallet The address of the wallet to deactivate the passport for.
      */
     function deactivate(address wallet) public whenNotPaused onlyOwner {
         require(passportId[wallet] != 0, "Passport must exist");
@@ -206,12 +222,14 @@ contract PassportRegistry is Ownable, Pausable {
     /**
      * @notice Changes the contract generation mode.
      * @dev Can only be called by the owner.
+     * @param sequentialFlag Set to true for sequential generation mode, false for admin generation mode.
+     * @param nextSequentialPassportId The next sequential passport ID to be issued.
      */
-    function setGenerationMode(bool sequencialFlag, uint256 nextSequencialPassportId) public onlyOwner {
-        _sequencial = sequencialFlag;
-        _nextSequencialPassportId = nextSequencialPassportId;
+    function setGenerationMode(bool sequentialFlag, uint256 nextSequentialPassportId) public onlyOwner {
+        _sequencial = sequentialFlag;
+        _nextSequentialPassportId = nextSequentialPassportId;
 
-        emit PassportGenerationChanged(sequencialFlag, nextSequencialPassportId);
+        emit PassportGenerationChanged(sequentialFlag, nextSequentialPassportId);
     }
 
     /**
@@ -225,11 +243,17 @@ contract PassportRegistry is Ownable, Pausable {
      * @dev Returns the next id to be generated.
      */
     function nextId() public view virtual returns (uint256) {
-        return _nextSequencialPassportId;
+        return _nextSequentialPassportId;
     }
 
     // private
 
+    /**
+     * @dev Creates a new passport with the given ID for the specified wallet.
+     * @param wallet The address of the wallet to associate with the new passport.
+     * @param id The ID to assign to the new passport.
+     * @param source The source of the passport creation.
+     */
     function _create(address wallet, uint256 id, string memory source) private {
         require(idPassport[id] == address(0), "Passport id already issued");
 
@@ -241,10 +265,9 @@ contract PassportRegistry is Ownable, Pausable {
         idActive[id] = true;
         idSource[id] = source;
         
-        (bool success, uint256 result) = Math.tryAdd(sourcePassports[source], 1);
-        require(success, "Incrementing source count failed");
+        uint256 result = sourcePassports[source] + 1;
         sourcePassports[source] = result;
-        // emit event
+
         emit Create(wallet, id, source);
     }
 }

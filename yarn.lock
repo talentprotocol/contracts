@@ -85,6 +85,13 @@
   resolved "https://registry.yarnpkg.com/@eslint/js/-/js-8.57.0.tgz#a5417ae8427873f1dd08b70b3574b453e67b5f7f"
   integrity sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==
 
+"@ethereum-attestation-service/eas-contracts@^1.7.1":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@ethereum-attestation-service/eas-contracts/-/eas-contracts-1.7.1.tgz#2dd7784d7d29ca05fff4c9203633dce340bc647a"
+  integrity sha512-z2MeCrkp4JrtOMBHQt5fcdbxryC+xxofoPzzv3wcx5GbfG27PpkXRKxlSlb1l2jIT1YfDc701rixbP6vHaEN3Q==
+  dependencies:
+    hardhat "2.22.4"
+
 "@ethereum-waffle/chai@^3.4.0":
   version "3.4.4"
   resolved "https://registry.yarnpkg.com/@ethereum-waffle/chai/-/chai-3.4.4.tgz#16c4cc877df31b035d6d92486dfdf983df9138ff"
@@ -5461,7 +5468,7 @@ hardhat-gas-reporter@^1.0.9:
     eth-gas-reporter "^0.2.25"
     sha1 "^1.1.1"
 
-hardhat@^2.22.4:
+hardhat@2.22.4, hardhat@^2.22.4:
   version "2.22.4"
   resolved "https://registry.yarnpkg.com/hardhat/-/hardhat-2.22.4.tgz#766227b6cefca5dbf4fd15ab5b5a68138fa13baf"
   integrity sha512-09qcXJFBHQUaraJkYNr7XlmwjOj27xBB0SL2rYS024hTj9tPMbp26AFjlf5quBMO9SR4AJFg+4qWahcYcvXBuQ==

@@ -57,6 +57,14 @@ contract PassportRegistry is Ownable, Pausable {
     // Passport generation mode changed
     event PassportGenerationChanged(bool sequencial, uint256 nextSequencialPassportId);
 
+    // Transfer request initiated
+    event TransferRequested(address indexed fromWallet, address indexed toWallet, uint256 passportId);
+
+    // Transfer request accepted
+    event TransferAccepted(address indexed fromWallet, address indexed toWallet, uint256 passportId);
+
+    mapping(uint256 => address) public transferRequests;
+
     /**
      * @dev Modifier to make a function callable only when the contract is in sequencial mode.
      *
@@ -125,19 +133,53 @@ contract PassportRegistry is Ownable, Pausable {
      */
     function transfer(address newWallet) public whenNotPaused {
         uint256 id = passportId[msg.sender];
-        uint256 newWalletId = passportId[newWallet];
         require(newWallet != msg.sender, "You can not transfer to yourself");
         require(id != 0, "Passport does not exist");
-        require(newWalletId == 0, "Wallet passed already has a passport");
+        require(passportId[newWallet] == 0, "Wallet passed already has a passport");
+        require(transferRequests[id] == address(0), "Pending transfer already exists for this passport ID");
 
-        passportId[msg.sender] = 0;
-        passportId[newWallet] = id;
-        idPassport[id] = newWallet;
-        walletActive[msg.sender] = false;
+        transferRequests[id] = newWallet;
+
+        emit TransferRequested(msg.sender, newWallet, id);
+    }
+
+    /**
+     * @notice Accepts a pending passport transfer to the msg.sender's wallet.
+     * @dev Can be called by the new wallet to accept the transfer.
+     */
+    function acceptTransfer(uint256 _passportId) public whenNotPaused {
+        address newWallet = transferRequests[_passportId];
+        require(newWallet == msg.sender, "You are not authorized to accept this transfer");
+
+        address oldWallet = idPassport[_passportId];
+        require(oldWallet != address(0), "Passport does not exist");
+
+        passportId[oldWallet] = 0;
+        passportId[newWallet] = _passportId;
+        idPassport[_passportId] = newWallet;
+        walletActive[oldWallet] = false;
         walletActive[newWallet] = true;
         totalPassportTransfers++;
 
-        emit Transfer(id, id, msg.sender, newWallet);
+        delete transferRequests[_passportId];
+
+        emit TransferAccepted(oldWallet, newWallet, _passportId);
+        emit Transfer(_passportId, _passportId, oldWallet, newWallet);
+    }
+
+    /**
+     * @notice Revokes a pending passport transfer.
+     * @dev Can only be called by the passport owner and when the contract is not paused.
+     * @param _passportId The ID of the passport for which to revoke the transfer.
+     */
+    function revokeTransfer(uint256 _passportId) public whenNotPaused {
+        address owner = idPassport[_passportId];
+        require(owner == msg.sender, "You are not the owner of this passport");
+        require(transferRequests[_passportId] != address(0), "No pending transfer to revoke");
+
+        delete transferRequests[_passportId];
+
+        emit TransferRequested(msg.sender, address(0), _passportId);
     }
 
     // Admin
@@ -169,39 +211,37 @@ contract PassportRegistry is Ownable, Pausable {
     }
 
     /**
-     * @notice Activates the passport of a given wallet.
-     * @dev Can only be called by the owner (aka admin) when the contract is not paused.
-     * @param wallet The address of the wallet to activate the passport for.
+     * @notice Activates the passport with the given passport ID.
+     * @dev Can only be called by the owner when the contract is not paused.
+     * @param _passportId The ID of the passport to activate.
      */
-    function activate(address wallet) public whenNotPaused onlyOwner {
-        require(passportId[wallet] != 0, "Passport must exist");
+    function activate(uint256 _passportId) public whenNotPaused onlyOwner {
+        address wallet = idPassport[_passportId];
+        require(wallet != address(0), "Passport must exist");
         require(walletActive[wallet] == false, "Passport must be inactive");
 
-        uint256 id = passportId[wallet];
-
         walletActive[wallet] = true;
-        idActive[id] = true;
+        idActive[_passportId] = true;
 
         // emit event
-        emit Activate(wallet, id);
+        emit Activate(wallet, _passportId);
     }
 
     /**
-     * @notice Deactivates the passport of a given wallet.
+     * @notice Deactivates the passport with the given passport ID.
      * @dev Can only be called by the owner when the contract is not paused.
-     * @param wallet The address of the wallet to deactivate the passport for.
+     * @param _passportId The ID of the passport to deactivate.
      */
-    function deactivate(address wallet) public whenNotPaused onlyOwner {
-        require(passportId[wallet] != 0, "Passport must exist");
+    function deactivate(uint256 _passportId) public whenNotPaused onlyOwner {
+        address wallet = idPassport[_passportId];
+        require(wallet != address(0), "Passport must exist");
         require(walletActive[wallet] == true, "Passport must be active");
 
-        uint256 id = passportId[wallet];
-
         walletActive[wallet] = false;
-        idActive[id] = false;
+        idActive[_passportId] = false;
 
         // emit event
-        emit Deactivate(wallet, id);
+        emit Deactivate(wallet, _passportId);
     }
 
     /**

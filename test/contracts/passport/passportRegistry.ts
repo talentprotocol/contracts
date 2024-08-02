@@ -129,6 +129,15 @@ describe("Passport", () => {
 
       tx = await contract.connect(holderOne).transfer(holderTwo.address);
 
+      const transferRequestedEvent = await findEvent(tx, "TransferRequested");
+
+      expect(transferRequestedEvent).to.exist;
+      expect(transferRequestedEvent?.args?.fromWallet).to.eq(holderOne.address);
+      expect(transferRequestedEvent?.args?.toWallet).to.eq(holderTwo.address);
+      expect(transferRequestedEvent?.args?.passportId).to.eq(1001);
+
+      tx = await contract.connect(holderTwo).acceptTransfer(1001);
+
       const event = await findEvent(tx, "Transfer");
 
       expect(event).to.exist;
@@ -152,7 +161,7 @@ describe("Passport", () => {
       await expect(action).to.be.revertedWith("You can not transfer to yourself");
     });
 
-    it("emits a tranfer event everytime a passport is tranfered by an admin", async () => {
+    it("emits a tranfer event everytime a passport is transfered by an admin", async () => {
       let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 
       let holderOnePassportId = await contract.passportId(holderOne.address);
@@ -269,16 +278,45 @@ describe("Passport", () => {
       expect(holderThreePreviousPassportId).to.eq(false);
     });
 
-    it("allows the passport owner to transfer the passport", async () => {
+    it("allows the passport owner to initialize a transfer for the passport and the target to accept", async () => {
       await contract.connect(holderOne).create("farcaster");
 
       await contract.connect(holderOne).transfer(holderThree.address);
+      await contract.connect(holderThree).acceptTransfer(1);
 
       const holderOnePassportId = await contract.passportId(holderOne.address);
       const holderThreePassportId = await contract.passportId(holderThree.address);
 
       expect(holderOnePassportId).to.eq(0);
       expect(holderThreePassportId).to.eq(1);
+    });
+
+    it("prevents the passport owner to transfer if the previous transfer hasn't been canceled or accepted", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      await contract.connect(holderOne).transfer(holderThree.address);
+      const action = contract.connect(holderOne).transfer(holderTwo.address);
+
+      await expect(action).to.be.revertedWith("Pending transfer already exists for this passport ID");
+    });
+
+    it("prevents anyone but who was whitelisted to accept the transfer to claim that passport id", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      await contract.connect(holderOne).transfer(holderThree.address);
+      const action = contract.connect(holderTwo).acceptTransfer(1);
+
+      await expect(action).to.be.revertedWith("You are not authorized to accept this transfer");
+    });
+
+    it("allows the original owner to revoke the transfer", async () => {
+      await contract.connect(holderOne).create("farcaster");
+
+      await contract.connect(holderOne).transfer(holderThree.address);
+      await contract.connect(holderOne).revokeTransfer(1);
+      const action = contract.connect(holderThree).acceptTransfer(1);
+
+      await expect(action).to.be.revertedWith("You are not authorized to accept this transfer");
     });
 
     it("prevents the passport owner to transfer the passport to an existing owner wallet", async () => {
@@ -308,7 +346,7 @@ describe("Passport", () => {
       let holderActivePassport = await contract.walletActive(holderOne.address);
       expect(holderActivePassport).to.eq(true);
 
-      let tx = await contract.connect(admin).deactivate(holderOne.address);
+      let tx = await contract.connect(admin).deactivate(1001);
       let event = await findEvent(tx, "Deactivate");
 
       expect(event).to.exist;
@@ -318,7 +356,7 @@ describe("Passport", () => {
       holderActivePassport = await contract.walletActive(holderOne.address);
       expect(holderActivePassport).to.eq(false);
 
-      tx = await contract.connect(admin).activate(holderOne.address);
+      tx = await contract.connect(admin).activate(1001);
 
       event = await findEvent(tx, "Activate");
 

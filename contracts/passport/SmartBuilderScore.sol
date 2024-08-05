@@ -3,16 +3,27 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import "./PassportBuilderScore.sol";
+import "./PassportSources.sol";
 
 contract SmartBuilderScore {
     using ECDSA for bytes32;
 
     address public trustedSigner;
+    address public feeReceiver;
+    PassportBuilderScore public passportBuilderScore;
+    PassportSources public passportSources;
+    PassportRegistry public passportRegistry;
+    uint256 public cost = 0.001 ether;
 
-    event AttestationCreated(address indexed user, uint256 score, uint256 passportId);
+    event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
 
-    constructor(address _trustedSigner) {
+    constructor(address _trustedSigner, address _passportBuilderScoreAddress, address _passportSourcesAddress, address _passportRegistryAddress, address _feeReceiver) {
         trustedSigner = _trustedSigner;
+        passportBuilderScore = PassportBuilderScore(_passportBuilderScoreAddress);
+        passportSources = PassportSources(_passportSourcesAddress);
+        passportRegistry = PassportRegistry(_passportRegistryAddress);
+        feeReceiver = _feeReceiver;
     }
 
     /**
@@ -21,7 +32,9 @@ contract SmartBuilderScore {
      * @param passportId The number of the passport to receive the attestation.
      * @param signature The signature of the trusted signer.
      */
-    function createAttestation(uint256 score, uint256 passportId, bytes memory signature) public {
+    function addScore(uint256 score, uint256 passportId, bytes memory signature) public payable {
+        // Ensure the caller has paid the required fee
+        require(msg.value >= cost, "Insufficient payment");
         // Hash the number
         bytes32 numberHash = keccak256(abi.encodePacked(score, passportId));
 
@@ -31,7 +44,21 @@ contract SmartBuilderScore {
         // Ensure the signer is the trusted signer
         require(signer == trustedSigner, "Invalid signature");
 
+        // check if the passport is associated with a mapped source
+        string memory source = passportRegistry.idSource(passportId);
+        address sourceAddress = passportSources.sources(source);
+        if (sourceAddress != address(0)) {
+            // Transfer fee to fee receiver
+            payable(feeReceiver).transfer(msg.value / 2);
+            // Transfer fee to source
+            payable(sourceAddress).transfer(msg.value / 2);
+        } else {
+            // Transfer fee to fee receiver
+            payable(feeReceiver).transfer(msg.value);
+        }
+
         // Emit event
-        emit AttestationCreated(msg.sender, score, passportId);
+        require(passportBuilderScore.setScore(passportId, score), "Failed to set score");
+        emit BuilderScoreSet(msg.sender, score, passportId);
     }
 }

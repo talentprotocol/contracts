@@ -63,6 +63,9 @@ contract PassportRegistry is Ownable, Pausable {
     // Transfer request accepted
     event TransferAccepted(address indexed fromWallet, address indexed toWallet, uint256 passportId);
 
+    // Transfer request revoked
+    event TransferRevoked(address indexed wallet, uint256 passportId);
+
     mapping(uint256 => address) public transferRequests;
 
     /**
@@ -179,7 +182,7 @@ contract PassportRegistry is Ownable, Pausable {
 
         delete transferRequests[_passportId];
 
-        emit TransferRequested(msg.sender, address(0), _passportId);
+        emit TransferRevoked(msg.sender, _passportId);
     }
 
     // Admin

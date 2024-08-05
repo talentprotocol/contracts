@@ -313,7 +313,12 @@ describe("Passport", () => {
       await contract.connect(holderOne).create("farcaster");
 
       await contract.connect(holderOne).transfer(holderThree.address);
-      await contract.connect(holderOne).revokeTransfer(1);
+      const tx = await contract.connect(holderOne).revokeTransfer(1);
+      const event = await findEvent(tx, "TransferRevoked");
+      expect(event).to.exist;
+      expect(event?.args?.wallet).to.eq(holderOne.address);
+      expect(event?.args?.passportId).to.eq(1);
+
       const action = contract.connect(holderThree).acceptTransfer(1);
 
       await expect(action).to.be.revertedWith("You are not authorized to accept this transfer");

@@ -18,7 +18,13 @@ contract SmartBuilderScore {
 
     event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
 
-    constructor(address _trustedSigner, address _passportBuilderScoreAddress, address _passportSourcesAddress, address _passportRegistryAddress, address _feeReceiver) {
+    constructor(
+        address _trustedSigner,
+        address _passportBuilderScoreAddress,
+        address _passportSourcesAddress,
+        address _passportRegistryAddress,
+        address _feeReceiver
+    ) {
         trustedSigner = _trustedSigner;
         passportBuilderScore = PassportBuilderScore(_passportBuilderScoreAddress);
         passportSources = PassportSources(_passportSourcesAddress);

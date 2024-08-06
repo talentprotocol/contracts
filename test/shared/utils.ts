@@ -4,30 +4,12 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import type { ContractReceipt, ContractTransaction, Event } from "ethers";
 import { BigNumber } from "ethers";
 
-import type { TalentToken, TalentFactory } from "../../typechain-types";
-import { TalentToken__factory } from "../../typechain-types";
-
 export async function findEvent(tx: ContractTransaction, name: string): Promise<Event | undefined> {
   const receipt: ContractReceipt = await tx.wait();
 
   return receipt.events?.find((e) => {
     return e.event === name;
   });
-}
-
-export async function deployTalentToken(
-  factory: TalentFactory,
-  minter: SignerWithAddress,
-  owner: SignerWithAddress,
-  name: string,
-  symbol: string
-): Promise<TalentToken> {
-  const tx = await factory.connect(owner).createTalent(owner.address, name, symbol);
-  const event = await findEvent(tx, "TalentCreated");
-
-  const address = event?.args?.token;
-
-  return TalentToken__factory.connect(address, minter) as TalentToken;
 }
 
 // We can't currently call ERC1363 functions directly, because they make use of

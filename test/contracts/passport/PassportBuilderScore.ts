@@ -70,7 +70,7 @@ describe("PassportBuilderScore", () => {
 
       const passportId = await passportRegistry.passportId(user1.address);
       await expect(passportBuilderScore.connect(user1).setScore(passportId, 100)).to.be.revertedWith(
-        `OwnableUnauthorizedAccount("${user1.address}")`
+        "Caller is not a trusted signer"
       );
     });
 

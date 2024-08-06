@@ -4,6 +4,7 @@
   "description": "Talent Protocol Smart Contracts",
   "author": "Talent Protocol",
   "dependencies": {
+    "@ethereum-attestation-service/eas-contracts": "^1.7.1",
     "@ethersproject/abi": "^5.0.0",
     "@ethersproject/bytes": "^5.0.0",
     "@ethersproject/providers": "^5.0.0",

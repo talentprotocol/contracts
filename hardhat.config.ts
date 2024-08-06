@@ -35,27 +35,6 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    alfajores: {
-      url: "https://alfajores-forno.celo-testnet.org",
-      accounts: deployer,
-      chainId: 44787,
-    },
-    celo: {
-      url: "https://forno.celo.org",
-      accounts: deployer,
-      chainId: 42220,
-    },
-    polygonMumbai: {
-      url: "https://matic-mumbai.chainstacklabs.com",
-      accounts: deployer,
-      chainId: 80001,
-    },
-    polygon: {
-      url: "https://polygon-rpc.com/",
-      accounts: deployer,
-      chainId: 137,
-      gasMultiplier: 1.5,
-    },
     baseSepolia: {
       url: "https://api.developer.coinbase.com/rpc/v1/base-sepolia/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
       accounts: deployer,
@@ -75,31 +54,11 @@ const config: HardhatUserConfig = {
   etherscan: {
     // Your API keys for Etherscan
     apiKey: {
-      celo: process.env.CELO_API_KEY || "",
-      alfajores: process.env.CELO_API_KEY || "",
-      polygon: process.env.POLYGON_API_KEY || "",
-      polygonMumbai: process.env.POLYGON_API_KEY || "",
-      base: process.env.POLYGON_API_KEY || "",
-      baseSepolia: process.env.POLYGON_API_KEY || "",
+      base: process.env.BASE_API_KEY || "",
+      baseSepolia: process.env.BASE_API_KEY || "",
     },
     // Custom chains that are not supported by default
     customChains: [
-      {
-        network: "alfajores",
-        chainId: 44787,
-        urls: {
-          apiURL: "https://api-alfajores.celoscan.io/api",
-          browserURL: "https://alfajores.celoscan.io",
-        },
-      },
-      {
-        network: "celo",
-        chainId: 42220,
-        urls: {
-          apiURL: "https://api.celoscan.io/api",
-          browserURL: "https://celoscan.io/",
-        },
-      },
       {
         network: "baseSepolia",
         chainId: 84532,

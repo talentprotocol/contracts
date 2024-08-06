@@ -18,7 +18,6 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   uint256 public constant WEEKLY_CLAIM_AMOUNT = 2000 ether;
   uint256 public constant WEEK_DURATION = 7 days;
   uint256 public constant MAX_CLAIM_WEEKS = 104;
-  bool public setupComplete = false;  // Setup flag
   uint256 public startTime;  // Track the start time
   bytes32 public merkleRoot; // Track the merkle root with the information of user owed amounts
 
@@ -31,7 +30,6 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
 
   event TokensClaimed(address indexed user, uint256 amount);
   event TokensBurned(address indexed user, uint256 amount);
-  event SetupComplete();
   event StartTimeSet(uint256 startTime);
   event UserInitialized(address indexed user, uint256 amount, uint256 lastClaimed);
 
@@ -61,16 +59,6 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   }
 
   /**
-    * @notice Finalizes the setup process.
-    * @dev Can only be called by the owner. This function sets the setupComplete flag to true,
-    *      indicating that the initialization process is complete and no further initialization can occur.
-    */
-  function finalizeSetup() external onlyOwner {
-    setupComplete = true;
-    emit SetupComplete();
-  }
-
-  /**
     * @notice Sets the start time for token claims.
     * @dev Can only be called by the owner. This function initializes the startTime variable with the provided value.
     * @param _startTime The timestamp representing the start time for token claims.
@@ -91,7 +79,6 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     bytes32[] calldata merkleProof,
     uint256 amountAllocated
   ) external nonReentrant {
-    require(setupComplete, "Setup is not complete");
     require(startTime > 0, "Start time not set");
 
     verify(merkleProof, amountAllocated);
@@ -119,6 +106,9 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       weeksSinceLastClaim = weeksPassed;
     }
 
+    uint256 amountToBurn = 0;
+    uint256 amountToTransfer = 0;
+
     if (weeksPassed >= MAX_CLAIM_WEEKS) {
       // Calculate the number of weeks missed
       uint256 weeksMissed = 0;
@@ -129,40 +119,30 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       }
 
       // Burn the equivalent amount of tokens for the missed weeks
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, amountToClaim);
+      amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * weeksMissed, amountToClaim);
       user.amountClaimed += amountToBurn;
 
       // Transfer the remaining owed amount to the user
-      uint256 amountToTransfer = amountToClaim - amountToBurn;
+      amountToTransfer = amountToClaim - amountToBurn;
       user.amountClaimed += amountToTransfer;
       user.lastClaimed = block.timestamp;
-
-      if (amountToTransfer > 0) {
-        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-        emit TokensClaimed(msg.sender, amountToTransfer);
-      }
-
-      if (amountToBurn > 0) {
-        talentToken.burnFrom(holdingWallet, amountToBurn);
-        emit TokensBurned(msg.sender, amountToBurn);
-      }
     } else {
-      uint256 amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), amountToClaim);
+      amountToBurn = Math.min(WEEKLY_CLAIM_AMOUNT * (weeksSinceLastClaim - 1), amountToClaim);
       user.amountClaimed += amountToBurn;
 
-      uint256 amountToTransfer = Math.min(maxPerWeekAmountForUser, amountToClaim - amountToBurn);
+      amountToTransfer = Math.min(maxPerWeekAmountForUser, amountToClaim - amountToBurn);
       user.amountClaimed += amountToTransfer;
 
       user.lastClaimed = block.timestamp;
+    }
 
-      if (amountToTransfer > 0) {
-        talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
-        emit TokensClaimed(msg.sender, amountToTransfer);
-      }
-      if (amountToBurn > 0) {
-        talentToken.burnFrom(holdingWallet, amountToBurn);
-        emit TokensBurned(msg.sender, amountToBurn);
-      }
+    if (amountToTransfer > 0) {
+      talentToken.transferFrom(holdingWallet, msg.sender, amountToTransfer);
+      emit TokensClaimed(msg.sender, amountToTransfer);
+    }
+    if (amountToBurn > 0) {
+      talentToken.burnFrom(holdingWallet, amountToBurn);
+      emit TokensBurned(msg.sender, amountToBurn);
     }
   }
 

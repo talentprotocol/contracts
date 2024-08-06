@@ -4,6 +4,10 @@ import { getContract } from "viem";
 import { baseSepolia, base } from "viem/chains";
 import { privateKeyToSimpleSmartAccount } from "permissionless/accounts";
 
+import dotenv from "dotenv";
+
+dotenv.config();
+
 import * as PassportRegistry from "../../artifacts/contracts/passport/PassportRegistry.sol/PassportRegistry.json";
 
 const ENTRYPOINT = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
@@ -11,14 +15,14 @@ const ENTRYPOINT = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 async function main() {
   const [admin] = await hre.viem.getWalletClients();
   const publicClient = await hre.viem.getPublicClient();
-  const chain = baseSepolia;
 
-  console.log(`Changing owner on chain ${chain.name}`);
+  if(!process.env.PRIVATE_KEY){
+    console.error("Missing PK");
+    return
+  }
 
-  // https://api.developer.coinbase.com/rpc/v1/base/w6ubd9S5jJzUzPlMn0yYmuP9UWbjKvrH
-  const rpcUrl = "https://api.developer.coinbase.com/rpc/v1/base-sepolia/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii";
-  const contractAddress = "0x0fDD539a38B5ee3f077238e20d65177F3A5688Df";
-  const privateKey = "0x";
+  const contractAddress = "";
+  const privateKey = `0x${process.env.PRIVATE_KEY}`;
 
   console.log("privateKey", privateKey);
   const smartAccount = await privateKeyToSimpleSmartAccount(publicClient, {

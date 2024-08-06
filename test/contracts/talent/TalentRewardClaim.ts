@@ -13,6 +13,7 @@ import { Artifacts } from "../../shared";
 import generateMerkleTree from "../../../functions/generateMerkleTree";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { BigNumber } from "ethers";
+import { zeroAddress } from "viem";
 
 chai.use(solidity);
 
@@ -87,7 +88,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const proof1 = merkleTree.getProof([user1.address, amount]);
 
@@ -107,7 +107,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 7 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
@@ -174,7 +173,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
 
       const startTime = Math.floor(Date.now() / 1000) - 14 * 24 * 60 * 60; // Set start time to 1 week ago
       await talentRewardClaim.setStartTime(startTime);
@@ -205,7 +203,6 @@ describe("TalentRewardClaim", () => {
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
-      await talentRewardClaim.finalizeSetup();
     });
 
     it("Should unlock all tokens if 104 weeks have passed", async () => {
@@ -214,7 +211,7 @@ describe("TalentRewardClaim", () => {
 
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("216000", 18)]);
       await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("216000", 18));
-      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 192k will be burned and 8k will be transfered
+      expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("8000", 18)); // 104 weeks means 208k will be burned and 8k will be transfered
     });
   });
 });

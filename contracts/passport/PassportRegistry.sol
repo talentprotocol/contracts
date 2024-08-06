@@ -137,6 +137,7 @@ contract PassportRegistry is Ownable, Pausable {
     function transfer(address newWallet) public whenNotPaused {
         uint256 id = passportId[msg.sender];
         require(newWallet != msg.sender, "You can not transfer to yourself");
+        require(newWallet != address(0), "You can not transfer to zero address");
         require(id != 0, "Passport does not exist");
         require(passportId[newWallet] == 0, "Wallet passed already has a passport");
         require(transferRequests[id] == address(0), "Pending transfer already exists for this passport ID");

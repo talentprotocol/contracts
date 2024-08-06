@@ -161,6 +161,14 @@ describe("Passport", () => {
       await expect(action).to.be.revertedWith("You can not transfer to yourself");
     });
 
+    it("does not allow for a user to transfer the passport to the zero address", async () => {
+      await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
+
+      const action = contract.connect(holderOne).transfer(ethers.constants.AddressZero);
+
+      await expect(action).to.be.revertedWith("You can not transfer to zero address");
+    });
+
     it("emits a tranfer event everytime a passport is transfered by an admin", async () => {
       let tx = await contract.connect(admin).adminCreate("farcaster", holderOne.address, 1001);
 

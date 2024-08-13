@@ -6,6 +6,8 @@ import type {
   TalentRewardClaim,
   PassportBuilderScore,
   TalentCommunitySale,
+  PassportSources,
+  SmartBuilderScore,
 } from "../../typechain-types";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
@@ -17,10 +19,10 @@ export async function deployPassport(owner: string): Promise<PassportRegistry> {
   return deployedPassport as PassportRegistry;
 }
 
-export async function deployTalentToken(): Promise<TalentProtocolToken> {
+export async function deployTalentToken(owner: string): Promise<TalentProtocolToken> {
   const talentTokenContract = await ethers.getContractFactory("TalentProtocolToken");
 
-  const deployedTalentToken = await talentTokenContract.deploy();
+  const deployedTalentToken = await talentTokenContract.deploy(owner);
   await deployedTalentToken.deployed();
 
   return deployedTalentToken as TalentProtocolToken;
@@ -53,6 +55,36 @@ export async function deployPassportBuilderScore(registry: string, owner: string
   await deployedPassportBuilderScore.deployed();
 
   return deployedPassportBuilderScore as PassportBuilderScore;
+}
+
+export async function deployPassportSources(owner: string): Promise<PassportSources> {
+  const passportSources = await ethers.getContractFactory("PassportSources");
+
+  const deployedPassportSources = await passportSources.deploy(owner);
+  await deployedPassportSources.deployed();
+
+  return deployedPassportSources as PassportSources;
+}
+
+export async function deploySmartScorer(
+  owner: string,
+  scorer: string,
+  sources: string,
+  registry: string,
+  feeCollector: string
+): Promise<SmartBuilderScore> {
+  const smartBuilderScoreContract = await ethers.getContractFactory("SmartBuilderScore");
+
+  const deployedSmartBuilderScore = await smartBuilderScoreContract.deploy(
+    owner,
+    scorer,
+    sources,
+    registry,
+    feeCollector
+  );
+  await deployedSmartBuilderScore.deployed();
+
+  return deployedSmartBuilderScore as SmartBuilderScore;
 }
 
 export async function deployTalentCommunitySale(

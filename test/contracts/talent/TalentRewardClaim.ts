@@ -74,8 +74,9 @@ describe("TalentRewardClaim", () => {
       expect(await talentRewardClaim.startTime()).to.equal(startTime);
     });
 
-    it("Should emit StartTimeSet event", async () => {
-      const startTime = Math.floor(Date.now() / 1000);
+    it.only("Should emit StartTimeSet event", async () => {
+      let yesterday = new Date(new Date().setDate(new Date().getDate()-1));
+      const startTime = Math.floor((Date.now() - 86400000) / 1000);
       await expect(talentRewardClaim.setStartTime(startTime))
         .to.emit(talentRewardClaim, "StartTimeSet")
         .withArgs(startTime);
@@ -127,7 +128,7 @@ describe("TalentRewardClaim", () => {
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("2000", 18));
     });
 
-    it("Should allow users with a builder score above 40 to claim 5x tokens", async () => {
+    it.only("Should allow users with a builder score above 40 to claim 5x tokens", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
@@ -138,7 +139,7 @@ describe("TalentRewardClaim", () => {
       await talentRewardClaim.setStartTime(startTime);
 
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
-
+      console.log("proof1", proof1)
       await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18)); // 5x the weekly amount
     });

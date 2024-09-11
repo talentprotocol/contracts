@@ -6,6 +6,8 @@ import type {
   TalentRewardClaim,
   PassportBuilderScore,
   TalentCommunitySale,
+  PassportAttester,
+  SmartBuilderScore,
 } from "../../typechain-types";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
@@ -15,6 +17,38 @@ export async function deployPassport(owner: string): Promise<PassportRegistry> {
   await deployedPassport.deployed();
 
   return deployedPassport as PassportRegistry;
+}
+
+export async function deployPassportAttester(): Promise<PassportAttester> {
+  const passportAttesterFactory = await ethers.getContractFactory("PassportAttester");
+
+  const deployedPassportAttester = await passportAttesterFactory.deploy();
+  await deployedPassportAttester.deployed();
+
+  return deployedPassportAttester as PassportAttester;
+}
+
+export async function deploySmartBuilderScore(
+  _trustedSigner: string,
+  _passportBuilderScoreAddress: string,
+  _passportSourcesAddress: string,
+  _passportRegistryAddress: string,
+  _feeReceiver: string,
+  _passportAttesterAddress: string
+): Promise<SmartBuilderScore> {
+  const smartBuilderScore = await ethers.getContractFactory("SmartBuilderScore");
+
+  const deployedSmartBuilderScore = await smartBuilderScore.deploy(
+    _trustedSigner,
+    _passportBuilderScoreAddress,
+    _passportSourcesAddress,
+    _passportRegistryAddress,
+    _feeReceiver,
+    _passportAttesterAddress
+  );
+  await deployedSmartBuilderScore.deployed();
+
+  return deployedSmartBuilderScore as SmartBuilderScore;
 }
 
 export async function deployTalentToken(): Promise<TalentProtocolToken> {

@@ -5,6 +5,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./PassportBuilderScore.sol";
 import "./PassportSources.sol";
+import "./PassportAttester.sol";
+import { AttestationRequest, AttestationRequestData } from "@ethereum-attestation-service/eas-contracts/contracts/IEAS.sol";
+import { NO_EXPIRATION_TIME, EMPTY_UID } from "@ethereum-attestation-service/eas-contracts/contracts/Common.sol";
 
 contract SmartBuilderScore {
     using ECDSA for bytes32;
@@ -14,7 +17,13 @@ contract SmartBuilderScore {
     PassportBuilderScore public passportBuilderScore;
     PassportSources public passportSources;
     PassportRegistry public passportRegistry;
-    uint256 public cost = 0.001 ether;
+    PassportAttester public passportAttester;
+
+    uint256 public COST = 0.001 ether;
+    bytes32 private constant SCHEMA =
+        keccak256(
+            "AttestationRequestData(string id,string[] type,string name,string description,string credentialSubjectId,string credentialSubjectName,string[] credentialSubjectTypes,string[] credentialSubjectTypesIds,string[] credentialSubjectTypesNames,string[] credentialSubjectTypesCategories,string[] credentialSubjectTypesValidFroms,string[] credentialSubjectTypesValidUntils,uint16[] credentialSubjectTypesScores,string[] credentialSubjectTypesData,string validFrom,string validUntil,string[] statusesTypes,string[] statusesCredentialSubjectIds,bool[] statusesCredentialSubjectRevoked,string credentialSchemaId,string credentialSchemaType,string termsOfUseId,string termsOfUseType)"
+        );
 
     event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
 
@@ -23,12 +32,14 @@ contract SmartBuilderScore {
         address _passportBuilderScoreAddress,
         address _passportSourcesAddress,
         address _passportRegistryAddress,
-        address _feeReceiver
+        address _feeReceiver,
+        address _passportAttesterAddress
     ) {
         trustedSigner = _trustedSigner;
         passportBuilderScore = PassportBuilderScore(_passportBuilderScoreAddress);
         passportSources = PassportSources(_passportSourcesAddress);
         passportRegistry = PassportRegistry(_passportRegistryAddress);
+        passportAttester = PassportAttester(_passportAttesterAddress);
         feeReceiver = _feeReceiver;
     }
 
@@ -37,10 +48,11 @@ contract SmartBuilderScore {
      * @param score The number to be attested.
      * @param passportId The number of the passport to receive the attestation.
      * @param signature The signature of the trusted signer.
+     * @param attestationData The data to be included in the attestation.
      */
-    function addScore(uint256 score, uint256 passportId, bytes memory signature) public payable {
+    function addScore(uint256 score, uint256 passportId, bytes memory signature, bytes memory attestationData) public payable {
         // Ensure the caller has paid the required fee
-        require(msg.value >= cost, "Insufficient payment");
+        require(msg.value >= COST, "Insufficient payment");
         // Hash the number
         bytes32 numberHash = keccak256(abi.encodePacked(score, passportId));
 
@@ -66,5 +78,21 @@ contract SmartBuilderScore {
         // Emit event
         require(passportBuilderScore.setScore(passportId, score), "Failed to set score");
         emit BuilderScoreSet(msg.sender, score, passportId);
+
+        address recipient = passportRegistry.idPassport(passportId);
+
+        passportAttester.attest(
+            AttestationRequest({
+                    schema: SCHEMA,
+                    data: AttestationRequestData({
+                        recipient: recipient,
+                        expirationTime: NO_EXPIRATION_TIME,
+                        revocable: true,
+                        refUID: EMPTY_UID,
+                        data: attestationData,
+                        value: 0 
+                    })
+            })
+        );
     }
 }

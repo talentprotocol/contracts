@@ -6,7 +6,10 @@ import type {
   TalentRewardClaim,
   PassportBuilderScore,
   TalentCommunitySale,
+  TalentTGEUnlock,
 } from "../../typechain-types";
+import { BigNumber } from "ethers";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
   const passportRegistryContract = await ethers.getContractFactory("PassportRegistry");
@@ -71,4 +74,16 @@ export async function deployTalentCommunitySale(
   await deployedTalentToken.deployed();
 
   return deployedTalentToken as TalentCommunitySale;
+}
+
+export async function deployTalentTGEUnlock(
+  token: string,
+  owner: string,
+  merkleTreeRoot: string
+): Promise<TalentTGEUnlock> {
+  const talentTGEUnlockContract = await ethers.getContractFactory("TalentTGEUnlock");
+
+  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, owner, merkleTreeRoot);
+  await deployedTGEUnlock.deployed();
+  return deployedTGEUnlock as TalentTGEUnlock;
 }

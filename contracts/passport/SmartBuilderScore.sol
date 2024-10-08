@@ -14,7 +14,7 @@ contract SmartBuilderScore {
     PassportBuilderScore public passportBuilderScore;
     PassportSources public passportSources;
     PassportRegistry public passportRegistry;
-    uint256 public cost = 0.001 ether;
+    uint256 public cost = 0.005 ether;
 
     event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
 

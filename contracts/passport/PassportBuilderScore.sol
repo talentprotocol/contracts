@@ -61,6 +61,10 @@ contract PassportBuilderScore is Ownable {
         return passportScores[passportId];
     }
 
+    function getScoreByAddress(address wallet) external view returns (uint256) {
+        return passportScores[passportRegistry.passportId(wallet)];
+    }
+
     /**
      * @notice Changes the address of the PassportRegistry contract.
      * @dev Can only be called by the owner.

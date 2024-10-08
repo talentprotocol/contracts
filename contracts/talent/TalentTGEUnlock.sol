@@ -5,7 +5,6 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
 import "../merkle/MerkleProof.sol";
 
@@ -15,7 +14,6 @@ contract TalentTGEUnlock is Ownable {
     event Claimed(address indexed claimer, uint256 amount, uint256 burned);
 
     address public immutable token;
-    ERC20Burnable public erc20;
     bytes32 public merkleRoot;
     bool public isContractEnabled;
     mapping(address => uint256) public claimed;
@@ -26,7 +24,6 @@ contract TalentTGEUnlock is Ownable {
         address owner
     ) Ownable(owner) {
         token = _token;
-        erc20 = ERC20Burnable(_token);
         merkleRoot = _merkleRoot;
         isContractEnabled = false;
     }

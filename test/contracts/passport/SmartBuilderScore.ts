@@ -57,7 +57,7 @@ describe("PassportBuilderScore", () => {
 
       const tx = await smartBuilderScore
         .connect(user1)
-        .addScore(score, passportID, signature, { value: parseEther("0.001") });
+        .addScore(score, passportID, signature, { value: parseEther("0.005") });
 
       const event = await findEvent(tx, "BuilderScoreSet");
       expect(event).to.exist;
@@ -76,7 +76,7 @@ describe("PassportBuilderScore", () => {
       // Sign the hash
       const signature = await user1.signMessage(ethers.utils.arrayify(numberHash));
 
-      const action = smartBuilderScore.addScore(score, passportID, signature, { value: parseEther("0.001") });
+      const action = smartBuilderScore.addScore(score, passportID, signature, { value: parseEther("0.005") });
       await expect(action).to.be.revertedWith("Invalid signature");
     });
 
@@ -102,12 +102,12 @@ describe("PassportBuilderScore", () => {
       const balanceBefore = await feeCollector.getBalance();
       const balanceOfSourceBefore = await sourceCollector.getBalance();
 
-      await smartBuilderScore.connect(user1).addScore(score, passportID, signature, { value: parseEther("0.001") });
+      await smartBuilderScore.connect(user1).addScore(score, passportID, signature, { value: parseEther("0.005") });
 
       const balanceAfter = await feeCollector.getBalance();
       const balanceOfSourceAfter = await sourceCollector.getBalance();
-      expect(balanceAfter.sub(balanceBefore)).to.eq(parseEther("0.0005"));
-      expect(balanceOfSourceAfter.sub(balanceOfSourceBefore)).to.eq(parseEther("0.0005"));
+      expect(balanceAfter.sub(balanceBefore)).to.eq(parseEther("0.0025"));
+      expect(balanceOfSourceAfter.sub(balanceOfSourceBefore)).to.eq(parseEther("0.0025"));
     });
 
     it("changes the balance by the full amount if the source doesn't exist", async () => {
@@ -121,11 +121,11 @@ describe("PassportBuilderScore", () => {
       const balanceBefore = await feeCollector.getBalance();
       const balanceOfSourceBefore = await sourceCollector.getBalance();
 
-      await smartBuilderScore.connect(user1).addScore(score, passportID, signature, { value: parseEther("0.001") });
+      await smartBuilderScore.connect(user1).addScore(score, passportID, signature, { value: parseEther("0.005") });
 
       const balanceAfter = await feeCollector.getBalance();
       const balanceOfSourceAfter = await sourceCollector.getBalance();
-      expect(balanceAfter.sub(balanceBefore)).to.eq(parseEther("0.001"));
+      expect(balanceAfter.sub(balanceBefore)).to.eq(parseEther("0.005"));
       expect(balanceOfSourceAfter.sub(balanceOfSourceBefore)).to.eq(0);
     });
   });

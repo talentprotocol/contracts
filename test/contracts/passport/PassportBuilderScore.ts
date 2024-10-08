@@ -1,6 +1,7 @@
 import chai from "chai";
 import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
+import { any } from "hardhat/internal/core/params/argumentTypes";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { PassportRegistry, PassportBuilderScore } from "../../../typechain-types";
@@ -60,9 +61,24 @@ describe("PassportBuilderScore", () => {
       const passportId = await passportRegistry.passportId(user1.address);
       expect(passportId).to.equal(1);
 
-      await expect(passportBuilderScore.setScore(passportId, 100))
-        .to.emit(passportBuilderScore, "ScoreUpdated")
-        .withArgs(passportId, 100);
+      const tx = await passportBuilderScore.setScore(passportId, 100);
+
+      // Wait for the transaction receipt to access the event logs
+      const receipt = await tx.wait();
+
+      if (!receipt.events) {
+        throw new Error("No events found in the receipt");
+      }
+
+      // Access the event logs for the "ScoreUpdated" event
+      const event = receipt.events.find((e) => e.event === "ScoreUpdated");
+
+      if (!event || !event.args || event.args.length < 3) {
+        throw new Error("ScoreUpdated event not found in the receipt");
+      }
+
+      expect(event.args[0]).to.equal(passportId); // passportId
+      expect(event.args[1]).to.equal(100); // score
     });
 
     it("Should not allow non-owner to set a score", async () => {

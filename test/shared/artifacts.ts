@@ -7,6 +7,7 @@ import TalentCommunitySale from "../../artifacts/contracts/talent/TalentCommunit
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
 import SmartBuilderScore from "../../artifacts/contracts/passport/SmartBuilderScore.sol/SmartBuilderScore.json";
 import PassportSources from "../../artifacts/contracts/passport/PassportSources.sol/PassportSources.json";
+import TalentTGEUnlock from "../../artifacts/contracts/talent/TalentTGEUnlock.sol/TalentTGEUnlock.json";
 
 export {
   PassportRegistry,
@@ -18,4 +19,5 @@ export {
   USDTMock,
   SmartBuilderScore,
   PassportSources,
+  TalentTGEUnlock,
 };

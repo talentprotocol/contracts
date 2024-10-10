@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./PassportBuilderScore.sol";
 import "./PassportSources.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SmartBuilderScore {
+contract SmartBuilderScore is Ownable {
     using ECDSA for bytes32;
 
     address public trustedSigner;
@@ -14,9 +15,11 @@ contract SmartBuilderScore {
     PassportBuilderScore public passportBuilderScore;
     PassportSources public passportSources;
     PassportRegistry public passportRegistry;
-    uint256 public cost = 0.001 ether;
+    uint256 public cost = 0.005 ether;
 
     event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
+
+    bool public enabled;
 
     constructor(
         address _trustedSigner,
@@ -24,11 +27,47 @@ contract SmartBuilderScore {
         address _passportSourcesAddress,
         address _passportRegistryAddress,
         address _feeReceiver
-    ) {
+    ) Ownable(_trustedSigner) {
         trustedSigner = _trustedSigner;
         passportBuilderScore = PassportBuilderScore(_passportBuilderScoreAddress);
         passportSources = PassportSources(_passportSourcesAddress);
         passportRegistry = PassportRegistry(_passportRegistryAddress);
+        feeReceiver = _feeReceiver;
+        enabled = true;
+    }
+
+    /**
+     * @notice Enables or disables the SmartBuilderScore contract.
+     * @param _enabled Whether the SmartBuilderScore contract should be enabled.
+     * @dev Can only be called by the owner.
+     */
+    function setEnabled(bool _enabled) public onlyOwner {
+        enabled = _enabled;
+    }
+
+    /**
+     * @notice Disables the SmartBuilderScore contract.
+     * @dev Can only be called by the owner.
+     */
+    function setDisabled() public onlyOwner {
+        enabled = false;
+    }
+
+    /**
+     * @notice Sets the cost of adding a score.
+     * @param _cost The cost of adding a score.
+     * @dev Can only be called by the owner.
+     */
+    function setCost(uint256 _cost) public onlyOwner {
+        cost = _cost;
+    }
+
+    /**
+     * @notice Updates the fee receiver address.
+     * @param _feeReceiver The new fee receiver address.
+     * @dev Can only be called by the owner.
+     */
+    function updateReceiver(address _feeReceiver) public onlyOwner {
         feeReceiver = _feeReceiver;
     }
 
@@ -39,6 +78,7 @@ contract SmartBuilderScore {
      * @param signature The signature of the trusted signer.
      */
     function addScore(uint256 score, uint256 passportId, bytes memory signature) public payable {
+        require(enabled, "Setting the Builder Score is disabled for this contract");
         // Ensure the caller has paid the required fee
         require(msg.value >= cost, "Insufficient payment");
         // Hash the number

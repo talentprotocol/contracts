@@ -1,6 +1,6 @@
 import { ethers, network } from "hardhat";
-
-import { deployPassportBuilderScore } from "../shared";
+import { zeroAddress } from "viem";
+import { deployPassportBuilderScore, deploySmartBuilderScore } from "../shared";
 
 async function main() {
   console.log(`Deploying passport builder score at ${network.name}`);
@@ -10,10 +10,20 @@ async function main() {
   console.log(`Admin will be ${admin.address}`);
 
   // @TODO: Replace with registry address
-  const passport = await deployPassportBuilderScore("0x0", admin.address);
+  const builderScore = await deployPassportBuilderScore("0xa600b3356c1440B6D6e57b0B7862dC3dFB66bc43", admin.address);
 
-  console.log(`Scorer Address: ${passport.address}`);
-  console.log(`Scorer owner: ${await passport.owner()}`);
+  console.log(`Scorer Address: ${builderScore.address}`);
+  console.log(`Scorer owner: ${await builderScore.owner()}`);
+
+  const smartBuilderScore = await deploySmartBuilderScore(
+    admin.address,
+    "0xa600b3356c1440B6D6e57b0B7862dC3dFB66bc43",
+    zeroAddress,
+    "0xC925bD0E839E8e22A7DDEbe7f4C21b187deeC358",
+    builderScore.address
+  );
+
+  console.log(`Smart Builder Score Address: ${smartBuilderScore.address}`);
 
   console.log("Done");
 }

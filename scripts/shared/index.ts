@@ -6,7 +6,11 @@ import type {
   TalentRewardClaim,
   PassportBuilderScore,
   TalentCommunitySale,
+  TalentTGEUnlock,
+  SmartBuilderScore,
 } from "../../typechain-types";
+import { BigNumber } from "ethers";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
   const passportRegistryContract = await ethers.getContractFactory("PassportRegistry");
@@ -55,6 +59,27 @@ export async function deployPassportBuilderScore(registry: string, owner: string
   return deployedPassportBuilderScore as PassportBuilderScore;
 }
 
+export async function deploySmartBuilderScore(
+  owner: string,
+  passportRegistry: string,
+  passportSources: string,
+  feeReceiver: string,
+  passportBuilderScore: string
+): Promise<SmartBuilderScore> {
+  const smartBuilderScoreContract = await ethers.getContractFactory("SmartBuilderScore");
+
+  const deployedSmartBuilderScore = await smartBuilderScoreContract.deploy(
+    owner,
+    passportBuilderScore,
+    passportSources,
+    passportRegistry,
+    feeReceiver
+  );
+  await deployedSmartBuilderScore.deployed();
+
+  return deployedSmartBuilderScore as SmartBuilderScore;
+}
+
 export async function deployTalentCommunitySale(
   owner: string,
   tokenAddress: string,
@@ -71,4 +96,16 @@ export async function deployTalentCommunitySale(
   await deployedTalentToken.deployed();
 
   return deployedTalentToken as TalentCommunitySale;
+}
+
+export async function deployTalentTGEUnlock(
+  token: string,
+  owner: string,
+  merkleTreeRoot: string
+): Promise<TalentTGEUnlock> {
+  const talentTGEUnlockContract = await ethers.getContractFactory("TalentTGEUnlock");
+
+  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, owner, merkleTreeRoot);
+  await deployedTGEUnlock.deployed();
+  return deployedTGEUnlock as TalentTGEUnlock;
 }

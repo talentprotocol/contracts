@@ -3,7 +3,7 @@ import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { SmartBuilderScore, PassportBuilderScore, PassportRegistry, PassportSources } from "../../../typechain-types";
+import { SmartBuilderScore, PassportBuilderScore, PassportRegistry } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import { findEvent } from "../../shared/utils";
 import { parseEther } from "ethers/lib/utils";
@@ -23,7 +23,6 @@ describe("PassportBuilderScore", () => {
   let smartBuilderScore: SmartBuilderScore;
   let passportBuilderScore: PassportBuilderScore;
   let passportRegistry: PassportRegistry;
-  let passportSources: PassportSources;
 
   beforeEach(async () => {
     [admin, user1, user2, feeCollector, sourceCollector] = await ethers.getSigners();
@@ -32,18 +31,15 @@ describe("PassportBuilderScore", () => {
       passportRegistry.address,
       admin.address,
     ])) as PassportBuilderScore;
-    passportSources = (await deployContract(admin, Artifacts.PassportSources, [admin.address])) as PassportSources;
     smartBuilderScore = (await deployContract(admin, Artifacts.SmartBuilderScore, [
       admin.address,
       passportBuilderScore.address,
-      passportSources.address,
       passportRegistry.address,
       feeCollector.address,
     ])) as SmartBuilderScore;
 
     await passportBuilderScore.connect(admin).addTrustedSigner(smartBuilderScore.address);
     await passportRegistry.connect(admin).setGenerationMode(true, 1); // Enable sequential mode
-    await passportSources.connect(admin).addSource("source1", sourceCollector.address);
   });
 
   describe("Deployment", () => {
@@ -89,25 +85,6 @@ describe("PassportBuilderScore", () => {
 
       const action = smartBuilderScore.addScore(score, passportID, signature, { value: parseEther("0.00001") });
       await expect(action).to.be.revertedWith("Insufficient payment");
-    });
-
-    it("changes the balance by half of the receivers if the source exists", async () => {
-      const score = 100;
-      await passportRegistry.connect(user1).create("source1");
-      const passportID = await passportRegistry.passportId(user1.address);
-      const numberHash = ethers.utils.solidityKeccak256(["uint256", "uint256"], [score, passportID]);
-      // Sign the hash
-      const signature = await admin.signMessage(ethers.utils.arrayify(numberHash));
-
-      const balanceBefore = await feeCollector.getBalance();
-      const balanceOfSourceBefore = await sourceCollector.getBalance();
-
-      await smartBuilderScore.connect(user1).addScore(score, passportID, signature, { value: parseEther("0.005") });
-
-      const balanceAfter = await feeCollector.getBalance();
-      const balanceOfSourceAfter = await sourceCollector.getBalance();
-      expect(balanceAfter.sub(balanceBefore)).to.eq(parseEther("0.0025"));
-      expect(balanceOfSourceAfter.sub(balanceOfSourceBefore)).to.eq(parseEther("0.0025"));
     });
 
     it("changes the balance by the full amount if the source doesn't exist", async () => {

@@ -62,7 +62,6 @@ export async function deployPassportBuilderScore(registry: string, owner: string
 export async function deploySmartBuilderScore(
   owner: string,
   passportRegistry: string,
-  passportSources: string,
   feeReceiver: string,
   passportBuilderScore: string
 ): Promise<SmartBuilderScore> {
@@ -71,7 +70,6 @@ export async function deploySmartBuilderScore(
   const deployedSmartBuilderScore = await smartBuilderScoreContract.deploy(
     owner,
     passportBuilderScore,
-    passportSources,
     passportRegistry,
     feeReceiver
   );

@@ -4,7 +4,6 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./PassportBuilderScore.sol";
-import "./PassportSources.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SmartBuilderScore is Ownable {
@@ -13,9 +12,8 @@ contract SmartBuilderScore is Ownable {
     address public trustedSigner;
     address public feeReceiver;
     PassportBuilderScore public passportBuilderScore;
-    PassportSources public passportSources;
     PassportRegistry public passportRegistry;
-    uint256 public cost = 0.005 ether;
+    uint256 public cost = 0.0001 ether;
 
     event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
 
@@ -24,13 +22,11 @@ contract SmartBuilderScore is Ownable {
     constructor(
         address _trustedSigner,
         address _passportBuilderScoreAddress,
-        address _passportSourcesAddress,
         address _passportRegistryAddress,
         address _feeReceiver
     ) Ownable(_trustedSigner) {
         trustedSigner = _trustedSigner;
         passportBuilderScore = PassportBuilderScore(_passportBuilderScoreAddress);
-        passportSources = PassportSources(_passportSourcesAddress);
         passportRegistry = PassportRegistry(_passportRegistryAddress);
         feeReceiver = _feeReceiver;
         enabled = true;
@@ -90,18 +86,8 @@ contract SmartBuilderScore is Ownable {
         // Ensure the signer is the trusted signer
         require(signer == trustedSigner, "Invalid signature");
 
-        // check if the passport is associated with a mapped source
-        string memory source = passportRegistry.idSource(passportId);
-        address sourceAddress = passportSources.sources(source);
-        if (sourceAddress != address(0)) {
-            // Transfer fee to fee receiver
-            payable(feeReceiver).transfer(msg.value / 2);
-            // Transfer fee to source
-            payable(sourceAddress).transfer(msg.value / 2);
-        } else {
-            // Transfer fee to fee receiver
-            payable(feeReceiver).transfer(msg.value);
-        }
+        // Transfer fee to fee receiver
+        payable(feeReceiver).transfer(msg.value);
 
         // Emit event
         require(passportBuilderScore.setScore(passportId, score), "Failed to set score");

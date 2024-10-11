@@ -1,7 +1,5 @@
 import { ethers, network } from "hardhat";
-import { zeroAddress } from "viem";
 import { deployPassportBuilderScore, deploySmartBuilderScore } from "../shared";
-import { verify } from "node:crypto";
 
 const PASSPORT_MAINNET = "0xb477A9BD2547ad61f4Ac22113172Dd909E5B2331";
 const PASSPORT_TESTNET = "0xa600b3356c1440B6D6e57b0B7862dC3dFB66bc43";

@@ -18,11 +18,7 @@ contract TalentTGEUnlock is Ownable {
     bool public isContractEnabled;
     mapping(address => uint256) public claimed;
 
-    constructor(
-        address _token,
-        bytes32 _merkleRoot,
-        address owner
-    ) Ownable(owner) {
+    constructor(address _token, bytes32 _merkleRoot, address owner) Ownable(owner) {
         token = _token;
         merkleRoot = _merkleRoot;
         isContractEnabled = false;
@@ -36,10 +32,7 @@ contract TalentTGEUnlock is Ownable {
         isContractEnabled = true;
     }
 
-    function claim(
-        bytes32[] calldata merkleProofClaim,
-        uint256 amountAllocated
-    ) external {
+    function claim(bytes32[] calldata merkleProofClaim, uint256 amountAllocated) external {
         require(isContractEnabled, "Contracts are disabled");
         require(claimed[msg.sender] == 0, "Already claimed");
         verifyAmount(merkleProofClaim, amountAllocated);
@@ -53,25 +46,14 @@ contract TalentTGEUnlock is Ownable {
         emit Claimed(beneficiary, amountToClaim, 0);
     }
 
-    function verifyAmount(
-        bytes32[] calldata proof,
-        uint256 amountAllocated
-    ) internal view {
+    function verifyAmount(bytes32[] calldata proof, uint256 amountAllocated) internal view {
         bytes32 root = merkleRoot;
-        bytes32 leaf = keccak256(
-            bytes.concat(keccak256(abi.encode(msg.sender, amountAllocated)))
-        );
+        bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(msg.sender, amountAllocated))));
 
-        require(
-            MerkleProof.verify(proof, root, leaf),
-            "Invalid Allocation Proof"
-        );
+        require(MerkleProof.verify(proof, root, leaf), "Invalid Allocation Proof");
     }
 
-    function calculate(
-        address beneficiary,
-        uint256 amountAllocated
-    ) internal view returns (uint256 amountToClaim) {
+    function calculate(address beneficiary, uint256 amountAllocated) internal view returns (uint256 amountToClaim) {
         uint256 amountClaimed = claimed[beneficiary];
         assert(amountClaimed <= amountAllocated);
         amountToClaim = amountAllocated - amountClaimed;

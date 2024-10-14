@@ -10,3 +10,6 @@ fi
 # Run prettier check
 echo "Running Prettier check..."
 yarn prettier --check --ignore-unknown --plugin=prettier-plugin-solidity $STAGED_FILES
+
+echo "Running solhint check..."
+yarn solhint $STAGED_FILES

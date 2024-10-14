@@ -1,2 +1,2 @@
 # .husky/pre-commit
-yarn prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --check --plugin=prettier-plugin-solidity contracts/**/*.sol
+yarn prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --check --ignore-unknown --plugin=prettier-plugin-solidity contracts/**/*.sol

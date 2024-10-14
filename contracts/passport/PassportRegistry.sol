@@ -309,7 +309,7 @@ contract PassportRegistry is Ownable, Pausable {
         walletActive[wallet] = true;
         idActive[id] = true;
         idSource[id] = source;
-        
+
         uint256 result = sourcePassports[source] + 1;
         sourcePassports[source] = result;
 

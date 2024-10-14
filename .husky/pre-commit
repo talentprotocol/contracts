@@ -1,0 +1,15 @@
+# Get a list of staged files that are added, copied, modified, or renamed
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.sol' || true)
+
+# Exit early if no files are staged
+if [ -z "$STAGED_FILES" ]; then
+  echo "No relevant files to format."
+  exit 0
+fi
+
+# Run prettier check
+echo "Running Prettier check..."
+yarn prettier --check --ignore-unknown --plugin=prettier-plugin-solidity $STAGED_FILES
+
+echo "Running solhint check..."
+yarn solhint $STAGED_FILES

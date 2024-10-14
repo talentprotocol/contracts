@@ -48,6 +48,7 @@
     "dotenv": "^16.0.3",
     "eslint": "^8.19.0",
     "ethereum-waffle": "3.4.0",
+    "husky": "^9.1.6",
     "prettier": "^2.4.1",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "solc": "^0.8.25"
@@ -56,6 +57,7 @@
     "build": "hardhat compile",
     "test": "hardhat test",
     "lint": "solhint contracts/**.sol && prettier --check contracts/**/*.sol",
-    "docgen": "solidity-docgen --solc-module solc-0.8.25 --templates=docgen/templates"
+    "docgen": "solidity-docgen --solc-module solc-0.8.25 --templates=docgen/templates",
+    "prepare": "husky"
   }
 }

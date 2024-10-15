@@ -104,7 +104,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
       weeksSinceLastClaim = weeksPassed - weeksForUser;
       require(weeksSinceLastClaim > 0, "Can only claim once per week");
     } else {
-      weeksSinceLastClaim = weeksPassed;
+      weeksSinceLastClaim = weeksPassed + 1;
     }
 
     uint256 amountToBurn = 0;

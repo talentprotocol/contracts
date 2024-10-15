@@ -34,7 +34,8 @@ export async function deployTalentRewardClaim(
   token: string,
   scoreContract: string,
   holdingWallet: string,
-  owner: string
+  owner: string,
+  merkleRoot: string,
 ): Promise<TalentRewardClaim> {
   const talentRewardClaimContract = await ethers.getContractFactory("TalentRewardClaim");
 
@@ -43,7 +44,7 @@ export async function deployTalentRewardClaim(
     scoreContract,
     holdingWallet,
     owner,
-    zeroHash
+    merkleRoot
   );
   await deployedRewardClaim.deployed();
 

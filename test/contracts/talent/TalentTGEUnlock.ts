@@ -41,7 +41,7 @@ describe("TalentTGEUnlock", () => {
     ])) as TalentTGEUnlock;
 
     // Approve TalentRewardClaim contract to spend tokens on behalf of the admin
-    totalTalentAmount = ethers.utils.parseUnits("1000000000", 18);
+    totalTalentAmount = ethers.utils.parseUnits("600000000", 18);
     await talentToken.connect(admin).transfer(TalentTGEUnlock.address, totalTalentAmount);
     await talentToken.unpause();
   });

@@ -39,8 +39,8 @@ describe("TalentProtocolToken", () => {
       expect(await token.name()).to.eq("TalentProtocolToken");
       expect(await token.symbol()).to.eq("TALENT");
       expect(await token.decimals()).to.eq(18);
-      expect(await token.totalSupply()).to.eq(ethers.utils.parseEther("1000000000"));
-      expect(await token.balanceOf(admin.address)).to.eq(ethers.utils.parseEther("1000000000"));
+      expect(await token.totalSupply()).to.eq(ethers.utils.parseEther("600000000"));
+      expect(await token.balanceOf(admin.address)).to.eq(ethers.utils.parseEther("600000000"));
       expect(await token.paused()).to.eq(true);
     });
   });
@@ -161,7 +161,7 @@ describe("TalentProtocolToken", () => {
       expect(addr1Balance).to.equal(50);
 
       const totalSupply = await token.totalSupply();
-      expect(totalSupply).to.equal(ethers.utils.parseEther("1000000000").sub(50));
+      expect(totalSupply).to.equal(ethers.utils.parseEther("600000000").sub(50));
     });
   });
 });

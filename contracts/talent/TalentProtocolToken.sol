@@ -13,7 +13,7 @@ contract TalentProtocolToken is ERC20, ERC20Burnable, Pausable, Ownable {
     ERC20("TalentProtocolToken", "TALENT")
     Ownable(initialOwner)
   {
-    _mint(initialOwner, 1_000_000_000 ether);
+    _mint(initialOwner, 600_000_000 ether);
     _pause();
   }
 

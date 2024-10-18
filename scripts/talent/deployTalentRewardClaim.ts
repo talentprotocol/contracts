@@ -6,10 +6,12 @@ import { createClient } from '@supabase/supabase-js'
 import rewardDistributions  from "../data/rewardsDistribution.json";
 
 const TALENT_TOKEN_ADDRESS_TESTNET =  "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
-const TALENT_TOKEN_ADDRESS_MAINNET =  "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
+const TALENT_TOKEN_ADDRESS_MAINNET =  "0x9a33406165f562E16C3abD82fd1185482E01b49a";
 
-const BUILDER_SCORE_ADDRESS_TESTNET = "0xe6b4388B1ECE6863349Ff41D79C408D9E211E59a"
-const BUILDER_SCORE_ADDRESS_MAINNET = "0xe6b4388B1ECE6863349Ff41D79C408D9E211E59a"
+const BUILDER_SCORE_ADDRESS_TESTNET = "0x5f3aA689C4DCBAe505E6F6c8548DbD9b908bA71d"
+const BUILDER_SCORE_ADDRESS_MAINNET = "0xBBFeDA7c4d8d9Df752542b03CdD715F790B32D0B"
+
+const VESTING_CATEGORY = "ecosystem_incentives_03"
 
 async function main() {
   console.log(`Deploying Talent Reward Claim at ${network.name}`);
@@ -41,11 +43,28 @@ async function main() {
 
   console.log("Dumping tree to file");
 
-  fs.writeFileSync("./merkeTreeForRewardClaiming.json", JSON.stringify(merkleTree.dump(), (key, value) =>
+  fs.writeFileSync(`scripts/data/${VESTING_CATEGORY}-proofs.json`, JSON.stringify(merkleTree.dump(), (key, value) =>
     typeof value === 'bigint'
         ? value.toString()
         : value
   ));
+
+  console.log("Deploying...");
+  console.log(`Admin will be ${admin.address}`);
+
+  const holdingWalletAddress = admin.address // Holding Wallet Address
+  
+  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${BUILDER_SCORE_ADDRESS_TESTNET} ${holdingWalletAddress} ${admin.address} ${merkleTree.root}`)
+
+  const talentRewardClaim = await deployTalentRewardClaim(
+    TALENT_TOKEN_ADDRESS_TESTNET, 
+    BUILDER_SCORE_ADDRESS_TESTNET,
+    holdingWalletAddress, 
+    admin.address,
+    merkleTree.root
+  );
+
+  console.log(`Talent Reward Claim Address: ${talentRewardClaim.address}`);
 
   console.log("Uploading proofs to database");
 
@@ -64,29 +83,12 @@ async function main() {
       .from("distributions")
       .update({ proof: element[1] })
       .eq("wallet", element[0])
-      .eq("vesting_category", "ecosystem_incentives_03")
+      .eq("vesting_category", VESTING_CATEGORY)
 
     if(error) {
       console.error(error);
     }
   }
-
-  console.log("Deploying...");
-  console.log(`Admin will be ${admin.address}`);
-
-  const holdingWalletAddress = admin.address // Holding Wallet Address
-  
-  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${BUILDER_SCORE_ADDRESS_TESTNET} ${holdingWalletAddress} ${admin.address} ${merkleTree.root}`)
-
-  const talentRewardClaim = await deployTalentRewardClaim(
-    TALENT_TOKEN_ADDRESS_TESTNET, 
-    BUILDER_SCORE_ADDRESS_TESTNET,
-    holdingWalletAddress, 
-    admin.address,
-    merkleTree.root
-  );
-
-  console.log(`Talent Reward Claim Address: ${talentRewardClaim.address}`);
 
   console.log("Done");
 }

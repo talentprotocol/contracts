@@ -10,7 +10,7 @@ import distributionSetup from "../data/inAppPurchases.json";
 import { createClient } from "@supabase/supabase-js";
 
 const TALENT_TOKEN_ADDRESS_TESTNET =  "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
-const TALENT_TOKEN_ADDRESS_MAINNET =  "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
+const TALENT_TOKEN_ADDRESS_MAINNET =  "0x9a33406165f562E16C3abD82fd1185482E01b49a";
 
 const VESTING_CATEGORY = "ecosystem_incentives_02"
 
@@ -43,13 +43,16 @@ async function main() {
 
   const allResults = distributionSetup as { amount: string; wallet: string }[];
 
+  console.log("Generate merkle tree")
+
   const merkleBase = allResults.reduce((acc, { wallet, amount }) => {
     acc[wallet.toLowerCase()] = ethers.utils.parseEther(amount).toBigInt();
     return acc;
   }, {} as Record<string, bigint>);
 
   const merkleTree = generateMerkleTree(merkleBase);
-  console.log("Generated merkle trees: ", merkleTree.root);
+
+  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${merkleTree.root} ${admin.address}`)
   const tgeUnlockDistribution = await deployTalentTGEUnlock(TALENT_TOKEN_ADDRESS_TESTNET, admin.address, merkleTree.root);
 
   console.log(`TGE Unlock distribution deployed at ${tgeUnlockDistribution.address}`);
@@ -65,7 +68,7 @@ async function main() {
 
   console.log("Writing proofs to file");
   fs.writeFileSync(
-    "./data/inAppPutchasesProofs.json",
+    `scripts/data/${VESTING_CATEGORY}-proofs.json`,
     JSON.stringify(proofList, (key, value) => (typeof value === "bigint" ? value.toString() : value))
   );
 

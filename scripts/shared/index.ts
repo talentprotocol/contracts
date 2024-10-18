@@ -21,10 +21,10 @@ export async function deployPassport(owner: string): Promise<PassportRegistry> {
   return deployedPassport as PassportRegistry;
 }
 
-export async function deployTalentToken(): Promise<TalentProtocolToken> {
+export async function deployTalentToken(owner: string): Promise<TalentProtocolToken> {
   const talentTokenContract = await ethers.getContractFactory("TalentProtocolToken");
 
-  const deployedTalentToken = await talentTokenContract.deploy();
+  const deployedTalentToken = await talentTokenContract.deploy(owner);
   await deployedTalentToken.deployed();
 
   return deployedTalentToken as TalentProtocolToken;
@@ -104,7 +104,7 @@ export async function deployTalentTGEUnlock(
 ): Promise<TalentTGEUnlock> {
   const talentTGEUnlockContract = await ethers.getContractFactory("TalentTGEUnlock");
 
-  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, owner, merkleTreeRoot);
+  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, merkleTreeRoot, owner);
   await deployedTGEUnlock.deployed();
   return deployedTGEUnlock as TalentTGEUnlock;
 }

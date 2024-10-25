@@ -175,7 +175,6 @@ describe("TalentRewardClaim", () => {
       await passportBuilderScore.setScore(passportId, 50); // Set builder score above 40
 
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
-      console.log("proof1", proof1);
       await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18)); // 5x the weekly amount
     });

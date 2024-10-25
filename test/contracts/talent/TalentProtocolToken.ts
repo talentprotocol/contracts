@@ -64,6 +64,7 @@ describe("TalentProtocolToken", () => {
 
     it("Should transfer tokens between accounts when unpaused", async function () {
       await token.unpause();
+      await token.renounceOwnership();
 
       // Transfer 50 tokens from admin to holderOne
       await token.transfer(holderOne.address, 50);
@@ -91,6 +92,7 @@ describe("TalentProtocolToken", () => {
 
     it("Should allow transferFrom when unpaused", async function () {
       await token.unpause();
+      await token.renounceOwnership();
       await token.approve(holderOne.address, 50);
       await token.connect(holderOne).transferFrom(admin.address, holderOne.address, 50);
       const holderOneBalance = await token.balanceOf(holderOne.address);
@@ -99,6 +101,7 @@ describe("TalentProtocolToken", () => {
 
     it("Should not allow transferFrom more than the approved amount", async function () {
       await token.unpause();
+      await token.renounceOwnership();
       await token.approve(holderOne.address, 50);
       await expect(token.connect(holderOne).transferFrom(admin.address, holderOne.address, 100)).to.be.revertedWith(
         `ERC20InsufficientAllowance("${holderOne.address}", 50, 100)`
@@ -107,6 +110,7 @@ describe("TalentProtocolToken", () => {
 
     it("Should allow transferFrom between accounts", async function () {
       await token.unpause();
+      await token.renounceOwnership();
       await token.transfer(holderOne.address, 100); // Transfer some tokens to holderOne
       await token.connect(holderOne).approve(holderTwo.address, 50);
       await token.connect(holderTwo).transferFrom(holderOne.address, holderThree.address, 50);
@@ -151,6 +155,7 @@ describe("TalentProtocolToken", () => {
     beforeEach(async () => {
       token = (await builder()) as TalentProtocolToken;
       await token.unpause();
+      await token.renounceOwnership();
     });
 
     it("Should burn tokens correctly", async function () {

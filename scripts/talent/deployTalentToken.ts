@@ -6,7 +6,7 @@ import { deployTalentToken } from "../shared";
 const talentTokenSetup = [
   {
     name: "SAFE Talent Token",
-    address: "0x0",
+    address: "0xF95aC40ebFB1eC548836015C81aA1108075EC012",
     amount: "600000000",
   },
 ];
@@ -31,11 +31,11 @@ async function main() {
     (acc, setup) => acc.add(ethers.utils.parseEther(setup.amount)),
     BigNumber.from(0)
   );
-  if (!totalAmount.eq(ethers.utils.parseEther("1000000000"))) {
+  if (!totalAmount.eq(ethers.utils.parseEther("600000000"))) {
     throw new Error(`Total amount does not match the full supply`);
   }
 
-  const talentToken = await deployTalentToken();
+  const talentToken = await deployTalentToken(admin.address);
 
   console.log(`Talent Token Address: ${talentToken.address}`);
   console.log(`Talent Token owner: ${await talentToken.owner()}`);

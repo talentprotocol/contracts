@@ -5,12 +5,12 @@ async function main() {
   const [admin] = await ethers.getSigners();
 
   const smartBuilderScore = new ethers.Contract(
-    "0x560431E2587B547E2a28aA5f3Ba1FD04842f73c3",
+    "0xE23104E89fF4c93A677136C4cBdFD2037B35BE67",
     SmartBuilderScore.abi,
     admin
   );
 
-  const tx = await smartBuilderScore.setCost(ethers.utils.parseEther("0.0001"));
+  const tx = await smartBuilderScore.setCost(ethers.utils.parseEther("0.001"));
 
   console.log("tx", tx);
   console.log("Done");

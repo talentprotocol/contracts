@@ -5,7 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// Based on WLDVault.sol from Worldcoin https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
+/// Based on WLDVault.sol from Worldcoin
+///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
 /// @title Talent Vault Contract
 /// @author Francisco Leal
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.

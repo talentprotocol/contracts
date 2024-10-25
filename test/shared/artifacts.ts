@@ -9,6 +9,7 @@ import SmartBuilderScore from "../../artifacts/contracts/passport/SmartBuilderSc
 import PassportSources from "../../artifacts/contracts/passport/PassportSources.sol/PassportSources.json";
 import TalentTGEUnlock from "../../artifacts/contracts/talent/TalentTGEUnlock.sol/TalentTGEUnlock.json";
 import TalentTGEUnlockTimestamp from "../../artifacts/contracts/talent/TalentTGEUnlockTimestamp.sol/TalentTGEUnlockTimestamp.json";
+import TalentVault from "../../artifacts/contracts/talent/TalentVault.sol/TalentVault.json";
 
 export {
   PassportRegistry,
@@ -22,4 +23,5 @@ export {
   PassportSources,
   TalentTGEUnlock,
   TalentTGEUnlockTimestamp,
+  TalentVault,
 };

@@ -13,7 +13,7 @@ chai.use(solidity);
 const { expect } = chai;
 const { deployContract } = waffle;
 
-describe("PassportBuilderScore", () => {
+describe("SmartBuilderScore", () => {
   let admin: SignerWithAddress;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;

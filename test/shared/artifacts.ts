@@ -10,6 +10,7 @@ import PassportSources from "../../artifacts/contracts/passport/PassportSources.
 import TalentTGEUnlock from "../../artifacts/contracts/talent/TalentTGEUnlock.sol/TalentTGEUnlock.json";
 import PassportWalletRegistry from "../../artifacts/contracts/passport/PassportWalletRegistry.sol/PassportWalletRegistry.json";
 import TalentTGEUnlockTimestamp from "../../artifacts/contracts/talent/TalentTGEUnlockTimestamp.sol/TalentTGEUnlockTimestamp.json";
+import TalentVault from "../../artifacts/contracts/talent/TalentVault.sol/TalentVault.json";
 
 export {
   PassportRegistry,
@@ -24,4 +25,5 @@ export {
   TalentTGEUnlock,
   PassportWalletRegistry,
   TalentTGEUnlockTimestamp,
+  TalentVault,
 };

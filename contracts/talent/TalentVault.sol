@@ -4,13 +4,15 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "../passport/PassportBuilderScore.sol";
 
 /// Based on WLDVault.sol from Worldcoin
 ///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
 /// @title Talent Vault Contract
 /// @author Francisco Leal
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
-contract TalentVault is Ownable {
+contract TalentVault is Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   /// @notice Emitted when a user deposits tokens
@@ -43,11 +45,8 @@ contract TalentVault is Ownable {
     uint256 amount;
     uint256 depositedAmount;
     uint256 lastInterestCalculation;
+    address user;
   }
-
-  ///////////////////////////////////////////////////////////////////////////////
-  ///                              CONFIG STORAGE                            ///
-  //////////////////////////////////////////////////////////////////////////////
 
   /// @notice The number of seconds in a year
   uint256 public constant SECONDS_PER_YEAR = 31536000;
@@ -61,9 +60,21 @@ contract TalentVault is Ownable {
   /// @notice The wallet paying for the yield
   address public yieldSource;
 
-  /// @notice The yield rate for the contract, represented as a percentage.
+  /// @notice The yield base rate for the contract, represented as a percentage.
   /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-  uint256 public yieldRate;
+  uint256 public yieldRateBase;
+
+  /// @notice The yield rate for the contract for competent builders, represented as a percentage.
+  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
+  uint256 public yieldRateCompetent;
+
+  /// @notice The yield rate for the contract for proficient builders, represented as a percentage.
+  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
+  uint256 public yieldRateProficient;
+
+  /// @notice The yield rate for the contract for expert builders, represented as a percentage.
+  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
+  uint256 public yieldRateExpert;
 
   /// @notice The maximum amount of tokens that can be used to calculate interest.
   uint256 public maxYieldAmount;
@@ -71,19 +82,21 @@ contract TalentVault is Ownable {
   /// @notice The time at which the users of the contract will stop accruing interest
   uint256 public yieldAccrualDeadline;
 
+  PassportBuilderScore public passportBuilderScore;
+
   /// @notice A mapping of user addresses to their deposits
   mapping(address => Deposit) public getDeposit;
 
   /// @notice Create a new Talent Vault contract
   /// @param _token The token that will be deposited into the contract
-  /// @param _yieldRate The yield rate for the contract, with 2 decimal places (e.g. 10_00 for 10%)
   /// @param _yieldSource The wallet paying for the yield
   /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate interest
+  /// @param _passportBuilderScore The Passport Builder Score contract
   constructor(
       IERC20 _token,
-      uint256 _yieldRate,
       address _yieldSource,
-      uint256 _maxYieldAmount
+      uint256 _maxYieldAmount,
+      PassportBuilderScore _passportBuilderScore
   ) Ownable(msg.sender) {
     require(
       address(_token) != address(0) &&
@@ -92,9 +105,13 @@ contract TalentVault is Ownable {
     );
 
     token = _token;
-    yieldRate = _yieldRate;
+    yieldRateBase = 10_00;
+    yieldRateProficient = 15_00;
+    yieldRateCompetent = 20_00;
+    yieldRateExpert = 25_00;
     yieldSource = _yieldSource;
     maxYieldAmount = _maxYieldAmount;
+    passportBuilderScore = _passportBuilderScore;
   }
 
   /// @notice Deposit tokens into a user's account, which will start accruing interest.
@@ -115,6 +132,7 @@ contract TalentVault is Ownable {
     userDeposit.amount += amount;
     userDeposit.depositedAmount += amount;
     userDeposit.lastInterestCalculation = block.timestamp;
+    userDeposit.user = account;
 
     emit Deposited(account, amount);
 
@@ -152,12 +170,12 @@ contract TalentVault is Ownable {
   }
 
   /// @notice Withdraws the requested amount from the user's balance.
-  function withdraw(uint256 amount) external {
+  function withdraw(uint256 amount) external nonReentrant {
     _withdraw(msg.sender, amount);
   }
 
   /// @notice Withdraws all of the user's balance, including any accrued interest.
-  function withdrawAll() external {
+  function withdrawAll() external nonReentrant {
     _withdraw(msg.sender, balanceOf(msg.sender));
   }
 
@@ -179,10 +197,22 @@ contract TalentVault is Ownable {
   /// @notice Update the yield rate for the contract
   /// @dev Can only be called by the owner
   function setYieldRate(uint256 _yieldRate) external onlyOwner {
-    require(_yieldRate > yieldRate, "Yield rate cannot be decreased");
+    require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
 
-    yieldRate = _yieldRate;
+    yieldRateBase = _yieldRate;
     emit YieldRateUpdated(_yieldRate);
+  }
+
+  /// @notice Get the yield rate for the contract for a given user
+  /// @param user The address of the user to get the yield rate for
+  function getYieldRateForScore(address user) public view returns (uint256) {
+    uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
+    uint256 builderScore = passportBuilderScore.getScore(passportId);
+
+    if (builderScore < 25) return yieldRateBase;
+    if (builderScore < 50) return yieldRateProficient;
+    if (builderScore < 75) return yieldRateCompetent;
+    return yieldRateExpert;
   }
 
   /// @notice Update the maximum amount of tokens that can be used to calculate interest
@@ -211,6 +241,12 @@ contract TalentVault is Ownable {
     revert("Cannot renounce ownership");
   }
 
+  /// @notice Set the Passport Builder Score contract
+  /// @dev Can only be called by the owner
+  function setPassportBuilderScore(PassportBuilderScore _passportBuilderScore) external onlyOwner {
+    passportBuilderScore = _passportBuilderScore;
+  }
+
   /// @dev Calculates the interest accrued on the deposit
   /// @param userDeposit The user's deposit
   /// @return The amount of interest accrued
@@ -237,6 +273,7 @@ contract TalentVault is Ownable {
       timeElapsed = block.timestamp - userDeposit.lastInterestCalculation;
     }
 
+    uint256 yieldRate = getYieldRateForScore(userDeposit.user);
     return
       (userDeposit.amount * yieldRate * timeElapsed) /
       (SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT);

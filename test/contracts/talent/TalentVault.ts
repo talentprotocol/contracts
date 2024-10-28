@@ -42,11 +42,12 @@ describe("TalentVault", () => {
     const totalAllowance = ethers.utils.parseUnits("600000000", 18);
     await talentToken.approve(talentVault.address, totalAllowance);
     await talentToken.unpause();
-    await talentToken.renounceOwnership();
+    // await talentToken.renounceOwnership();
   });
 
   describe("Deployment", () => {
     it("Should set the right owner", async () => {
+      expect(await talentVault.owner()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.owner()).to.equal(admin.address);
     });
 
@@ -55,7 +56,38 @@ describe("TalentVault", () => {
       expect(await talentVault.yieldRateProficient()).to.equal(15_00);
       expect(await talentVault.yieldRateCompetent()).to.equal(20_00);
       expect(await talentVault.yieldRateExpert()).to.equal(25_00);
+
       expect(await talentVault.maxYieldAmount()).to.equal(ethers.utils.parseEther("500000"));
+
+      expect(await talentVault.passportBuilderScore()).not.to.equal(ethers.constants.AddressZero);
+      expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
+    });
+
+    it("reverts with InvalidAddress when _token given is 0", async () => {
+      await expect(deployContract(admin, Artifacts.TalentVault, [
+        ethers.constants.AddressZero,
+        admin.address,
+        ethers.utils.parseEther("500000"),
+        passportBuilderScore.address,
+      ])).to.be.reverted;
+    });
+
+    it("reverts with InvalidAddress when _yieldSource given is 0", async () => {
+      await expect(deployContract(admin, Artifacts.TalentVault, [
+        talentToken.address,
+        ethers.constants.AddressZero,
+        ethers.utils.parseEther("500000"),
+        passportBuilderScore.address,
+      ])).to.be.reverted;
+    });
+
+    it("reverts with InvalidAddress when _passportBuilderScore given is 0", async () => {
+      await expect(deployContract(admin, Artifacts.TalentVault, [
+        talentToken.address,
+        admin.address,
+        ethers.utils.parseEther("500000"),
+        ethers.constants.AddressZero,
+      ])).to.be.reverted;
     });
   });
 

@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
+error InvalidAddress();
+
 /// Based on WLDVault.sol from Worldcoin
 ///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
 /// @title Talent Vault Contract
@@ -98,11 +100,11 @@ contract TalentVault is Ownable, ReentrancyGuard {
       uint256 _maxYieldAmount,
       PassportBuilderScore _passportBuilderScore
   ) Ownable(msg.sender) {
-    require(
-      address(_token) != address(0) &&
-      address(_yieldSource) != address(0),
-      "Invalid address"
-    );
+    if (address(_token) == address(0) ||
+        address(_yieldSource) == address(0) ||
+        address(_passportBuilderScore) == address(0)) {
+        revert InvalidAddress();
+    }
 
     token = _token;
     yieldRateBase = 10_00;

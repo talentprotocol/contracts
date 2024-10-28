@@ -73,8 +73,6 @@ describe("PassportWalletRegistry", () => {
       // Access the event logs for the "ScoreUpdated" event
       const event = receipt.events.find((e) => e.event === "WalletAdded");
 
-      console.log(event);
-
       if (!event || !event.args || event.args.length < 2) {
         throw new Error("WalletAdded event not found in the receipt");
       }
@@ -160,7 +158,6 @@ describe("PassportWalletRegistry", () => {
 
       const passportId = await passportRegistry.passportId(user1.address);
 
-      console.log(passportId);
       await passportWalletRegistry.connect(user1).addWallet(user2.address, passportId);
 
       const newWalletPassportId = await passportWalletRegistry.passportId(user2.address);

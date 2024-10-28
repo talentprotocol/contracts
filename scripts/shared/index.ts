@@ -8,6 +8,8 @@ import type {
   TalentCommunitySale,
   TalentTGEUnlock,
   SmartBuilderScore,
+  PassportWalletRegistry,
+  TalentTGEUnlockTimestamp,
 } from "../../typechain-types";
 import { BigNumber } from "ethers";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
@@ -19,6 +21,18 @@ export async function deployPassport(owner: string): Promise<PassportRegistry> {
   await deployedPassport.deployed();
 
   return deployedPassport as PassportRegistry;
+}
+
+export async function deployPassportWalletRegistry(
+  owner: string,
+  passportRegistry: string
+): Promise<PassportWalletRegistry> {
+  const passportWalletRegistryContract = await ethers.getContractFactory("PassportWalletRegistry");
+
+  const deployedPassportWalletRegistry = await passportWalletRegistryContract.deploy(owner, passportRegistry);
+  await deployedPassportWalletRegistry.deployed();
+
+  return deployedPassportWalletRegistry as PassportWalletRegistry;
 }
 
 export async function deployTalentToken(owner: string): Promise<TalentProtocolToken> {
@@ -33,6 +47,7 @@ export async function deployTalentToken(owner: string): Promise<TalentProtocolTo
 export async function deployTalentRewardClaim(
   token: string,
   scoreContract: string,
+  passportWalletRegistry: string,
   holdingWallet: string,
   owner: string,
   merkleRoot: string
@@ -42,6 +57,7 @@ export async function deployTalentRewardClaim(
   const deployedRewardClaim = await talentRewardClaimContract.deploy(
     token,
     scoreContract,
+    passportWalletRegistry,
     holdingWallet,
     owner,
     merkleRoot
@@ -107,4 +123,17 @@ export async function deployTalentTGEUnlock(
   const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, merkleTreeRoot, owner);
   await deployedTGEUnlock.deployed();
   return deployedTGEUnlock as TalentTGEUnlock;
+}
+
+export async function deployTalentTGEUnlockTimestamps(
+  token: string,
+  owner: string,
+  merkleTreeRoot: string,
+  timestamp: number
+): Promise<TalentTGEUnlockTimestamp> {
+  const talentTGEUnlockWithTimestampsContract = await ethers.getContractFactory("TalentTGEUnlockTimestamp");
+
+  const deployedTGEUnlock = await talentTGEUnlockWithTimestampsContract.deploy(token, merkleTreeRoot, owner, timestamp);
+  await deployedTGEUnlock.deployed();
+  return deployedTGEUnlock as TalentTGEUnlockTimestamp;
 }

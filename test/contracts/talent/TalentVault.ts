@@ -35,7 +35,7 @@ describe("TalentVault", () => {
     talentVault = (await deployContract(admin, Artifacts.TalentVault, [
       talentToken.address,
       admin.address,
-      ethers.utils.parseEther("500000"),
+      ethers.utils.parseEther("10000"),
       passportBuilderScore.address,
     ])) as TalentVault;
 
@@ -58,7 +58,7 @@ describe("TalentVault", () => {
       expect(await talentVault.yieldRateCompetent()).to.equal(20_00);
       expect(await talentVault.yieldRateExpert()).to.equal(25_00);
 
-      expect(await talentVault.maxYieldAmount()).to.equal(ethers.utils.parseEther("500000"));
+      expect(await talentVault.maxYieldAmount()).to.equal(ethers.utils.parseEther("10000"));
 
       expect(await talentVault.passportBuilderScore()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
@@ -248,6 +248,23 @@ describe("TalentVault", () => {
       await ethers.provider.send("evm_mine", []);
 
       const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
+      const userBalance = await talentVault.balanceOf(user1.address);
+      expect(userBalance).to.equal(depositAmount.add(expectedInterest));
+    });
+
+    // 10000
+    it("Should calculate interest even if amount is above the max yield amount correctly", async () => {
+      const depositAmount = ethers.utils.parseEther("15000");
+      const maxAmount = ethers.utils.parseEther("10000");
+      await talentToken.transfer(user1.address, depositAmount);
+      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+      await talentVault.connect(user1).deposit(depositAmount);
+
+      // Simulate time passing
+      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+      await ethers.provider.send("evm_mine", []);
+
+      const expectedInterest = maxAmount.mul(10).div(100); // 10% interest
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.equal(depositAmount.add(expectedInterest));
     });

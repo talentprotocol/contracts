@@ -5,6 +5,7 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { TalentProtocolToken, TalentVault, PassportRegistry, PassportBuilderScore } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
+import { TalentVault as TalentVaultArtifact } from "../../shared/artifacts";
 
 chai.use(solidity);
 
@@ -99,20 +100,115 @@ describe("TalentVault", () => {
 
   describe("Deposits", () => {
     it("Should allow users to deposit tokens", async () => {
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
+      const depositAmount = 10_000n;
+
+      await talentToken.transfer(user1.address, depositAmount); // so that it has enough balance
+      const user1BalanceBefore = await talentToken.balanceOf(user1.address);
+
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
 
+      const vaultBalanceBefore = await talentToken.balanceOf(talentVault.address);
+
+      const user1BalanceInTalentVaultBefore = await talentVault.balanceOf(user1.address);
+
+      // fire
       await expect(talentVault.connect(user1).deposit(depositAmount))
         .to.emit(talentVault, "Deposited")
         .withArgs(user1.address, depositAmount);
 
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.equal(depositAmount);
+      // vault balance in TALENT is increased
+      const vaultBalanceAfter = await talentToken.balanceOf(talentVault.address);
+      const expectedVaultBalanceAfter = vaultBalanceBefore.toBigInt() + depositAmount;
+      expect(vaultBalanceAfter).to.equal(expectedVaultBalanceAfter);
+
+      // user1 balance in TALENT decreases
+      const user1BalanceAfter = await talentToken.balanceOf(user1.address);
+      expect(user1BalanceAfter).to.equal(user1BalanceBefore.toBigInt() - depositAmount);
+
+      // user1 balance in TalentVault increases
+      const user1BalanceInTalentVaultAfter = await talentVault.balanceOf(user1.address);
+      expect(user1BalanceInTalentVaultAfter).to.equal(user1BalanceInTalentVaultBefore.toBigInt() + depositAmount);
     });
 
-    it("Should not allow deposits of zero tokens", async () => {
-      await expect(talentVault.connect(user1).deposit(0)).to.be.revertedWith("Invalid deposit amount");
+    describe("#depositForAddress", async () => {
+      it("Should deposit the amount to the address given", async () => {
+        const depositAmount = 100_000n;
+        await talentToken.transfer(user1.address, depositAmount); // so that sender has enough balance
+        const user1BalanceBefore = await talentToken.balanceOf(user1.address);
+
+        await talentToken.connect(user1).approve(talentVault.address, depositAmount); // so that sender has approved vault
+
+        const vaultBalanceBefore = await talentToken.balanceOf(talentVault.address);
+
+        const user2DepositBefore = await talentVault.getDeposit(user2.address);
+
+        // fire
+        await expect(talentVault.connect(user1).depositForAddress(user2.address, depositAmount))
+          .to.emit(talentVault, "Deposited")
+          .withArgs(user2.address, depositAmount);
+
+        // user1 talent balance is decreased
+        const user1BalanceAfter = await talentVault.balanceOf(user1.address);
+        const expectedUser1BalanceAfter = user1BalanceBefore.sub(depositAmount);
+        expect(user1BalanceAfter).to.equal(expectedUser1BalanceAfter);
+
+        // vault balance is increased
+        const vaultBalanceAfter = await talentToken.balanceOf(talentVault.address);
+        const expectedVaultBalanceAfter = vaultBalanceBefore.toBigInt() + depositAmount;
+        expect(vaultBalanceAfter).to.equal(expectedVaultBalanceAfter);
+
+        // deposit for user2 is updated on storage
+        const user2DepositAfter = await talentVault.getDeposit(user2.address);
+        expect(user2DepositAfter.user).to.equal(user2.address);
+        expect(user2DepositAfter.depositedAmount).to.equal(
+          user2DepositBefore.depositedAmount.toBigInt() + depositAmount
+        );
+        expect(user2DepositAfter.amount).to.equal(user2DepositBefore.amount.toBigInt() + depositAmount);
+      });
+
+      it("Should not allow deposits of zero tokens", async () => {
+        await expect(talentVault.connect(user1).depositForAddress(ethers.constants.AddressZero, 0n)).to.be.revertedWith(
+          "InvalidDepositAmount()"
+        );
+      });
+
+      it("Should not allow deposit of amount that the sender does not have", async () => {
+        const balanceOfUser1 = 100_000n;
+
+        await talentToken.transfer(user1.address, balanceOfUser1);
+
+        const depositAmount = 100_001n;
+
+        await expect(talentVault.connect(user1).depositForAddress(user2.address, depositAmount)).to.be.revertedWith(
+          "InsufficientBalance()"
+        );
+      });
+
+      it("Should not allow deposit of amount bigger than the allowed by the sender to be spent by the talent contract", async () => {
+        const depositAmount = 100_000n;
+
+        await talentToken.transfer(user1.address, depositAmount); // so that user1 has enough balance
+
+        const approvedAmount = depositAmount - 1n;
+
+        await talentToken.connect(user1).approve(talentVault.address, approvedAmount);
+
+        // fire
+
+        await expect(talentVault.connect(user1).depositForAddress(user2.address, depositAmount)).to.be.revertedWith(
+          "InsufficientAllowance()"
+        );
+      });
+
+      it("Should allow deposit of amount equal to the allowed by the sender to be spent by the talent contract", async () => {
+        const depositAmount = ethers.utils.parseEther("1000");
+
+        await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+
+        await expect(talentVault.connect(user1).depositForAddress(user2.address, depositAmount)).to.be.revertedWith(
+          "InsufficientBalance()"
+        );
+      });
     });
   });
 

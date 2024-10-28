@@ -8,6 +8,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
 error InvalidAddress();
+error InvalidDepositAmount();
+error InsufficientBalance();
+error InsufficientAllowance();
+error TransferFailed();
+error NoDepositFound();
+error ContractInsolvent();
 
 /// Based on WLDVault.sol from Worldcoin
 ///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
@@ -122,9 +128,24 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @param account The address of the user to deposit tokens for
     /// @param amount The amount of tokens to deposit
     function depositForAddress(address account, uint256 amount) public {
-        require(amount > 0, "Invalid deposit amount");
-        require(token.balanceOf(msg.sender) >= amount, "Insufficient balance");
-        require(token.allowance(msg.sender, address(this)) >= amount, "Insufficient allowance");
+        if (amount <= 0) {
+            revert InvalidDepositAmount();
+        }
+
+        if (token.balanceOf(msg.sender) < amount) {
+            revert InsufficientBalance();
+        }
+
+        if (token.allowance(msg.sender, address(this)) < amount) {
+            revert InsufficientAllowance();
+        }
+
+        try token.transferFrom(msg.sender, address(this), amount) {
+            // Transfer was successful; no further action needed
+        } catch {
+            // If the transfer failed, revert with a custom error message
+            revert TransferFailed();
+        }
 
         Deposit storage userDeposit = getDeposit[account];
 
@@ -139,8 +160,6 @@ contract TalentVault is Ownable, ReentrancyGuard {
         userDeposit.user = account;
 
         emit Deposited(account, amount);
-
-        require(token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
     }
 
     /// @notice Deposit tokens into the contract, which will start accruing interest.
@@ -153,7 +172,10 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
         Deposit storage userDeposit = getDeposit[account];
-        require(userDeposit.amount > 0, "No deposit found");
+        if (userDeposit.amount <= 0) {
+            revert NoDepositFound();
+        }
+
         refreshInterest(userDeposit);
     }
 
@@ -185,7 +207,9 @@ contract TalentVault is Ownable, ReentrancyGuard {
 
     function recoverDeposit() external {
         Deposit storage userDeposit = getDeposit[msg.sender];
-        require(userDeposit.amount > 0, "No deposit found");
+        if (userDeposit.amount <= 0) {
+            revert NoDepositFound();
+        }
 
         refreshInterest(userDeposit);
         uint256 amount = userDeposit.depositedAmount;
@@ -193,9 +217,15 @@ contract TalentVault is Ownable, ReentrancyGuard {
         userDeposit.amount -= amount;
         userDeposit.depositedAmount = 0;
 
+        if (token.balanceOf(address(this)) < amount) {
+            revert ContractInsolvent();
+        }
+
+        try token.transfer(msg.sender, amount) {} catch {
+            revert TransferFailed();
+        }
+
         emit Withdrawn(msg.sender, amount);
-        require(token.balanceOf(address(this)) >= amount, "Contract insolvent");
-        require(token.transfer(msg.sender, amount), "Transfer failed");
     }
 
     /// @notice Update the yield rate for the contract
@@ -292,7 +322,9 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @param amount The amount of tokens to withdraw
     function _withdraw(address user, uint256 amount) internal {
         Deposit storage userDeposit = getDeposit[user];
-        require(userDeposit.amount > 0, "No deposit found");
+        if (userDeposit.amount <= 0) {
+            revert NoDepositFound();
+        }
 
         refreshInterest(userDeposit);
         require(userDeposit.amount >= amount, "Not enough balance");

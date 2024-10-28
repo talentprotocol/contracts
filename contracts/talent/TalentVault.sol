@@ -45,6 +45,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     uint256 amount;
     uint256 depositedAmount;
     uint256 lastInterestCalculation;
+    uint256 lastDepositTimestamp;
     address user;
   }
 
@@ -133,6 +134,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     userDeposit.depositedAmount += amount;
     userDeposit.lastInterestCalculation = block.timestamp;
     userDeposit.user = account;
+    userDeposit.lastDepositTimestamp = block.timestamp;
 
     emit Deposited(account, amount);
 
@@ -197,6 +199,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
   /// @notice Update the yield rate for the contract
   /// @dev Can only be called by the owner
   function setYieldRate(uint256 _yieldRate) external onlyOwner {
+    require(_yieldRate < 100_00, "Yield rate cannot be greater than 100%");
     require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
 
     yieldRateBase = _yieldRate;

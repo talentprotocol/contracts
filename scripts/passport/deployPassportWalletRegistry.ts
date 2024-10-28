@@ -12,7 +12,7 @@ async function main() {
 
   console.log(`Admin will be ${admin.address}`);
 
-  const passportRegistry = await deployPassportWalletRegistry(admin.address, PASSPORT_REGISTRY_ADDRESS_TESTNET);
+  const passportRegistry = await deployPassportWalletRegistry(admin.address, PASSPORT_REGISTRY_ADDRESS_MAINNET);
 
   console.log(`Passport Registry Address: ${passportRegistry.address}`);
   console.log(`Passport Registry owner: ${await passportRegistry.owner()}`);

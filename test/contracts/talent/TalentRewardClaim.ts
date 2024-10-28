@@ -8,6 +8,7 @@ import {
   TalentRewardClaim,
   PassportRegistry,
   PassportBuilderScore,
+  PassportWalletRegistry,
 } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import generateMerkleTree from "../../../functions/generateMerkleTree";
@@ -30,6 +31,7 @@ describe("TalentRewardClaim", () => {
   let talentToken: TalentProtocolToken;
   let passportRegistry: PassportRegistry;
   let passportBuilderScore: PassportBuilderScore;
+  let passportWalletRegistry: PassportWalletRegistry;
   let talentRewardClaim: TalentRewardClaim;
   let merkleTree: StandardMerkleTree<(string | BigNumber)[]>;
   let currentTimestamp: number = Math.floor(Date.now() / 1000);
@@ -43,6 +45,10 @@ describe("TalentRewardClaim", () => {
       passportRegistry.address,
       admin.address,
     ])) as PassportBuilderScore;
+    passportWalletRegistry = (await deployContract(admin, Artifacts.PassportWalletRegistry, [
+      admin.address,
+      passportRegistry.address,
+    ])) as PassportWalletRegistry;
 
     merkleTree = generateMerkleTree({
       [user1.address]: ethers.utils.parseUnits("10000", 18),
@@ -52,6 +58,7 @@ describe("TalentRewardClaim", () => {
     talentRewardClaim = (await deployContract(admin, Artifacts.TalentRewardClaim, [
       talentToken.address,
       passportBuilderScore.address,
+      passportWalletRegistry.address,
       admin.address,
       admin.address,
       merkleTree.root,
@@ -99,11 +106,16 @@ describe("TalentRewardClaim", () => {
 
   describe("Claiming Tokens", () => {
     beforeEach(async () => {
-      const amounts = [ethers.utils.parseUnits("10000", 18), ethers.utils.parseUnits("20000", 18)];
+      const amounts = [
+        ethers.utils.parseUnits("10000", 18),
+        ethers.utils.parseUnits("20000", 18),
+        ethers.utils.parseUnits("30000", 18),
+      ];
 
       merkleTree = generateMerkleTree({
         [user1.address]: amounts[0],
         [user2.address]: amounts[1],
+        [user3.address]: amounts[2],
       });
 
       await talentRewardClaim.setMerkleRoot(merkleTree.root);
@@ -177,6 +189,19 @@ describe("TalentRewardClaim", () => {
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
       await talentRewardClaim.connect(user1).claimTokens(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18)); // 5x the weekly amount
+    });
+
+    it("Should allow users that changed their main wallet with a builder score above 40 to claim 5x tokens", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportWalletRegistry.connect(user1).addWallet(user3.address, passportId);
+      await passportBuilderScore.setScore(passportId, 50); // Set builder score above 40
+
+      const proof1 = merkleTree.getProof([user3.address, ethers.utils.parseUnits("30000", 18)]);
+      await talentRewardClaim.connect(user3).claimTokens(proof1, ethers.utils.parseUnits("30000", 18));
+      expect(await talentToken.balanceOf(user3.address)).to.equal(ethers.utils.parseUnits("10000", 18)); // 5x the weekly amount
     });
 
     it("Should burn tokens if a user misses a claim", async () => {

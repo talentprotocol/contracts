@@ -6,7 +6,7 @@ async function main() {
   const [admin] = await ethers.getSigners();
 
   const passportWalletRegistry = new ethers.Contract(
-    "0xA380D6189b03d9C09534d7f1d2e2bD24678e12c5",
+    "0x9B729d9fC43e3746855F7E02238FB3a2A20bD899",
     PassportWalletRegistry.abi,
     admin
   );

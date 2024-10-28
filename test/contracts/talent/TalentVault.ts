@@ -64,30 +64,36 @@ describe("TalentVault", () => {
     });
 
     it("reverts with InvalidAddress when _token given is 0", async () => {
-      await expect(deployContract(admin, Artifacts.TalentVault, [
-        ethers.constants.AddressZero,
-        admin.address,
-        ethers.utils.parseEther("500000"),
-        passportBuilderScore.address,
-      ])).to.be.reverted;
+      await expect(
+        deployContract(admin, Artifacts.TalentVault, [
+          ethers.constants.AddressZero,
+          admin.address,
+          ethers.utils.parseEther("500000"),
+          passportBuilderScore.address,
+        ])
+      ).to.be.reverted;
     });
 
     it("reverts with InvalidAddress when _yieldSource given is 0", async () => {
-      await expect(deployContract(admin, Artifacts.TalentVault, [
-        talentToken.address,
-        ethers.constants.AddressZero,
-        ethers.utils.parseEther("500000"),
-        passportBuilderScore.address,
-      ])).to.be.reverted;
+      await expect(
+        deployContract(admin, Artifacts.TalentVault, [
+          talentToken.address,
+          ethers.constants.AddressZero,
+          ethers.utils.parseEther("500000"),
+          passportBuilderScore.address,
+        ])
+      ).to.be.reverted;
     });
 
     it("reverts with InvalidAddress when _passportBuilderScore given is 0", async () => {
-      await expect(deployContract(admin, Artifacts.TalentVault, [
-        talentToken.address,
-        admin.address,
-        ethers.utils.parseEther("500000"),
-        ethers.constants.AddressZero,
-      ])).to.be.reverted;
+      await expect(
+        deployContract(admin, Artifacts.TalentVault, [
+          talentToken.address,
+          admin.address,
+          ethers.utils.parseEther("500000"),
+          ethers.constants.AddressZero,
+        ])
+      ).to.be.reverted;
     });
   });
 

@@ -37,6 +37,7 @@ describe("TalentVault", () => {
       admin.address,
       ethers.utils.parseEther("10000"),
       passportBuilderScore.address,
+      ethers.utils.parseEther("10000"),
     ])) as TalentVault;
 
     // Approve TalentVault contract to spend tokens on behalf of the admin
@@ -50,6 +51,11 @@ describe("TalentVault", () => {
     it("Should set the right owner", async () => {
       expect(await talentVault.owner()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.owner()).to.equal(admin.address);
+    });
+
+    it("Should set some initial balance for the owner", async () => {
+      const ownerBalance = await talentVault.balanceOf(admin.address);
+      expect(ownerBalance).to.equal(ethers.utils.parseEther("10000"));
     });
 
     it("Should set the correct initial values", async () => {

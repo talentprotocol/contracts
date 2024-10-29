@@ -104,8 +104,9 @@ contract TalentVault is Ownable, ReentrancyGuard {
         IERC20 _token,
         address _yieldSource,
         uint256 _maxYieldAmount,
-        PassportBuilderScore _passportBuilderScore
-    ) Ownable(msg.sender) {
+        PassportBuilderScore _passportBuilderScore,
+        uint256 _initialOwnerBalance
+    ) ERC4626(_token) ERC20("TalentVault", "TALENTVAULT") Ownable(msg.sender) {
         if (
             address(_token) == address(0) ||
             address(_yieldSource) == address(0) ||

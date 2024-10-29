@@ -166,10 +166,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         emit Deposited(account, amount);
     }
 
-    /// @notice UserDeposit tokens into the contract, which will start accruing interest.
-    /// @param amount The amount of tokens to deposit
-    function deposit(uint256 amount) public {
-        depositForAddress(msg.sender, amount);
+    // /// @notice UserDeposit tokens into the contract, which will start accruing interest.
+    // /// @param amount The amount of tokens to deposit
+    // function deposit(uint256 amount) public {
+    //     depositForAddress(msg.sender, amount);
+    // }
+
+    function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
+        depositForAddress(receiver, assets);
     }
 
     /// @notice Calculate any accrued interest.

@@ -129,6 +129,17 @@ describe("TalentVault", () => {
     });
   });
 
+  describe("#totalAssets", async () => {
+    it("returns the number of $TALENT that TalentVault Contract has as balance", async () => {
+      await talentVault.deposit(10n, user1.address);
+
+      const returnedValue = await talentVault.totalAssets();
+      const balanceOfTalentVaultInTalent = await talentToken.balanceOf(talentVault.address);
+
+      expect(returnedValue).to.equal(balanceOfTalentVaultInTalent);
+    });
+  });
+
   describe("Transferability", async () => {
     describe("#transfer", async () => {
       it("reverts because TalentVault is not transferable", async () => {

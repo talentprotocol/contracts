@@ -2,25 +2,27 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
+error ContractInsolvent();
+error InsufficientAllowance();
+error InsufficientBalance();
 error InvalidAddress();
 error InvalidDepositAmount();
-error InsufficientBalance();
-error InsufficientAllowance();
-error TransferFailed();
 error NoDepositFound();
-error ContractInsolvent();
+error TalentVaultNonTransferable();
+error TransferFailed();
 
 /// Based on WLDVault.sol from Worldcoin
 ///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
 /// @title Talent Vault Contract
 /// @author Francisco Leal
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
-contract TalentVault is Ownable, ReentrancyGuard {
+contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Emitted when a user deposits tokens
@@ -49,7 +51,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @param amount The amount of tokens deposited, plus any accrued interest
     /// @param depositedAmount The amount of tokens that were deposited, excluding interest
     /// @param lastInterestCalculation The timestamp of the last interest calculation for this deposit
-    struct Deposit {
+    struct UserDeposit {
         uint256 amount;
         uint256 depositedAmount;
         uint256 lastInterestCalculation;
@@ -93,7 +95,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     PassportBuilderScore public passportBuilderScore;
 
     /// @notice A mapping of user addresses to their deposits
-    mapping(address => Deposit) public getDeposit;
+    mapping(address => UserDeposit) public getDeposit;
 
     /// @notice Create a new Talent Vault contract
     /// @param _token The token that will be deposited into the contract
@@ -123,9 +125,10 @@ contract TalentVault is Ownable, ReentrancyGuard {
         yieldSource = _yieldSource;
         maxYieldAmount = _maxYieldAmount;
         passportBuilderScore = _passportBuilderScore;
+        _mint(owner(), _initialOwnerBalance);
     }
 
-    /// @notice Deposit tokens into a user's account, which will start accruing interest.
+    /// @notice UserDeposit tokens into a user's account, which will start accruing interest.
     /// @param account The address of the user to deposit tokens for
     /// @param amount The amount of tokens to deposit
     function depositForAddress(address account, uint256 amount) public {
@@ -148,7 +151,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
             revert TransferFailed();
         }
 
-        Deposit storage userDeposit = getDeposit[account];
+        UserDeposit storage userDeposit = getDeposit[account];
 
         if (userDeposit.amount > 0) {
             uint256 interest = calculateInterest(userDeposit);
@@ -163,7 +166,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
         emit Deposited(account, amount);
     }
 
-    /// @notice Deposit tokens into the contract, which will start accruing interest.
+    /// @notice UserDeposit tokens into the contract, which will start accruing interest.
     /// @param amount The amount of tokens to deposit
     function deposit(uint256 amount) public {
         depositForAddress(msg.sender, amount);
@@ -172,7 +175,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @notice Calculate any accrued interest.
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
-        Deposit storage userDeposit = getDeposit[account];
+        UserDeposit storage userDeposit = getDeposit[account];
         if (userDeposit.amount <= 0) {
             revert NoDepositFound();
         }
@@ -187,8 +190,10 @@ contract TalentVault is Ownable, ReentrancyGuard {
 
     /// @notice Returns the balance of the user, including any accrued interest.
     /// @param user The address of the user to check the balance of
-    function balanceOf(address user) public view returns (uint256) {
-        Deposit storage userDeposit = getDeposit[user];
+    function balanceOf(address user) public view virtual override(ERC20, IERC20) returns (uint256) {
+        return super.balanceOf(user);
+
+        UserDeposit storage userDeposit = getDeposit[user];
         if (userDeposit.amount == 0) return 0;
 
         uint256 interest = calculateInterest(userDeposit);
@@ -207,7 +212,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     }
 
     function recoverDeposit() external {
-        Deposit storage userDeposit = getDeposit[msg.sender];
+        UserDeposit storage userDeposit = getDeposit[msg.sender];
         if (userDeposit.amount <= 0) {
             revert NoDepositFound();
         }
@@ -280,10 +285,22 @@ contract TalentVault is Ownable, ReentrancyGuard {
         passportBuilderScore = _passportBuilderScore;
     }
 
+    /// @notice This reverts because TalentVault is non-transferable
+    /// @dev reverts with TalentVaultNonTransferable
+    function transfer(address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
+        revert TalentVaultNonTransferable();
+    }
+
+    /// @notice This reverts because TalentVault is non-transferable
+    /// @dev reverts with TalentVaultNonTansferable
+    function transferFrom(address, address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
+        revert TalentVaultNonTransferable();
+    }
+
     /// @dev Calculates the interest accrued on the deposit
     /// @param userDeposit The user's deposit
     /// @return The amount of interest accrued
-    function calculateInterest(Deposit memory userDeposit) internal view returns (uint256) {
+    function calculateInterest(UserDeposit memory userDeposit) internal view returns (uint256) {
         if (userDeposit.amount > maxYieldAmount) {
             userDeposit.amount = maxYieldAmount;
         }
@@ -310,7 +327,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
 
     /// @dev Refreshes the interest on a user's deposit
     /// @param userDeposit The user's deposit
-    function refreshInterest(Deposit storage userDeposit) internal {
+    function refreshInterest(UserDeposit storage userDeposit) internal {
         if (userDeposit.amount == 0) return;
 
         uint256 interest = calculateInterest(userDeposit);
@@ -322,7 +339,7 @@ contract TalentVault is Ownable, ReentrancyGuard {
     /// @param user The address of the user to withdraw the balance of
     /// @param amount The amount of tokens to withdraw
     function _withdraw(address user, uint256 amount) internal {
-        Deposit storage userDeposit = getDeposit[user];
+        UserDeposit storage userDeposit = getDeposit[user];
         if (userDeposit.amount <= 0) {
             revert NoDepositFound();
         }

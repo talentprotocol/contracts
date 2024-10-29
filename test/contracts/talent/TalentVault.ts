@@ -104,6 +104,24 @@ describe("TalentVault", () => {
     });
   });
 
+  describe("Transferability", async () => {
+    describe("#transfer", async () => {
+      it("reverts because TalentVault is not transferable", async () => {
+        await expect(talentVault.transfer(user1.address, 10n)).to.be.revertedWith("TalentVaultNonTransferable");
+      });
+    });
+
+    describe("#transferFrom", async () => {
+      it("reverts because TalentVault is not transferable", async () => {
+        await talentVault.approve(admin.address, 10n);
+        // fire
+        await expect(talentVault.transferFrom(admin.address, user2.address, 10n)).to.be.revertedWith(
+          "TalentVaultNonTransferable"
+        );
+      });
+    });
+  });
+
   describe("Deposits", () => {
     it("Should allow users to deposit tokens", async () => {
       const depositAmount = 10_000n;

@@ -104,6 +104,19 @@ describe("TalentVault", () => {
     });
   });
 
+  // TODO: Do we want this? Does it
+  // depreciate the reliability of the contract at
+  // the eyes of our users?
+  //
+  describe("Pausable", async () => {
+    it("is Pausable");
+    it("when Pausable, we cannot deposit");
+    it("when Pausable, we cannot withdraw");
+    it("when paused we cannot .... other ...");
+    it("can be paused only by the owner");
+    it("can be unpaused only by the owner");
+  });
+
   describe("#name", async () => {
     it("is 'TalentProtocolVaultToken' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
       const name = await talentVault.name();

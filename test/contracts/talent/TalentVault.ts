@@ -120,6 +120,15 @@ describe("TalentVault", () => {
     });
   });
 
+  describe("#asset", async () => {
+    it("returns the address of the $TALENT contract", async () => {
+      const returnedAddress = await talentVault.asset();
+
+      expect(returnedAddress).not.to.equal(ethers.constants.AddressZero);
+      expect(returnedAddress).to.equal(talentToken.address);
+    });
+  });
+
   describe("Transferability", async () => {
     describe("#transfer", async () => {
       it("reverts because TalentVault is not transferable", async () => {

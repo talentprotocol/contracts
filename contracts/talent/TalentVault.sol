@@ -97,6 +97,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice A mapping of user addresses to their deposits
     mapping(address => UserDeposit) public getDeposit;
 
+    mapping(address => uint256) private maxDeposits;
+
     /// @notice Create a new Talent Vault contract
     /// @param _token The token that will be deposited into the contract
     /// @param _yieldSource The wallet paying for the yield
@@ -171,6 +173,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     // function deposit(uint256 amount) public {
     //     depositForAddress(msg.sender, amount);
     // }
+
+    function setMaxDeposit(address receiver, uint256 assets) public onlyOwner {
+        maxDeposits[receiver] = assets;
+    }
+
+    function maxDeposit(address receiver) public view virtual override returns (uint256) {
+        return maxDeposits[receiver];
+    }
 
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
         depositForAddress(receiver, assets);

@@ -139,6 +139,37 @@ describe("TalentVault", () => {
       expect(returnedValue).to.equal(balanceOfTalentVaultInTalent);
     });
   });
+  describe("#setMaxDeposit", async () => {
+    context("when called by the owner", async () => {
+      it("sets the maximum deposit for the receiver", async () => {
+        await talentVault.setMaxDeposit(user1.address, 10n);
+
+        const deposit = await talentVault.maxDeposit(user1.address);
+
+        expect(deposit).to.equal(10n);
+      });
+    });
+
+    context("when called by a non-owner", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.connect(user1).setMaxDeposit(user2.address, 10n)).to.revertedWith(
+          "OwnableUnauthorizedAccount"
+        );
+      });
+    });
+  });
+
+  describe("#maxDeposit", async () => {
+    context("when recipient has positive maximum deposit limit", async () => {
+      it("returns it", async () => {
+        await talentVault.setMaxDeposit(user1.address, 5n);
+
+        const maxDeposit = await talentVault.maxDeposit(user1.address);
+
+        expect(maxDeposit).to.equal(5n);
+      });
+    });
+  });
 
   describe("Transferability", async () => {
     describe("#transfer", async () => {

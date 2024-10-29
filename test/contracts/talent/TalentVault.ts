@@ -104,6 +104,22 @@ describe("TalentVault", () => {
     });
   });
 
+  describe("#name", async () => {
+    it("is 'TalentProtocolVaultToken' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
+      const name = await talentVault.name();
+
+      expect(name).to.equal("TalentProtocolVaultToken");
+    });
+  });
+
+  describe("#symbol", async () => {
+    it("is 'TALENTVAULT' reflects the underlying token symbol, i.e. of 'TALENT'", async () => {
+      const symbol = await talentVault.symbol();
+
+      expect(symbol).to.equal("TALENTVAULT");
+    });
+  });
+
   describe("Transferability", async () => {
     describe("#transfer", async () => {
       it("reverts because TalentVault is not transferable", async () => {

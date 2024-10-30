@@ -135,6 +135,8 @@ describe("TalentVault", () => {
     it("can be unpaused only by the owner");
   });
 
+  // TODO: StopYieldingInterest
+
   describe("#name", async () => {
     it("is 'TalentProtocolVaultToken' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
       const name = await talentVault.name();
@@ -274,7 +276,7 @@ describe("TalentVault", () => {
   });
 
   describe("#deposit", async () => {
-    it("Should mint $TALENTVAULT to the given receiver, equally increase the TalentVault $TALENT balance and equally decrease the $TALENT balance of receiver", async () => {
+    it("Should mint $TALENTVAULT to the given receiver, equally increase the TalentVault $TALENT balance and equally decreases the $TALENT balance of receiver", async () => {
       const depositAmountInTalent = 10_000n;
       const equivalentDepositAmountInTalentVault = depositAmountInTalent;
 

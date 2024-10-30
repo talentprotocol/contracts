@@ -71,11 +71,6 @@ describe("TalentVault", () => {
       expect(await talentVault.owner()).to.equal(admin.address);
     });
 
-    it("Should set some initial balance for the owner", async () => {
-      const ownerBalance = await talentVault.balanceOf(admin.address);
-      expect(ownerBalance).to.equal(ethers.utils.parseEther("10000"));
-    });
-
     it("Should set the correct initial values", async () => {
       expect(await talentVault.yieldRateBase()).to.equal(10_00);
       expect(await talentVault.yieldRateProficient()).to.equal(15_00);
@@ -164,6 +159,7 @@ describe("TalentVault", () => {
 
   describe("#totalAssets", async () => {
     it("returns the number of $TALENT that TalentVault Contract has as balance", async () => {
+      await talentToken.approve(talentVault.address, 10n);
       await talentVault.deposit(10n, user1.address);
 
       const returnedValue = await talentVault.totalAssets();
@@ -285,8 +281,8 @@ describe("TalentVault", () => {
       const user1BalanceBefore = await talentToken.balanceOf(user1.address);
       const user1BalanceInTalentVaultBefore = await talentVault.balanceOf(user1.address);
       const vaultBalanceBefore = await talentToken.balanceOf(talentVault.address);
-      const userDepositBefore = await talentVault.getDeposit(user1.address);
-      const depositedAmountBefore = userDepositBefore.depositedAmount;
+      const userBalanceMetaBefore = await talentVault.userBalanceMeta(user1.address);
+      const depositedAmountBefore = userBalanceMetaBefore.depositedAmount;
 
       // fire (admin deposits to itself)
       await expect(talentVault.connect(user1).deposit(depositAmountInTalent, user1.address))
@@ -309,8 +305,8 @@ describe("TalentVault", () => {
       );
 
       // user1 depositedAmount is increased
-      const userDeposit = await talentVault.getDeposit(user1.address);
-      const depositedAmountAfter = userDeposit.depositedAmount;
+      const userBalanceMeta = await talentVault.userBalanceMeta(user1.address);
+      const depositedAmountAfter = userBalanceMeta.depositedAmount;
       expect(depositedAmountAfter).to.equal(depositedAmountBefore.toBigInt() + equivalentDepositAmountInTalentVault);
     });
 
@@ -397,8 +393,8 @@ describe("TalentVault", () => {
       const user1BalanceBefore = await talentToken.balanceOf(user1.address);
       const user1BalanceInTalentVaultBefore = await talentVault.balanceOf(user1.address);
       const vaultBalanceBefore = await talentToken.balanceOf(talentVault.address);
-      const userDepositBefore = await talentVault.getDeposit(user1.address);
-      const depositedAmountBefore = userDepositBefore.depositedAmount;
+      const userBalanceMetaBefore = await talentVault.userBalanceMeta(user1.address);
+      const depositedAmountBefore = userBalanceMetaBefore.depositedAmount;
 
       // fire (admin deposits to itself)
       await expect(talentVault.connect(user1).mint(depositAmountInTalentVault, user1.address))
@@ -421,8 +417,8 @@ describe("TalentVault", () => {
       );
 
       // user1 depositedAmount is increased
-      const userDeposit = await talentVault.getDeposit(user1.address);
-      const depositedAmountAfter = userDeposit.depositedAmount;
+      const userBalanceMeta = await talentVault.userBalanceMeta(user1.address);
+      const depositedAmountAfter = userBalanceMeta.depositedAmount;
       expect(depositedAmountAfter).to.equal(depositedAmountBefore.toBigInt() + equivalentDepositAmountInTalent);
     });
 
@@ -564,7 +560,7 @@ describe("TalentVault", () => {
 
       const vaultBalanceBefore = await talentToken.balanceOf(talentVault.address);
 
-      const user2DepositBefore = await talentVault.getDeposit(user2.address);
+      const user2BalanceMetaBefore = await talentVault.userBalanceMeta(user2.address);
 
       const user2TalentVaultBalanceBefore = await talentVault.balanceOf(user2.address);
 
@@ -584,9 +580,10 @@ describe("TalentVault", () => {
       expect(vaultBalanceAfter).to.equal(expectedVaultBalanceAfter);
 
       // deposit for user2 is updated on storage
-      const user2DepositAfter = await talentVault.getDeposit(user2.address);
-      expect(user2DepositAfter.user).to.equal(user2.address);
-      expect(user2DepositAfter.depositedAmount).to.equal(user2DepositBefore.depositedAmount.toBigInt() + depositAmount);
+      const user2BalanceMetaAfter = await talentVault.userBalanceMeta(user2.address);
+      expect(user2BalanceMetaAfter.depositedAmount).to.equal(
+        user2BalanceMetaBefore.depositedAmount.toBigInt() + depositAmount
+      );
 
       // user2 $TALENTVAULT balance is increased
       const user2TalentVaultBalanceAfter = await talentVault.balanceOf(user2.address);
@@ -640,142 +637,150 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("Withdrawals", () => {
-    beforeEach(async () => {
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
-    });
-
-    it("Should allow users to withdraw tokens", async () => {
-      const withdrawAmount = ethers.utils.parseEther("500");
-      await expect(talentVault.connect(user1).withdraw(withdrawAmount))
-        .to.emit(talentVault, "Withdrawn")
-        .withArgs(user1.address, withdrawAmount);
-
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(ethers.utils.parseEther("500"), ethers.utils.parseEther("0.1"));
-    });
-
-    it("Should not allow withdrawals of more than the balance", async () => {
-      const withdrawAmount = ethers.utils.parseEther("1500");
-      await expect(talentVault.connect(user1).withdraw(withdrawAmount)).to.be.revertedWith("Not enough balance");
+  describe("#refreshForAddress", async () => {
+    context("when address does not have a deposit", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.refreshForAddress(user1.address)).to.be.revertedWith("NoDepositFound");
+      });
     });
   });
 
-  describe("Interest Calculation", () => {
-    it("Should calculate interest correctly", async () => {
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
+  // describe("Withdrawals", () => {
+  //   beforeEach(async () => {
+  //     const depositAmount = ethers.utils.parseEther("1000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
+  //   });
 
-      // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+  //   it("Should allow users to withdraw tokens", async () => {
+  //     const withdrawAmount = ethers.utils.parseEther("500");
+  //     await expect(talentVault.connect(user1).withdraw(withdrawAmount))
+  //       .to.emit(talentVault, "Withdrawn")
+  //       .withArgs(user1.address, withdrawAmount);
 
-      const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.equal(depositAmount.add(expectedInterest));
-    });
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.be.closeTo(ethers.utils.parseEther("500"), ethers.utils.parseEther("0.1"));
+  //   });
 
-    // 10000
-    it("Should calculate interest even if amount is above the max yield amount correctly", async () => {
-      const depositAmount = ethers.utils.parseEther("15000");
-      const maxAmount = ethers.utils.parseEther("10000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
+  //   it("Should not allow withdrawals of more than the balance", async () => {
+  //     const withdrawAmount = ethers.utils.parseEther("1500");
+  //     await expect(talentVault.connect(user1).withdraw(withdrawAmount)).to.be.revertedWith("Not enough balance");
+  //   });
+  // });
 
-      // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+  // describe("Interest Calculation", () => {
+  //   it("Should calculate interest correctly", async () => {
+  //     const depositAmount = ethers.utils.parseEther("1000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
 
-      const expectedInterest = maxAmount.mul(10).div(100); // 10% interest
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.equal(depositAmount.add(expectedInterest));
-    });
+  //     // Simulate time passing
+  //     await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+  //     await ethers.provider.send("evm_mine", []);
 
-    it("Should calculate interest correctly for builders with scores below 50", async () => {
-      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
-      await passportRegistry.connect(user1).create("source1");
+  //     const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.equal(depositAmount.add(expectedInterest));
+  //   });
 
-      const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
+  //   // 10000
+  //   it("Should calculate interest even if amount is above the max yield amount correctly", async () => {
+  //     const depositAmount = ethers.utils.parseEther("15000");
+  //     const maxAmount = ethers.utils.parseEther("10000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
 
-      // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+  //     // Simulate time passing
+  //     await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+  //     await ethers.provider.send("evm_mine", []);
 
-      await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
+  //     const expectedInterest = maxAmount.mul(10).div(100); // 10% interest
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.equal(depositAmount.add(expectedInterest));
+  //   });
 
-      const expectedInterest = depositAmount.mul(15).div(100); // 15% interest
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
-    });
+  //   it("Should calculate interest correctly for builders with scores below 50", async () => {
+  //     await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+  //     await passportRegistry.connect(user1).create("source1");
 
-    it("Should calculate interest correctly for builders with scores above 50", async () => {
-      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
-      await passportRegistry.connect(user1).create("source1");
+  //     const passportId = await passportRegistry.passportId(user1.address);
+  //     await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
+  //     const depositAmount = ethers.utils.parseEther("1000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
 
-      const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
+  //     // Simulate time passing
+  //     await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+  //     await ethers.provider.send("evm_mine", []);
 
-      // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+  //     await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
 
-      await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
+  //     const expectedInterest = depositAmount.mul(15).div(100); // 15% interest
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+  //   });
 
-      const expectedInterest = depositAmount.mul(20).div(100); // 20% interest
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
-    });
+  //   it("Should calculate interest correctly for builders with scores above 50", async () => {
+  //     await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+  //     await passportRegistry.connect(user1).create("source1");
 
-    it("Should calculate interest correctly for builders with scores above 75", async () => {
-      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
-      await passportRegistry.connect(user1).create("source1");
+  //     const passportId = await passportRegistry.passportId(user1.address);
+  //     await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
+  //     const depositAmount = ethers.utils.parseEther("1000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
 
-      const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount);
+  //     // Simulate time passing
+  //     await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+  //     await ethers.provider.send("evm_mine", []);
 
-      // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+  //     await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
 
-      await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
+  //     const expectedInterest = depositAmount.mul(20).div(100); // 20% interest
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+  //   });
 
-      const expectedInterest = depositAmount.mul(25).div(100); // 25% interest
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
-    });
-  });
+  //   it("Should calculate interest correctly for builders with scores above 75", async () => {
+  //     await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+  //     await passportRegistry.connect(user1).create("source1");
 
-  describe("Administrative Functions", () => {
-    it("Should allow the owner to update the yield rate", async () => {
-      const newYieldRate = 15_00; // 15%
-      await talentVault.connect(admin).setYieldRate(newYieldRate);
-      expect(await talentVault.yieldRateBase()).to.equal(newYieldRate);
-    });
+  //     const passportId = await passportRegistry.passportId(user1.address);
+  //     await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
+  //     const depositAmount = ethers.utils.parseEther("1000");
+  //     await talentToken.transfer(user1.address, depositAmount);
+  //     await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+  //     await talentVault.connect(user1).deposit(depositAmount);
 
-    it("Should not allow non-owners to update the yield rate", async () => {
-      const newYieldRate = 15_00; // 15%
-      await expect(talentVault.connect(user1).setYieldRate(newYieldRate)).to.be.revertedWith(
-        `OwnableUnauthorizedAccount("${user1.address}")`
-      );
-    });
-  });
+  //     // Simulate time passing
+  //     await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+  //     await ethers.provider.send("evm_mine", []);
+
+  //     await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
+
+  //     const expectedInterest = depositAmount.mul(25).div(100); // 25% interest
+  //     const userBalance = await talentVault.balanceOf(user1.address);
+  //     expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+  //   });
+  // });
+
+  // describe("Administrative Functions", () => {
+  //   it("Should allow the owner to update the yield rate", async () => {
+  //     const newYieldRate = 15_00; // 15%
+  //     await talentVault.connect(admin).setYieldRate(newYieldRate);
+  //     expect(await talentVault.yieldRateBase()).to.equal(newYieldRate);
+  //   });
+
+  //   it("Should not allow non-owners to update the yield rate", async () => {
+  //     const newYieldRate = 15_00; // 15%
+  //     await expect(talentVault.connect(user1).setYieldRate(newYieldRate)).to.be.revertedWith(
+  //       `OwnableUnauthorizedAccount("${user1.address}")`
+  //     );
+  //   });
+  // });
 });

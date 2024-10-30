@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-
+import "hardhat-storage-layout";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
@@ -31,6 +31,11 @@ const config: HardhatUserConfig = {
       optimizer: {
         enabled: true,
         runs: 1000,
+      },
+      outputSelection: {
+        "*": {
+          "*": ["storageLayout"],
+        },
       },
     },
   },

@@ -25,19 +25,6 @@ error TransferFailed();
 contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    // This is not needed, since ERC4626 already emits
-    // event Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
-
-    // /// @notice Emitted when a user deposits tokens
-    // /// @param user The address of the user who deposited tokens
-    // /// @param amount The amount of tokens deposited
-    // event Deposited(address indexed user, uint256 amount);
-
-    // /// @notice Emitted when a user withdraws tokens
-    // /// @param user The address of the user who withdrew tokens
-    // /// @param amount The amount of tokens withdrawn
-    // event Withdrawn(address indexed user, uint256 amount);
-
     /// @notice Emitted when the yield rate is updated
     /// @param yieldRate The new yield rate
     event YieldRateUpdated(uint256 yieldRate);
@@ -53,10 +40,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Represents a user's deposit
     /// @param depositedAmount The amount of tokens that were deposited, excluding interest
     /// @param lastInterestCalculation The timestamp of the last interest calculation for this deposit
-    struct UserDeposit {
+    struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastInterestCalculation;
-        address user;
+        // address user;
     }
 
     /// @notice The number of seconds in a year
@@ -64,6 +51,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice The maximum yield rate that can be set, represented as a percentage.
     uint256 public constant ONE_HUNDRED_PERCENT = 100_00;
+
+    uint256 public constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
 
     /// @notice The token that will be deposited into the contract
     IERC20 public immutable token;
@@ -96,7 +85,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     PassportBuilderScore public passportBuilderScore;
 
     /// @notice A mapping of user addresses to their deposits
-    mapping(address => UserDeposit) public getDeposit;
+    mapping(address => UserBalanceMeta) public userBalanceMeta;
 
     mapping(address => bool) private maxDepositLimitFlags;
     mapping(address => uint256) private maxDeposits;
@@ -135,12 +124,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         passportBuilderScore = _passportBuilderScore;
     }
 
-    // /// @notice UserDeposit tokens into the contract, which will start accruing interest.
-    // /// @param amount The amount of tokens to deposit
-    // function deposit(uint256 amount) public {
-    //     depositForAddress(msg.sender, amount);
-    // }
-
     function setMaxDeposit(address receiver, uint256 assets) public onlyOwner {
         maxDeposits[receiver] = assets;
         maxDepositLimitFlags[receiver] = true;
@@ -167,8 +150,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         }
     }
 
-    // @dev We consider +shares+ and +assets+ to have 1-to-1 equivalence
-    //      Hence, deposits and mints are treated equally
     function maxMint(address receiver) public view virtual override returns (uint256) {
         return maxDeposit(receiver);
     }
@@ -178,26 +159,16 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
             revert InvalidDepositAmount();
         }
 
-        UserDeposit storage userDeposit = getDeposit[receiver];
+        uint256 shares = super.deposit(assets, receiver);
+
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[receiver];
 
         // This we don't need it only for reporting purposes.
         // Note that the +assets+ is $TALENT that is moved from
         // +receiver+ wallet to +address(this)+ wallet.
         // But this one here, it gives us an easy way to find out
-        // how much $TALENT a +receiver+ has deposited.
-        userDeposit.depositedAmount += assets;
-
-        userDeposit.user = receiver; // Why do we need this?
-
-        uint256 balanceOfReceiverBeforeDeposit = balanceOf(receiver);
-
-        uint256 shares = super.deposit(assets, receiver);
-
-        if (balanceOfReceiverBeforeDeposit > 0) {
-            uint256 interest = calculateInterest(balanceOfReceiverBeforeDeposit, userDeposit);
-            userDeposit.lastInterestCalculation = block.timestamp;
-            _deposit(yieldSource, receiver, interest, interest);
-        }
+        // how much $TALENT a +receiveruserBalanceMetadeposited.
+        balanceMeta.depositedAmount += assets;
 
         return shares;
     }
@@ -216,30 +187,16 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Calculate any accrued interest.
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
-        UserDeposit storage userDeposit = getDeposit[account];
         if (balanceOf(account) <= 0) {
             revert NoDepositFound();
         }
 
-        refreshInterest(userDeposit);
+        yieldInterest(account);
     }
 
     /// @notice Calculate any accrued interest.
     function refresh() external {
         refreshForAddress(msg.sender);
-    }
-
-    /// @notice Returns the balance of the user, including any accrued interest.
-    /// @param user The address of the user to check the balance of
-    function balanceOf(address user) public view virtual override(ERC20, IERC20) returns (uint256) {
-        return super.balanceOf(user);
-
-        // UserDeposit storage userDeposit = getDeposit[user];
-        // if (balanceOf(user) == 0) return 0;
-
-        // uint256 interest = calculateInterest(userDeposit);
-
-        // return userDeposit.amount + interest;
     }
 
     /// @notice Withdraws the requested amount from the user's balance.
@@ -341,10 +298,11 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         revert TalentVaultNonTransferable();
     }
 
-    /// @dev Calculates the interest accrued on the deposit
-    /// @param userDeposit The user's deposit
-    /// @return The amount of interest accrued
-    function calculateInterest(uint256 userBalance, UserDeposit memory userDeposit) internal view returns (uint256) {
+    // ---------- INTERNAL --------------------------------------
+
+    function calculateInterest(address user) internal returns (uint256) {
+        uint256 userBalance = balanceOf(user);
+
         if (userBalance > maxYieldAmount) {
             userBalance = maxYieldAmount;
         }
@@ -356,26 +314,30 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
             endTime = block.timestamp;
         }
 
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
+
         uint256 timeElapsed;
+
         if (block.timestamp > endTime) {
-            timeElapsed = endTime > userDeposit.lastInterestCalculation
-                ? endTime - userDeposit.lastInterestCalculation
+            timeElapsed = endTime > balanceMeta.lastInterestCalculation
+                ? endTime - balanceMeta.lastInterestCalculation
                 : 0;
         } else {
-            timeElapsed = block.timestamp - userDeposit.lastInterestCalculation;
+            timeElapsed = block.timestamp - balanceMeta.lastInterestCalculation;
         }
 
-        uint256 yieldRate = getYieldRateForScore(userDeposit.user);
-        return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT);
+        uint256 yieldRate = getYieldRateForScore(user);
+
+        balanceMeta.lastInterestCalculation = block.timestamp;
+
+        return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
     }
 
-    /// @dev Refreshes the interest on a user's deposit
-    /// @param userDeposit The user's deposit
-    function refreshInterest(UserDeposit storage userDeposit) internal {
-        // if (userDeposit.amount == 0) return;
-        // uint256 interest = calculateInterest(userDeposit);
-        // userDeposit.amount += interest;
-        // userDeposit.lastInterestCalculation = block.timestamp;
+    /// @dev Refreshes the balance of an address
+    function yieldInterest(address user) internal {
+        uint256 interest = calculateInterest(user);
+
+        _deposit(yieldSource, user, interest, interest);
     }
 
     /// @dev Withdraws the user's balance, including any accrued interest

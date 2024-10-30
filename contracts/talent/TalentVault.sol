@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
+import "hardhat/console.sol";
+
 error ContractInsolvent();
 error InsufficientAllowance();
 error InsufficientBalance();
@@ -116,9 +118,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         token = _token;
         yieldRateBase = 10_00;
-        yieldRateProficient = 15_00;
-        yieldRateCompetent = 20_00;
-        yieldRateExpert = 25_00;
         yieldSource = _yieldSource;
         maxYieldAmount = _maxYieldAmount;
         passportBuilderScore = _passportBuilderScore;
@@ -159,6 +158,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
             revert InvalidDepositAmount();
         }
 
+        refreshForAddress(receiver);
+
         uint256 shares = super.deposit(assets, receiver);
 
         UserBalanceMeta storage balanceMeta = userBalanceMeta[receiver];
@@ -168,16 +169,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         // +receiver+ wallet to +address(this)+ wallet.
         // But this one here, it gives us an easy way to find out
         // how much $TALENT a +receiveruserBalanceMetadeposited.
+
         balanceMeta.depositedAmount += assets;
 
         return shares;
-    }
-
-    /// @notice UserDeposit tokens into a user's account, which will start accruing interest.
-    /// @param account The address of the user to deposit tokens fo
-    /// @param amount The amount of tokens to deposit
-    function depositForAddress(address account, uint256 amount) public {
-        deposit(amount, account);
     }
 
     function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
@@ -188,7 +183,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
         if (balanceOf(account) <= 0) {
-            revert NoDepositFound();
+            UserBalanceMeta storage balanceMeta = userBalanceMeta[account];
+            balanceMeta.lastInterestCalculation = block.timestamp;
+            return;
         }
 
         yieldInterest(account);
@@ -199,40 +196,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         refreshForAddress(msg.sender);
     }
 
-    /// @notice Withdraws the requested amount from the user's balance.
-    // function withdraw(uint256 amount) external nonReentrant {
-    //     _withdraw(msg.sender, amount);
-    // }
-
-    // function withdraw(
-    //     uint256 assets,
-    //     address receiver,
-    //     address owner
-    // ) public virtual override returns (uint256 shares) {
-    //     return super.withdraw(assets, receiver, owner);
-    // }
-
     /// @notice Withdraws all of the user's balance, including any accrued interest.
     function withdrawAll() external nonReentrant {
-        _withdraw(msg.sender, balanceOf(msg.sender));
-    }
-
-    function recoverDeposit() external {
-        // UserDeposit storage userDeposit = getDeposit[msg.sender];
-        // if (userDeposit.amount <= 0) {
-        //     revert NoDepositFound();
-        // }
-        // refreshInterest(userDeposit);
-        // uint256 amount = userDeposit.depositedAmount;
-        // userDeposit.amount -= amount;
-        // userDeposit.depositedAmount = 0;
-        // if (token.balanceOf(address(this)) < amount) {
-        //     revert ContractInsolvent();
-        // }
-        // try token.transfer(msg.sender, amount) {} catch {
-        //     revert TransferFailed();
-        // }
-        // emit Withdrawn(msg.sender, amount);
+        refreshForAddress(msg.sender);
+        redeem(balanceOf(msg.sender), msg.sender, msg.sender);
     }
 
     /// @notice Update the yield rate for the contract
@@ -251,9 +218,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         uint256 builderScore = passportBuilderScore.getScore(passportId);
 
         if (builderScore < 25) return yieldRateBase;
-        if (builderScore < 50) return yieldRateProficient;
-        if (builderScore < 75) return yieldRateCompetent;
-        return yieldRateExpert;
+        if (builderScore < 50) return yieldRateBase + 5_00;
+        if (builderScore < 75) return yieldRateBase + 10_00;
+        return yieldRateBase + 15_00;
     }
 
     /// @notice Update the maximum amount of tokens that can be used to calculate interest
@@ -303,11 +270,17 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     function calculateInterest(address user) internal returns (uint256) {
         uint256 userBalance = balanceOf(user);
 
+        console.log("userBalance %d", userBalance);
+        console.log("maxYieldAmount %d", maxYieldAmount);
+
         if (userBalance > maxYieldAmount) {
             userBalance = maxYieldAmount;
         }
 
         uint256 endTime;
+
+        console.log("yieldAccrualDeadline %d", yieldAccrualDeadline);
+
         if (yieldAccrualDeadline != 0 && block.timestamp > yieldAccrualDeadline) {
             endTime = yieldAccrualDeadline;
         } else {
@@ -328,6 +301,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         uint256 yieldRate = getYieldRateForScore(user);
 
+        console.log("yieldRate %d", yieldRate);
+        console.log("timeElapsed %d", timeElapsed);
+
         balanceMeta.lastInterestCalculation = block.timestamp;
 
         return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
@@ -337,31 +313,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     function yieldInterest(address user) internal {
         uint256 interest = calculateInterest(user);
 
-        _deposit(yieldSource, user, interest, interest);
-    }
+        console.log("interest %s", interest);
 
-    /// @dev Withdraws the user's balance, including any accrued interest
-    /// @param user The address of the user to withdraw the balance of
-    /// @param amount The amount of tokens to withdraw
-    function _withdraw(address user, uint256 amount) internal {
-        // UserDeposit storage userDeposit = getDeposit[user];
-        // if (userDeposit.amount <= 0) {
-        //     revert NoDepositFound();
-        // }
-        // refreshInterest(userDeposit);
-        // require(userDeposit.amount >= amount, "Not enough balance");
-        // uint256 contractBalance = token.balanceOf(address(this));
-        // uint256 fromContractAmount = amount < userDeposit.depositedAmount ? amount : userDeposit.depositedAmount;
-        // uint256 fromYieldSourceAmount = amount - fromContractAmount;
-        // require(contractBalance >= fromContractAmount, "Contract insolvent");
-        // userDeposit.amount -= amount;
-        // userDeposit.depositedAmount -= fromContractAmount;
-        // emit Withdrawn(user, amount);
-        // if (fromContractAmount > 0) {
-        //     require(token.transfer(user, fromContractAmount), "Transfer failed");
-        // }
-        // if (fromYieldSourceAmount > 0) {
-        //     require(token.transferFrom(yieldSource, user, fromYieldSourceAmount), "Transfer failed");
-        // }
+        _deposit(yieldSource, user, interest, interest);
     }
 }

@@ -5,6 +5,7 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { TalentProtocolToken, TalentVault, PassportRegistry, PassportBuilderScore } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
+import { ensureTimestamp } from "../../shared/utils";
 
 chai.use(solidity);
 
@@ -24,6 +25,7 @@ describe("TalentVault", () => {
   let talentVault: TalentVault;
 
   let snapshotId: bigint;
+  let currentDateEpochSeconds: number;
 
   before(async () => {
     [admin, yieldSource, user1, user2, user3] = await ethers.getSigners();
@@ -70,6 +72,7 @@ describe("TalentVault", () => {
 
   beforeEach(async () => {
     snapshotId = await ethers.provider.send("evm_snapshot", []);
+    currentDateEpochSeconds = Math.floor(Date.now() / 1000);
   });
 
   afterEach(async () => {
@@ -640,14 +643,12 @@ describe("TalentVault", () => {
       expect(user1TalentVaultBalanceBefore).to.equal(depositAmount);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       const yieldedInterest = depositAmount.mul(10).div(100); // 10% interest
 
       // this is manually calculated, but it is necessary for this test.
       const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1100.000003170979198376");
-      // const expectedUserTalentVaultBalanceAfter1Year = depositAmount;
 
       // fire
       await talentVault.connect(user1).withdrawAll();
@@ -686,8 +687,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
 
@@ -698,10 +698,9 @@ describe("TalentVault", () => {
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
 
       const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
-      const currentDateEpochSeconds = Math.floor(Date.now() / 1000);
       const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
 
-      expect(userLastInterestCalculation.toNumber()).to.be.closeTo(oneYearAfterEpochSeconds, 500);
+      expect(userLastInterestCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
     });
 
     context("when yielding interest is stopped", async () => {
@@ -712,11 +711,11 @@ describe("TalentVault", () => {
         await talentToken.connect(user1).approve(talentVault.address, depositAmount);
         await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
-        // Simulate time passing
-        await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-        await ethers.provider.send("evm_mine", []);
-
         await talentVault.stopYieldingInterest();
+
+        // Simulate time passing
+
+        ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
         // fire
         await talentVault.connect(user1).refresh();
@@ -725,10 +724,9 @@ describe("TalentVault", () => {
         expect(user1BalanceAfter).to.equal(user1BalanceBefore);
 
         const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
-        const currentDateEpochSeconds = Math.floor(Date.now() / 1000);
         const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
 
-        expect(userLastInterestCalculation.toNumber()).to.be.closeTo(oneYearAfterEpochSeconds, 500);
+        expect(userLastInterestCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
       });
     });
 
@@ -741,8 +739,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       const expectedInterest = maxAmount.mul(10).div(100); // 10% interest
 
@@ -765,8 +762,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
 
@@ -790,8 +786,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
 
@@ -815,8 +810,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       // Simulate time passing
-      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
-      await ethers.provider.send("evm_mine", []);
+      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
       await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
 

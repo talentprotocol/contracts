@@ -5,9 +5,6 @@ import { solidity } from "ethereum-waffle";
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { TalentProtocolToken, TalentVault, PassportRegistry, PassportBuilderScore } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
-import { TalentVault as TalentVaultArtifact } from "../../shared/artifacts";
-import { talent } from "../../../typechain-types/contracts";
-import { utils } from "ethers";
 
 chai.use(solidity);
 
@@ -46,15 +43,16 @@ describe("TalentVault", () => {
       passportBuilderScore.address,
     ])) as TalentVault;
 
-    console.log("------------------------------------");
-    console.log("Addresses:");
-    console.log(`admin = ${admin.address}`);
-    console.log(`user1 = ${user1.address}`);
-    console.log(`user2 = ${user2.address}`);
-    console.log(`user3 = ${user3.address}`);
-    console.log(`talentToken = ${talentToken.address}`);
-    console.log(`talentVault = ${talentVault.address}`);
-    console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+    // ------------- put these in when you want to debug cases of revert -------------
+    // console.log("------------------------------------");
+    // console.log("Addresses:");
+    // console.log(`admin = ${admin.address}`);
+    // console.log(`user1 = ${user1.address}`);
+    // console.log(`user2 = ${user2.address}`);
+    // console.log(`user3 = ${user3.address}`);
+    // console.log(`talentToken = ${talentToken.address}`);
+    // console.log(`talentVault = ${talentVault.address}`);
+    // console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
     // Approve TalentVault contract to spend tokens on behalf of the admin
     const totalAllowance = ethers.utils.parseUnits("600000000", 18);
@@ -68,8 +66,6 @@ describe("TalentVault", () => {
     // fund the yieldSource with lots of TALENT Balance
     await talentToken.transfer(yieldSource.address, ethers.utils.parseEther("100000"));
     await talentToken.connect(yieldSource).approve(talentVault.address, ethers.utils.parseEther("100000"));
-
-    // await talentToken.renounceOwnership();
 
     snapshotId = await ethers.provider.send("evm_snapshot", []);
   });
@@ -636,11 +632,9 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
       const talentVaultTalentBalanceBefore = await talentToken.balanceOf(talentVault.address);
-      console.log("talentVaultTalentBalanceBefore", ethers.utils.formatEther(talentVaultTalentBalanceBefore));
       const yieldSourceTalentBalanceBefore = await talentToken.balanceOf(yieldSource.address);
 
       const user1TalentVaultBalanceBefore = await talentVault.balanceOf(user1.address);
-      console.log("user1TalentVaultBalanceBefore", ethers.utils.formatEther(user1TalentVaultBalanceBefore));
       expect(user1TalentVaultBalanceBefore).to.equal(depositAmount);
 
       // Simulate time passing
@@ -699,13 +693,10 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).refresh();
 
       const userBalance = await talentVault.balanceOf(user1.address);
-      console.log("userBalance", ethers.utils.formatEther(userBalance));
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
 
       const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
-      console.log("userLastInterestCalculation", userLastInterestCalculation);
       const currentDateEpochSeconds = Math.floor(Date.now() / 1000);
-      console.log("currentDateEpochSeconds", currentDateEpochSeconds);
       const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
 
       expect(userLastInterestCalculation.toNumber()).to.be.closeTo(oneYearAfterEpochSeconds, 500);

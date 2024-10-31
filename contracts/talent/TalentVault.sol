@@ -39,7 +39,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Represents user's balance meta data
     /// @param depositedAmount The amount of tokens that were deposited, excluding interest
-    /// @param lastInterestCalculation The timestamp (seconds since Epoch) of the last interest calculation for this deposit
+    /// @param lastInterestCalculation The timestamp (seconds since Epoch) of the last interest calculation
     struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastInterestCalculation;

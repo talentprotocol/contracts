@@ -8,18 +8,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
-error ContractInsolvent();
-error InsufficientAllowance();
-error InsufficientBalance();
-error InvalidAddress();
-error InvalidDepositAmount();
-error NoDepositFound();
-error TalentVaultNonTransferable();
-error TransferFailed();
-
 /// @title Talent Protocol Vault Token Contract
 /// @author Talent Protocol - Francisco Leal, Panagiotis Matsinopoulos
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
+/// @dev This is an ERC4626 compliant contract.
 contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -35,9 +27,18 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @param yieldAccrualDeadline The new yield accrual deadline
     event YieldAccrualDeadlineUpdated(uint256 yieldAccrualDeadline);
 
-    /// @notice Represents a user's deposit
+    error ContractInsolvent();
+    error InsufficientAllowance();
+    error InsufficientBalance();
+    error InvalidAddress();
+    error InvalidDepositAmount();
+    error NoDepositFound();
+    error TalentVaultNonTransferable();
+    error TransferFailed();
+
+    /// @notice Represents user's balance meta data
     /// @param depositedAmount The amount of tokens that were deposited, excluding interest
-    /// @param lastInterestCalculation The timestamp of the last interest calculation for this deposit
+    /// @param lastInterestCalculation The timestamp (seconds since Epoch) of the last interest calculation for this deposit
     struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastInterestCalculation;
@@ -109,23 +110,67 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         passportBuilderScore = _passportBuilderScore;
     }
 
-    function setMaxDeposit(address receiver, uint256 assets) internal onlyOwner {
-        maxDeposits[receiver] = assets;
-        maxDepositLimitFlags[receiver] = true;
-    }
+    // ------------------- EXTERNAL --------------------------------------------
 
     function setMaxMint(address receiver, uint256 shares) external onlyOwner {
         setMaxDeposit(receiver, shares);
     }
 
-    function removeMaxDepositLimit(address receiver) internal onlyOwner {
-        delete maxDeposits[receiver];
-        delete maxDepositLimitFlags[receiver];
-    }
-
     function removeMaxMintLimit(address receiver) external onlyOwner {
         removeMaxDepositLimit(receiver);
     }
+
+    /// @notice Calculate any accrued interest.
+    function refresh() external {
+        refreshForAddress(msg.sender);
+    }
+
+    /// @notice Withdraws all of the user's balance, including any accrued interest.
+    function withdrawAll() external nonReentrant {
+        refreshForAddress(msg.sender);
+        redeem(balanceOf(msg.sender), msg.sender, msg.sender);
+    }
+
+    /// @notice Update the yield rate for the contract
+    /// @dev Can only be called by the owner
+    function setYieldRate(uint256 _yieldRate) external onlyOwner {
+        require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
+
+        yieldRateBase = _yieldRate;
+        emit YieldRateUpdated(_yieldRate);
+    }
+
+    /// @notice Update the maximum amount of tokens that can be used to calculate interest
+    /// @dev Can only be called by the owner
+    function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
+        maxYieldAmount = _maxYieldAmount;
+
+        emit MaxYieldAmountUpdated(_maxYieldAmount);
+    }
+
+    /// @notice Update the time at which the users of the contract will stop accruing interest
+    /// @dev Can only be called by the owner
+    function setYieldAccrualDeadline(uint256 _yieldAccrualDeadline) external onlyOwner {
+        require(_yieldAccrualDeadline > block.timestamp, "Invalid yield accrual deadline");
+
+        yieldAccrualDeadline = _yieldAccrualDeadline;
+
+        emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
+    }
+
+    function stopYieldingInterest() external onlyOwner {
+        yieldInterestFlag = false;
+    }
+
+    function startYieldingInterest() external onlyOwner {
+        yieldInterestFlag = true;
+    }
+
+    function setYieldSource(address _yieldSource) external onlyOwner {
+        yieldSource = _yieldSource;
+    }
+
+    // ------------------------- PUBLIC ----------------------------------------------------
 
     function maxDeposit(address receiver) public view virtual override returns (uint256) {
         if (maxDepositLimitFlags[receiver]) {
@@ -150,12 +195,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         UserBalanceMeta storage balanceMeta = userBalanceMeta[receiver];
 
-        // This we don't need it only for reporting purposes.
-        // Note that the +assets+ is $TALENT that is moved from
-        // +receiver+ wallet to +address(this)+ wallet.
-        // But this one here, it gives us an easy way to find out
-        // how much $TALENT a +receiveruserBalanceMetadeposited.
-
         balanceMeta.depositedAmount += assets;
 
         return shares;
@@ -177,26 +216,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         yieldInterest(account);
     }
 
-    /// @notice Calculate any accrued interest.
-    function refresh() external {
-        refreshForAddress(msg.sender);
-    }
-
-    /// @notice Withdraws all of the user's balance, including any accrued interest.
-    function withdrawAll() external nonReentrant {
-        refreshForAddress(msg.sender);
-        redeem(balanceOf(msg.sender), msg.sender, msg.sender);
-    }
-
-    /// @notice Update the yield rate for the contract
-    /// @dev Can only be called by the owner
-    function setYieldRate(uint256 _yieldRate) external onlyOwner {
-        require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
-
-        yieldRateBase = _yieldRate;
-        emit YieldRateUpdated(_yieldRate);
-    }
-
     /// @notice Get the yield rate for the contract for a given user
     /// @param user The address of the user to get the yield rate for
     function getYieldRateForScore(address user) public view returns (uint256) {
@@ -207,24 +226,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         if (builderScore < 50) return yieldRateBase + 5_00;
         if (builderScore < 75) return yieldRateBase + 10_00;
         return yieldRateBase + 15_00;
-    }
-
-    /// @notice Update the maximum amount of tokens that can be used to calculate interest
-    /// @dev Can only be called by the owner
-    function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
-        maxYieldAmount = _maxYieldAmount;
-
-        emit MaxYieldAmountUpdated(_maxYieldAmount);
-    }
-
-    /// @notice Update the time at which the users of the contract will stop accruing interest
-    /// @dev Can only be called by the owner
-    function setYieldAccrualDeadline(uint256 _yieldAccrualDeadline) external onlyOwner {
-        require(_yieldAccrualDeadline > block.timestamp, "Invalid yield accrual deadline");
-
-        yieldAccrualDeadline = _yieldAccrualDeadline;
-
-        emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
     }
 
     /// @notice Prevents the owner from renouncing ownership
@@ -250,20 +251,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     function transferFrom(address, address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
         revert TalentVaultNonTransferable();
     }
-
-    function stopYieldingInterest() external onlyOwner {
-        yieldInterestFlag = false;
-    }
-
-    function startYieldingInterest() external onlyOwner {
-        yieldInterestFlag = true;
-    }
-
-    function setYieldSource(address _yieldSource) external onlyOwner {
-        yieldSource = _yieldSource;
-    }
-
-    // ---------- INTERNAL --------------------------------------
 
     function calculateInterest(address user) public view returns (uint256) {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
@@ -301,12 +288,23 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
     }
 
+    // ---------- INTERNAL --------------------------------------
+
+    function setMaxDeposit(address receiver, uint256 assets) internal onlyOwner {
+        maxDeposits[receiver] = assets;
+        maxDepositLimitFlags[receiver] = true;
+    }
+
+    function removeMaxDepositLimit(address receiver) internal onlyOwner {
+        delete maxDeposits[receiver];
+        delete maxDepositLimitFlags[receiver];
+    }
+
     /// @dev Refreshes the balance of an address
     function yieldInterest(address user) internal {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
         uint256 interest = calculateInterest(user);
         balanceMeta.lastInterestCalculation = block.timestamp;
-
 
         _deposit(yieldSource, user, interest, interest);
     }

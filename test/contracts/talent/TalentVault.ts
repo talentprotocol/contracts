@@ -25,7 +25,7 @@ describe("TalentVault", () => {
 
   let snapshotId: bigint;
 
-  beforeEach(async () => {
+  before(async () => {
     [admin, yieldSource, user1, user2, user3] = await ethers.getSigners();
 
     talentToken = (await deployContract(admin, Artifacts.TalentProtocolToken, [admin.address])) as TalentProtocolToken;
@@ -43,16 +43,15 @@ describe("TalentVault", () => {
       passportBuilderScore.address,
     ])) as TalentVault;
 
-    // ------------- put these in when you want to debug cases of revert -------------
-    // console.log("------------------------------------");
-    // console.log("Addresses:");
-    // console.log(`admin = ${admin.address}`);
-    // console.log(`user1 = ${user1.address}`);
-    // console.log(`user2 = ${user2.address}`);
-    // console.log(`user3 = ${user3.address}`);
-    // console.log(`talentToken = ${talentToken.address}`);
-    // console.log(`talentVault = ${talentVault.address}`);
-    // console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+    console.log("------------------------------------");
+    console.log("Addresses:");
+    console.log(`admin = ${admin.address}`);
+    console.log(`user1 = ${user1.address}`);
+    console.log(`user2 = ${user2.address}`);
+    console.log(`user3 = ${user3.address}`);
+    console.log(`talentToken = ${talentToken.address}`);
+    console.log(`talentVault = ${talentVault.address}`);
+    console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
     // Approve TalentVault contract to spend tokens on behalf of the admin
     const totalAllowance = ethers.utils.parseUnits("600000000", 18);
@@ -66,7 +65,9 @@ describe("TalentVault", () => {
     // fund the yieldSource with lots of TALENT Balance
     await talentToken.transfer(yieldSource.address, ethers.utils.parseEther("100000"));
     await talentToken.connect(yieldSource).approve(talentVault.address, ethers.utils.parseEther("100000"));
+  });
 
+  beforeEach(async () => {
     snapshotId = await ethers.provider.send("evm_snapshot", []);
   });
 

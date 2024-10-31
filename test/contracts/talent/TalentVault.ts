@@ -790,18 +790,18 @@ describe("TalentVault", () => {
     });
   });
 
-  // describe("Administrative Functions", () => {
-  //   it("Should allow the owner to update the yield rate", async () => {
-  //     const newYieldRate = 15_00; // 15%
-  //     await talentVault.connect(admin).setYieldRate(newYieldRate);
-  //     expect(await talentVault.yieldRateBase()).to.equal(newYieldRate);
-  //   });
+  describe("#setYieldRate", () => {
+    it("Should allow the owner to update the yield rate", async () => {
+      const newYieldRate = 15_00; // 15%
+      await talentVault.connect(admin).setYieldRate(newYieldRate);
+      expect(await talentVault.yieldRateBase()).to.equal(newYieldRate);
+    });
 
-  //   it("Should not allow non-owners to update the yield rate", async () => {
-  //     const newYieldRate = 15_00; // 15%
-  //     await expect(talentVault.connect(user1).setYieldRate(newYieldRate)).to.be.revertedWith(
-  //       `OwnableUnauthorizedAccount("${user1.address}")`
-  //     );
-  //   });
-  // });
+    it("Should not allow non-owners to update the yield rate", async () => {
+      const newYieldRate = 15_00; // 15%
+      await expect(talentVault.connect(user1).setYieldRate(newYieldRate)).to.be.revertedWith(
+        `OwnableUnauthorizedAccount("${user1.address}")`
+      );
+    });
+  });
 });

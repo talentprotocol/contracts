@@ -127,8 +127,6 @@ describe("TalentVault", () => {
     });
   });
 
-  // TODO: StopYieldingInterest
-
   describe("#name", async () => {
     it("is 'TalentProtocolVaultToken' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
       const name = await talentVault.name();

@@ -44,12 +44,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /// @notice The number of seconds in a year
-    uint256 public constant SECONDS_PER_YEAR = 31536000;
+    uint256 internal constant SECONDS_PER_YEAR = 31536000;
 
     /// @notice The maximum yield rate that can be set, represented as a percentage.
-    uint256 public constant ONE_HUNDRED_PERCENT = 100_00;
+    uint256 internal constant ONE_HUNDRED_PERCENT = 100_00;
 
-    uint256 public constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
+    uint256 internal constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
 
     /// @notice The token that will be deposited into the contract
     IERC20 public immutable token;
@@ -109,21 +109,21 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         passportBuilderScore = _passportBuilderScore;
     }
 
-    function setMaxDeposit(address receiver, uint256 assets) public onlyOwner {
+    function setMaxDeposit(address receiver, uint256 assets) internal onlyOwner {
         maxDeposits[receiver] = assets;
         maxDepositLimitFlags[receiver] = true;
     }
 
-    function setMaxMint(address receiver, uint256 shares) public onlyOwner {
+    function setMaxMint(address receiver, uint256 shares) external onlyOwner {
         setMaxDeposit(receiver, shares);
     }
 
-    function removeMaxDepositLimit(address receiver) public onlyOwner {
+    function removeMaxDepositLimit(address receiver) internal onlyOwner {
         delete maxDeposits[receiver];
         delete maxDepositLimitFlags[receiver];
     }
 
-    function removeMaxMintLimit(address receiver) public onlyOwner {
+    function removeMaxMintLimit(address receiver) external onlyOwner {
         removeMaxDepositLimit(receiver);
     }
 

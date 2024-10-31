@@ -10,6 +10,7 @@ import type {
   SmartBuilderScore,
   PassportWalletRegistry,
   TalentTGEUnlockTimestamp,
+  TalentVault,
 } from "../../typechain-types";
 import { BigNumber } from "ethers";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
@@ -136,4 +137,13 @@ export async function deployTalentTGEUnlockTimestamps(
   const deployedTGEUnlock = await talentTGEUnlockWithTimestampsContract.deploy(token, merkleTreeRoot, owner, timestamp);
   await deployedTGEUnlock.deployed();
   return deployedTGEUnlock as TalentTGEUnlockTimestamp;
+}
+
+export async function deployTalentVault(owner: string, talentToken: string, yieldSource: string): Promise<TalentVault> {
+  const talentVaultContract = await ethers.getContractFactory("TalentVault");
+
+  const deployedTalentVault = await talentVaultContract.deploy(owner, talentToken, yieldSource);
+  await deployedTalentVault.deployed();
+
+  return deployedTalentVault as TalentVault;
 }

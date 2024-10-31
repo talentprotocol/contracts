@@ -270,16 +270,11 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     function calculateInterest(address user) internal returns (uint256) {
         uint256 userBalance = balanceOf(user);
 
-        console.log("userBalance %d", userBalance);
-        console.log("maxYieldAmount %d", maxYieldAmount);
-
         if (userBalance > maxYieldAmount) {
             userBalance = maxYieldAmount;
         }
 
         uint256 endTime;
-
-        console.log("yieldAccrualDeadline %d", yieldAccrualDeadline);
 
         if (yieldAccrualDeadline != 0 && block.timestamp > yieldAccrualDeadline) {
             endTime = yieldAccrualDeadline;
@@ -301,9 +296,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         uint256 yieldRate = getYieldRateForScore(user);
 
-        console.log("yieldRate %d", yieldRate);
-        console.log("timeElapsed %d", timeElapsed);
-
         balanceMeta.lastInterestCalculation = block.timestamp;
 
         return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
@@ -312,8 +304,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @dev Refreshes the balance of an address
     function yieldInterest(address user) internal {
         uint256 interest = calculateInterest(user);
-
-        console.log("interest %s", interest);
 
         _deposit(yieldSource, user, interest, interest);
     }

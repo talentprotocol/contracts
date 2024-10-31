@@ -7,6 +7,7 @@ import { TalentProtocolToken, TalentVault, PassportRegistry, PassportBuilderScor
 import { Artifacts } from "../../shared";
 import { TalentVault as TalentVaultArtifact } from "../../shared/artifacts";
 import { talent } from "../../../typechain-types/contracts";
+import { utils } from "ethers";
 
 chai.use(solidity);
 
@@ -15,6 +16,7 @@ const { deployContract } = waffle;
 
 describe("TalentVault", () => {
   let admin: SignerWithAddress;
+  let yieldSource: SignerWithAddress;
   let user1: SignerWithAddress;
   let user2: SignerWithAddress;
   let user3: SignerWithAddress;
@@ -25,7 +27,7 @@ describe("TalentVault", () => {
   let talentVault: TalentVault;
 
   beforeEach(async () => {
-    [admin, user1, user2, user3] = await ethers.getSigners();
+    [admin, yieldSource, user1, user2, user3] = await ethers.getSigners();
 
     talentToken = (await deployContract(admin, Artifacts.TalentProtocolToken, [admin.address])) as TalentProtocolToken;
     passportRegistry = (await deployContract(admin, Artifacts.PassportRegistry, [admin.address])) as PassportRegistry;
@@ -34,10 +36,10 @@ describe("TalentVault", () => {
       admin.address,
     ])) as PassportBuilderScore;
 
-    const adminInitialDeposit = ethers.utils.parseEther("20000");
+    const adminInitialDeposit = ethers.utils.parseEther("200000");
     talentVault = (await deployContract(admin, Artifacts.TalentVault, [
       talentToken.address,
-      admin.address,
+      yieldSource.address,
       ethers.utils.parseEther("10000"),
       passportBuilderScore.address,
     ])) as TalentVault;
@@ -60,6 +62,10 @@ describe("TalentVault", () => {
     // just make sure that TV wallet has $TALENT as initial assets from admin initial deposit
     await talentToken.approve(talentVault.address, ethers.constants.MaxUint256);
     await talentVault.mint(adminInitialDeposit, admin.address);
+
+    // fund the yieldSource with lots of TALENT Balance
+    await talentToken.transfer(yieldSource.address, ethers.utils.parseEther("100000"));
+    await talentToken.connect(yieldSource).approve(talentVault.address, ethers.utils.parseEther("100000"));
 
     // await talentToken.renounceOwnership();
   });
@@ -591,7 +597,8 @@ describe("TalentVault", () => {
       });
     });
 
-    // Make sure user balance is updated according to yielded interest
+    // Make sure user balance is updated according to yielded interest. This is done in the
+    // tests below, in the Interest Calculation tests, where we call #refresh
   });
 
   // withdrawAll
@@ -599,9 +606,71 @@ describe("TalentVault", () => {
   // $TALENT for user is increased by their $TALENTVAULT balance
   // which is updated with the yield interest.
   //
-  // TalentVault $TALENT balance is reduced by the amount that is withdrawn
+  // TalentVault $TALENT balance is reduced by the originally deposited amount
+  //
+  // yieldSource $TALENT balance is reduced by the yieldInterest
   //
   // user $TALENTVAULT balance goes to 0.
+
+  describe("#withdrawAll", async () => {
+    it("withdraw all the $TALENTVAULT and converts them to $TALENT", async () => {
+      const depositAmount = ethers.utils.parseEther("1000");
+      // from admin we make user1 have some $TALENT
+      await talentToken.transfer(user1.address, depositAmount);
+      // user1 approves talentVault to spend $TALENT
+      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+      // user1 deposits to TalentVault
+      // This makes user1 $TALENT to be decreased by depositAmount
+      // and TalentVault $TALENT to be increased by depositAmount
+      // and user1 $TALENTVAULT to be increased by depositAmount
+      await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+      const talentVaultTalentBalanceBefore = await talentToken.balanceOf(talentVault.address);
+      console.log("talentVaultTalentBalanceBefore", ethers.utils.formatEther(talentVaultTalentBalanceBefore));
+      const yieldSourceTalentBalanceBefore = await talentToken.balanceOf(yieldSource.address);
+
+      const user1TalentVaultBalanceBefore = await talentVault.balanceOf(user1.address);
+      console.log("user1TalentVaultBalanceBefore", ethers.utils.formatEther(user1TalentVaultBalanceBefore));
+      expect(user1TalentVaultBalanceBefore).to.equal(depositAmount);
+
+      // Simulate time passing
+      await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+      await ethers.provider.send("evm_mine", []);
+
+      const yieldedInterest = depositAmount.mul(10).div(100); // 10% interest
+
+      // this is manually calculated, but it is necessary for this test.
+      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1100.000003170979198376");
+      // const expectedUserTalentVaultBalanceAfter1Year = depositAmount;
+
+      // fire
+      await talentVault.connect(user1).withdrawAll();
+
+      // TalentVault $TALENT balance is reduced by the originally deposited amount
+      const talentVaultTalentBalanceAfter = await talentToken.balanceOf(talentVault.address);
+      const expectedTalentVaultTalentBalanceAfter = talentVaultTalentBalanceBefore.sub(depositAmount);
+      expect(talentVaultTalentBalanceAfter).to.equal(expectedTalentVaultTalentBalanceAfter);
+
+      // user1 $TALENT balance is increased
+      const user1TalentBalanceAfter = await talentToken.balanceOf(user1.address);
+      expect(user1TalentBalanceAfter).to.be.closeTo(
+        expectedUser1TalentVaultBalanceAfter1Year,
+        ethers.utils.parseEther("0.001")
+      );
+
+      // user1 $TALENTVAULT balance goes to 0
+      const user1TalentVaultBalanceAfter = await talentVault.balanceOf(user1.address);
+      expect(user1TalentVaultBalanceAfter).to.equal(0);
+
+      // yieldSource $TALENT balance is decreased by the yieldInterest
+      const yieldSourceTalentBalanceAfter = await talentToken.balanceOf(yieldSource.address);
+      const expectedYieldSourceTalentBalanceAfter = yieldSourceTalentBalanceBefore.sub(yieldedInterest);
+      expect(yieldSourceTalentBalanceAfter).to.be.closeTo(
+        expectedYieldSourceTalentBalanceAfter,
+        ethers.utils.parseEther("0.001")
+      );
+    });
+  });
 
   describe("Interest Calculation", () => {
     it("Should calculate interest correctly", async () => {
@@ -620,6 +689,7 @@ describe("TalentVault", () => {
       await talentVault.connect(user1).refresh();
 
       const userBalance = await talentVault.balanceOf(user1.address);
+      console.log("userBalance", ethers.utils.formatEther(userBalance));
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
     });
 

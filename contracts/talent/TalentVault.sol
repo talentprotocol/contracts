@@ -265,12 +265,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     // ---------- INTERNAL --------------------------------------
 
-    function calculateInterest(address user) internal returns (uint256) {
+    function calculateInterest(address user) public view returns (uint256) {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
         if (!yieldInterestFlag) {
-            balanceMeta.lastInterestCalculation = block.timestamp;
-
             return 0;
         }
 
@@ -300,14 +298,15 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         uint256 yieldRate = getYieldRateForScore(user);
 
-        balanceMeta.lastInterestCalculation = block.timestamp;
-
         return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
     }
 
     /// @dev Refreshes the balance of an address
     function yieldInterest(address user) internal {
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
         uint256 interest = calculateInterest(user);
+        balanceMeta.lastInterestCalculation = block.timestamp;
+
 
         _deposit(yieldSource, user, interest, interest);
     }

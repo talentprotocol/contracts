@@ -2,11 +2,13 @@ import { ethers, network } from "hardhat";
 import { PassportWalletRegistry } from "../../test/shared/artifacts";
 import MAIN_WALLET_CHANGES from "../data/main-wallet-changes.json";
 
+const PASSPORT_WALLET_REGISTRY_MAINNET = "0x9B729d9fC43e3746855F7E02238FB3a2A20bD899";
+
 async function main() {
   const [admin] = await ethers.getSigners();
 
   const passportWalletRegistry = new ethers.Contract(
-    "0x9B729d9fC43e3746855F7E02238FB3a2A20bD899",
+    PASSPORT_WALLET_REGISTRY_MAINNET,
     PassportWalletRegistry.abi,
     admin
   );

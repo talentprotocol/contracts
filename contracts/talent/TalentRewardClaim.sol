@@ -84,6 +84,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     uint256 amountAllocated
   ) external nonReentrant {
     require(startTime > 0, "Start time not set");
+    require(block.timestamp >= startTime, "Claiming has not started yet");
 
     verify(merkleProof, amountAllocated);
 

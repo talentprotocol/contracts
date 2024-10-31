@@ -17,10 +17,8 @@ error NoDepositFound();
 error TalentVaultNonTransferable();
 error TransferFailed();
 
-/// Based on WLDVault.sol from Worldcoin
-///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
-/// @title Talent Vault Contract
-/// @author Francisco Leal
+/// @title Talent Protocol Vault Token Contract
+/// @author Talent Protocol - Francisco Leal, Panagiotis Matsinopoulos
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
 contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;

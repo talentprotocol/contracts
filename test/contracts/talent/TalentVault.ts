@@ -196,7 +196,7 @@ describe("TalentVault", () => {
     context("when called by a non-owner", async () => {
       it("reverts", async () => {
         await expect(talentVault.connect(user1).setMaxDeposit(user2.address, 10n)).to.revertedWith(
-          "OwnableUnauthorizedAccount"
+          `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });
@@ -216,7 +216,7 @@ describe("TalentVault", () => {
     context("when called by a non-owner", async () => {
       it("reverts", async () => {
         await expect(talentVault.connect(user1).removeMaxDepositLimit(user2.address)).to.revertedWith(
-          "OwnableUnauthorizedAccount"
+          `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });
@@ -320,7 +320,7 @@ describe("TalentVault", () => {
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
 
       await expect(talentVault.connect(user1).deposit(depositAmount, user2.address)).to.be.revertedWith(
-        "ERC20InsufficientBalance"
+        `ERC20InsufficientBalance("${user1.address}", ${balanceOfUser1}, ${depositAmount})`
       );
     });
 
@@ -336,18 +336,20 @@ describe("TalentVault", () => {
       // fire
 
       await expect(talentVault.connect(user1).deposit(depositAmount, user2.address)).to.be.revertedWith(
-        "ERC20InsufficientAllowance"
+        `ERC20InsufficientAllowance("${talentVault.address}", ${approvedAmount}, ${depositAmount})`
       );
     });
 
     it("Should allow deposit of amount equal to the allowed by the sender to be spent by the talent contract", async () => {
       const depositAmount = ethers.utils.parseEther("1000");
 
+      await talentToken.transfer(user1.address, depositAmount);
+
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
 
-      await expect(talentVault.connect(user1).deposit(depositAmount, user2.address)).to.be.revertedWith(
-        "ERC20InsufficientBalance"
-      );
+      // fire
+
+      await expect(talentVault.connect(user1).deposit(depositAmount, user2.address)).not.to.be.reverted;
     });
   });
 
@@ -365,7 +367,7 @@ describe("TalentVault", () => {
     context("when called by a non-owner", async () => {
       it("reverts", async () => {
         await expect(talentVault.connect(user1).setMaxMint(user2.address, 10n)).to.revertedWith(
-          "OwnableUnauthorizedAccount"
+          `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });
@@ -385,7 +387,7 @@ describe("TalentVault", () => {
     context("when called by a non-owner", async () => {
       it("reverts", async () => {
         await expect(talentVault.connect(user1).removeMaxMintLimit(user2.address)).to.revertedWith(
-          "OwnableUnauthorizedAccount"
+          `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });

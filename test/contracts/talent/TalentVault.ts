@@ -12,6 +12,12 @@ chai.use(solidity);
 const { expect } = chai;
 const { deployContract } = waffle;
 
+async function ensureTimeIsAfterLockPeriod() {
+  const lockPeriod = 8;
+  const oneDayAfterLockPeriod = Math.floor(Date.now() / 1000) + lockPeriod * 24 * 60 * 60;
+  await ensureTimestamp(oneDayAfterLockPeriod);
+}
+
 describe("TalentVault", () => {
   let admin: SignerWithAddress;
   let yieldSource: SignerWithAddress;
@@ -255,6 +261,7 @@ describe("TalentVault", () => {
       expect(user2BalanceMetaAfter.depositedAmount).to.equal(
         user2BalanceMetaBefore.depositedAmount.toBigInt() + depositAmount
       );
+      expect(user2BalanceMetaAfter.lastDepositAt.toNumber()).to.be.closeTo(currentDateEpochSeconds, 20);
 
       // user2 $TALENTVAULT balance is increased
       const user2TalentVaultBalanceAfter = await talentVault.balanceOf(user2.address);
@@ -433,6 +440,7 @@ describe("TalentVault", () => {
       const userBalanceMeta = await talentVault.userBalanceMeta(user1.address);
       const depositedAmountAfter = userBalanceMeta.depositedAmount;
       expect(depositedAmountAfter).to.equal(depositedAmountBefore.toBigInt() + equivalentDepositAmountInTalent);
+      expect(userBalanceMeta.lastDepositAt.toNumber()).to.be.closeTo(currentDateEpochSeconds, 20);
     });
 
     it("Should revert if $TALENT deposited is 0", async () => {
@@ -465,17 +473,33 @@ describe("TalentVault", () => {
   });
 
   describe("#withdraw", async () => {
+    context("when last deposit was within the last 7 days", async () => {
+      it("reverts", async () => {
+        await talentToken.transfer(user1.address, 10n);
+        await talentToken.connect(user1).approve(talentVault.address, 10n);
+        await talentVault.connect(user1).deposit(10n, user1.address);
+
+        // fire
+        await expect(talentVault.connect(user1).withdraw(10n, user1.address, user1.address)).to.be.revertedWith(
+          "CantWithdrawWithinTheLockPeriod"
+        );
+      });
+    });
+
     it("burns $TALENTVAULT from owner, increases $TALENT balance of receiver, decreases $TALENT balance of TalentVault", async () => {
       const depositTalent = 10_000n;
 
       await talentToken.transfer(user1.address, depositTalent);
       await talentToken.connect(user1).approve(talentVault.address, depositTalent);
+
       let trx = await talentVault.connect(user1).deposit(depositTalent, user1.address);
       await trx.wait();
 
       const user1TalentVaultBalanceBefore = await talentVault.balanceOf(user1.address);
       const user1TalentBalanceBefore = await talentToken.balanceOf(user1.address);
       const talentVaultTalentBalanceBefore = await talentToken.balanceOf(talentVault.address);
+
+      await ensureTimeIsAfterLockPeriod();
 
       // fire
       trx = await talentVault.connect(user1).withdraw(depositTalent, user1.address, user1.address);
@@ -534,6 +558,19 @@ describe("TalentVault", () => {
   });
 
   describe("#redeem", async () => {
+    context("when last deposit was within the last 7 days", async () => {
+      it("reverts", async () => {
+        await talentToken.transfer(user1.address, 10n);
+        await talentToken.connect(user1).approve(talentVault.address, 10n);
+        await talentVault.connect(user1).deposit(10n, user1.address);
+
+        // fire
+        await expect(talentVault.connect(user1).withdraw(10n, user1.address, user1.address)).to.be.revertedWith(
+          "CantWithdrawWithinTheLockPeriod"
+        );
+      });
+    });
+
     it("burns $TALENTVAULT from owner, increases $TALENT balance of receiver, decreases $TALENT balance of TalentVault", async () => {
       const depositTalent = 10_000n;
       const equivalentDepositTalentVault = depositTalent;
@@ -546,6 +583,8 @@ describe("TalentVault", () => {
       const user1TalentVaultBalanceBefore = await talentVault.balanceOf(user1.address);
       const user1TalentBalanceBefore = await talentToken.balanceOf(user1.address);
       const talentVaultTalentBalanceBefore = await talentToken.balanceOf(talentVault.address);
+
+      await ensureTimeIsAfterLockPeriod();
 
       // fire
       trx = await talentVault.connect(user1).redeem(equivalentDepositTalentVault, user1.address, user1.address);

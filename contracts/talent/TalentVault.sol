@@ -27,6 +27,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @param yieldAccrualDeadline The new yield accrual deadline
     event YieldAccrualDeadlineUpdated(uint256 yieldAccrualDeadline);
 
+    error CantWithdrawWithinTheLockPeriod();
     error ContractInsolvent();
     error InsufficientAllowance();
     error InsufficientBalance();
@@ -42,7 +43,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastInterestCalculation;
+        uint256 lastDepositAt;
     }
+
+    /// @notice The amount of days that your deposits are locked and can't be withdrawn.
+    /// Lock period end-day is calculated base on the last datetime user did a deposit.
+    uint256 public constant LOCK_PERIOD = 7 days;
 
     /// @notice The number of seconds in a year
     uint256 internal constant SECONDS_PER_YEAR = 31536000;
@@ -197,6 +203,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         balanceMeta.depositedAmount += assets;
 
+        balanceMeta.lastDepositAt = block.timestamp;
+
         return shares;
     }
 
@@ -307,5 +315,21 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         balanceMeta.lastInterestCalculation = block.timestamp;
 
         _deposit(yieldSource, user, interest, interest);
+    }
+
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
+        UserBalanceMeta storage receiverUserBalanceMeta = userBalanceMeta[receiver];
+
+        if (receiverUserBalanceMeta.lastDepositAt + LOCK_PERIOD > block.timestamp) {
+            revert CantWithdrawWithinTheLockPeriod();
+        }
+
+        super._withdraw(caller, receiver, owner, assets, shares);
     }
 }

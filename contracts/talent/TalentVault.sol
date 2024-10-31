@@ -63,18 +63,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
     uint256 public yieldRateBase;
 
-    /// @notice The yield rate for the contract for competent builders, represented as a percentage.
-    /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-    uint256 public yieldRateCompetent;
-
-    /// @notice The yield rate for the contract for proficient builders, represented as a percentage.
-    /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-    uint256 public yieldRateProficient;
-
-    /// @notice The yield rate for the contract for expert builders, represented as a percentage.
-    /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-    uint256 public yieldRateExpert;
-
     /// @notice The maximum amount of tokens that can be used to calculate interest.
     uint256 public maxYieldAmount;
 

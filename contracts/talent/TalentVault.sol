@@ -48,7 +48,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice The amount of days that your deposits are locked and can't be withdrawn.
     /// Lock period end-day is calculated base on the last datetime user did a deposit.
-    uint256 public constant LOCK_PERIOD = 7 days;
+    uint256 public lockPeriod;
+
+    uint256 internal constant SECONDS_WITHIN_DAY = 86400;
 
     /// @notice The number of seconds in a year
     uint256 internal constant SECONDS_PER_YEAR = 31536000;
@@ -114,9 +116,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         yieldInterestFlag = true;
         maxYieldAmount = _maxYieldAmount;
         passportBuilderScore = _passportBuilderScore;
+        lockPeriod = 7 days;
     }
 
     // ------------------- EXTERNAL --------------------------------------------
+
+    function setLockPeriod(uint256 _lockPeriod) external onlyOwner {
+        lockPeriod = _lockPeriod * SECONDS_WITHIN_DAY;
+    }
 
     function setMaxMint(address receiver, uint256 shares) external onlyOwner {
         setMaxDeposit(receiver, shares);
@@ -326,7 +333,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     ) internal virtual override {
         UserBalanceMeta storage receiverUserBalanceMeta = userBalanceMeta[receiver];
 
-        if (receiverUserBalanceMeta.lastDepositAt + LOCK_PERIOD > block.timestamp) {
+        if (receiverUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {
             revert CantWithdrawWithinTheLockPeriod();
         }
 

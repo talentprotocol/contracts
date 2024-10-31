@@ -102,6 +102,8 @@ describe("TalentVault", () => {
       expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
 
       expect(await talentVault.yieldInterestFlag()).to.equal(true);
+
+      expect(await talentVault.lockPeriod()).to.equal(7 * 24 * 60 * 60);
     });
 
     it("reverts with InvalidAddress when _token given is 0", async () => {
@@ -897,6 +899,24 @@ describe("TalentVault", () => {
         await talentVault.startYieldingInterest();
 
         expect(await talentVault.yieldInterestFlag()).to.equal(true);
+      });
+    });
+  });
+
+  describe("#setLockPeriod", async () => {
+    context("when called by a non-owner account", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.connect(user1).setLockPeriod(3)).to.be.revertedWith(
+          `OwnableUnauthorizedAccount("${user1.address}")`
+        );
+      });
+    });
+
+    context("when called by the owner account", async () => {
+      it("sets the lock period as days given", async () => {
+        await talentVault.setLockPeriod(10);
+
+        expect(await talentVault.lockPeriod()).to.equal(10 * 24 * 60 * 60);
       });
     });
   });

@@ -45,7 +45,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastInterestCalculation;
-        // address user;
     }
 
     /// @notice The number of seconds in a year

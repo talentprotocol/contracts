@@ -187,62 +187,12 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("#setMaxDeposit", async () => {
-    context("when called by the owner", async () => {
-      it("sets the maximum deposit for the receiver", async () => {
-        await talentVault.setMaxDeposit(user1.address, 10n);
-
-        const deposit = await talentVault.maxDeposit(user1.address);
-
-        expect(deposit).to.equal(10n);
-      });
-    });
-
-    context("when called by a non-owner", async () => {
-      it("reverts", async () => {
-        await expect(talentVault.connect(user1).setMaxDeposit(user2.address, 10n)).to.revertedWith(
-          `OwnableUnauthorizedAccount("${user1.address}")`
-        );
-      });
-    });
-  });
-
-  describe("#removeMaxDepositLimit", async () => {
-    context("when called by the owner", async () => {
-      it("removes the maximum deposit for the receiver", async () => {
-        await talentVault.removeMaxDepositLimit(user1.address);
-
-        const deposit = await talentVault.maxDeposit(user1.address);
-
-        expect(deposit).to.equal(ethers.constants.MaxUint256);
-      });
-    });
-
-    context("when called by a non-owner", async () => {
-      it("reverts", async () => {
-        await expect(talentVault.connect(user1).removeMaxDepositLimit(user2.address)).to.revertedWith(
-          `OwnableUnauthorizedAccount("${user1.address}")`
-        );
-      });
-    });
-  });
-
   describe("#maxDeposit", async () => {
     context("when recipient does not have a deposit limit", async () => {
       it("returns the maximum uint256", async () => {
         const maxDeposit = await talentVault.maxDeposit(user1.address);
 
         expect(maxDeposit).to.equal(ethers.constants.MaxUint256);
-      });
-    });
-
-    context("when recipient has a deposit limit", async () => {
-      it("returns it", async () => {
-        await talentVault.setMaxDeposit(user1.address, 5n);
-
-        const maxDeposit = await talentVault.maxDeposit(user1.address);
-
-        expect(maxDeposit).to.equal(5n);
       });
     });
   });

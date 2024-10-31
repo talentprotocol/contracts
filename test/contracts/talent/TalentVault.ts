@@ -26,6 +26,8 @@ describe("TalentVault", () => {
   let passportBuilderScore: PassportBuilderScore;
   let talentVault: TalentVault;
 
+  let snapshotId: bigint;
+
   beforeEach(async () => {
     [admin, yieldSource, user1, user2, user3] = await ethers.getSigners();
 
@@ -68,9 +70,15 @@ describe("TalentVault", () => {
     await talentToken.connect(yieldSource).approve(talentVault.address, ethers.utils.parseEther("100000"));
 
     // await talentToken.renounceOwnership();
+
+    snapshotId = await ethers.provider.send("evm_snapshot", []);
   });
 
-  describe("Deployment", () => {
+  afterEach(async () => {
+    await ethers.provider.send("evm_revert", [snapshotId]);
+  });
+
+  describe("Deployment", async () => {
     it("Should set the right owner", async () => {
       expect(await talentVault.owner()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.owner()).to.equal(admin.address);
@@ -83,6 +91,8 @@ describe("TalentVault", () => {
 
       expect(await talentVault.passportBuilderScore()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
+
+      expect(await talentVault.yieldInterestFlag()).to.equal(true);
     });
 
     it("reverts with InvalidAddress when _token given is 0", async () => {
@@ -672,7 +682,7 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("Interest Calculation", () => {
+  describe("Interest Calculation", async () => {
     it("Should calculate interest correctly", async () => {
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
@@ -691,6 +701,42 @@ describe("TalentVault", () => {
       const userBalance = await talentVault.balanceOf(user1.address);
       console.log("userBalance", ethers.utils.formatEther(userBalance));
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
+
+      const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
+      console.log("userLastInterestCalculation", userLastInterestCalculation);
+      const currentDateEpochSeconds = Math.floor(Date.now() / 1000);
+      console.log("currentDateEpochSeconds", currentDateEpochSeconds);
+      const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
+
+      expect(userLastInterestCalculation.toNumber()).to.be.closeTo(oneYearAfterEpochSeconds, 500);
+    });
+
+    context("when yielding interest is stopped", async () => {
+      it("does not yield any interest but it updates the lastInterestCalculation", async () => {
+        const depositAmount = ethers.utils.parseEther("1000");
+        await talentToken.transfer(user1.address, depositAmount);
+        const user1BalanceBefore = await talentToken.balanceOf(user1.address);
+        await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+        await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+        // Simulate time passing
+        await ethers.provider.send("evm_increaseTime", [31536000]); // 1 year
+        await ethers.provider.send("evm_mine", []);
+
+        await talentVault.stopYieldingInterest();
+
+        // fire
+        await talentVault.connect(user1).refresh();
+
+        const user1BalanceAfter = await talentVault.balanceOf(user1.address);
+        expect(user1BalanceAfter).to.equal(user1BalanceBefore);
+
+        const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
+        const currentDateEpochSeconds = Math.floor(Date.now() / 1000);
+        const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
+
+        expect(userLastInterestCalculation.toNumber()).to.be.closeTo(oneYearAfterEpochSeconds, 500);
+      });
     });
 
     // 10000
@@ -790,7 +836,7 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("#setYieldRate", () => {
+  describe("#setYieldRate", async () => {
     it("Should allow the owner to update the yield rate", async () => {
       const newYieldRate = 15_00; // 15%
       await talentVault.connect(admin).setYieldRate(newYieldRate);
@@ -802,6 +848,42 @@ describe("TalentVault", () => {
       await expect(talentVault.connect(user1).setYieldRate(newYieldRate)).to.be.revertedWith(
         `OwnableUnauthorizedAccount("${user1.address}")`
       );
+    });
+  });
+
+  describe("#stopYieldingInterest", async () => {
+    context("when called by an non-owner account", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.connect(user1).stopYieldingInterest()).to.be.revertedWith(
+          `OwnableUnauthorizedAccount("${user1.address}")`
+        );
+      });
+    });
+
+    context("when called by the owner account", async () => {
+      it("stops yielding interest", async () => {
+        await talentVault.stopYieldingInterest();
+
+        expect(await talentVault.yieldInterestFlag()).to.equal(false);
+      });
+    });
+  });
+
+  describe("#startYieldingInterest", async () => {
+    context("when called by an non-owner account", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.connect(user1).startYieldingInterest()).to.be.revertedWith(
+          `OwnableUnauthorizedAccount("${user1.address}")`
+        );
+      });
+    });
+
+    context("when called by the owner account", async () => {
+      it("starts yielding interest", async () => {
+        await talentVault.startYieldingInterest();
+
+        expect(await talentVault.yieldInterestFlag()).to.equal(true);
+      });
     });
   });
 });

@@ -81,6 +81,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The time at which the users of the contract will stop accruing interest
     uint256 public yieldAccrualDeadline;
 
+    bool public yieldInterestFlag;
+
     PassportBuilderScore public passportBuilderScore;
 
     /// @notice A mapping of user addresses to their deposits
@@ -116,6 +118,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         token = _token;
         yieldRateBase = 10_00;
         yieldSource = _yieldSource;
+        yieldInterestFlag = true;
         maxYieldAmount = _maxYieldAmount;
         passportBuilderScore = _passportBuilderScore;
     }
@@ -262,9 +265,25 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         revert TalentVaultNonTransferable();
     }
 
+    function stopYieldingInterest() external onlyOwner {
+        yieldInterestFlag = false;
+    }
+
+    function startYieldingInterest() external onlyOwner {
+        yieldInterestFlag = true;
+    }
+
     // ---------- INTERNAL --------------------------------------
 
     function calculateInterest(address user) internal returns (uint256) {
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
+
+        if (!yieldInterestFlag) {
+            balanceMeta.lastInterestCalculation = block.timestamp;
+
+            return 0;
+        }
+
         uint256 userBalance = balanceOf(user);
 
         if (userBalance > maxYieldAmount) {
@@ -278,8 +297,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         } else {
             endTime = block.timestamp;
         }
-
-        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
         uint256 timeElapsed;
 

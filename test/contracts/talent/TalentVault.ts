@@ -28,6 +28,8 @@ describe("TalentVault", () => {
   let currentDateEpochSeconds: number;
 
   before(async () => {
+    await ethers.provider.send("hardhat_reset", []);
+
     [admin, yieldSource, user1, user2, user3] = await ethers.getSigners();
 
     talentToken = (await deployContract(admin, Artifacts.TalentProtocolToken, [admin.address])) as TalentProtocolToken;

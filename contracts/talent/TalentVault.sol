@@ -259,6 +259,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         yieldInterestFlag = true;
     }
 
+    function setYieldSource(address _yieldSource) external onlyOwner {
+        yieldSource = _yieldSource;
+    }
+
     // ---------- INTERNAL --------------------------------------
 
     function calculateInterest(address user) internal returns (uint256) {

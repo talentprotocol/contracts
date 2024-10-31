@@ -348,6 +348,26 @@ describe("TalentVault", () => {
     });
   });
 
+  describe("#setYieldSource", async () => {
+    context("when called by the owner", async () => {
+      it("sets the yield source", async () => {
+        await talentVault.setYieldSource(user1.address);
+
+        const yieldSource = await talentVault.yieldSource();
+
+        expect(yieldSource).to.equal(user1.address);
+      });
+    });
+
+    context("when called by a non-owner", async () => {
+      it("reverts", async () => {
+        await expect(talentVault.connect(user1).setYieldSource(user2.address)).to.revertedWith(
+          `OwnableUnauthorizedAccount("${user1.address}")`
+        );
+      });
+    });
+  });
+
   describe("#maxMint", async () => {
     context("when recipient does not have a mint limit", async () => {
       it("returns the maximum uint256", async () => {
@@ -461,7 +481,15 @@ describe("TalentVault", () => {
       trx = await talentVault.connect(user1).withdraw(depositTalent, user1.address, user1.address);
       const receipt = await trx.wait();
 
+      if (!receipt.events) {
+        throw new Error("No events found");
+      }
+
       const withdrawEvent = receipt.events.find((event) => event.event === "Withdraw");
+
+      if (!withdrawEvent || !withdrawEvent.args) {
+        throw new Error("Withdraw event not found");
+      }
 
       const talentVaultWithDrawn = withdrawEvent.args[4];
 
@@ -523,7 +551,15 @@ describe("TalentVault", () => {
       trx = await talentVault.connect(user1).redeem(equivalentDepositTalentVault, user1.address, user1.address);
       const receipt = await trx.wait();
 
+      if (!receipt.events) {
+        throw new Error("No events found");
+      }
+
       const withdrawEvent = receipt.events.find((event) => event.event === "Withdraw");
+
+      if (!withdrawEvent || !withdrawEvent.args) {
+        throw new Error("Withdraw event not found");
+      }
 
       const talentWithDrawn = withdrawEvent.args[4];
 

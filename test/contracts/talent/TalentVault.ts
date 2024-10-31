@@ -51,6 +51,7 @@ describe("TalentVault", () => {
     console.log(`user3 = ${user3.address}`);
     console.log(`talentToken = ${talentToken.address}`);
     console.log(`talentVault = ${talentVault.address}`);
+    console.log(`yieldSource = ${yieldSource.address}`);
     console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 
     // Approve TalentVault contract to spend tokens on behalf of the admin

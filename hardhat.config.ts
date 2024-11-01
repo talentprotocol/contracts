@@ -55,6 +55,7 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     currency: "ETH",
+    showMethodSig: true,
   },
   etherscan: {
     // Your API keys for Etherscan

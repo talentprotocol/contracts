@@ -2,325 +2,336 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
 
-/// Based on WLDVault.sol from Worldcoin
-///   ref: https://optimistic.etherscan.io/address/0x21c4928109acb0659a88ae5329b5374a3024694c#code
-/// @title Talent Vault Contract
-/// @author Francisco Leal
+/// @title Talent Protocol Vault Token Contract
+/// @author Talent Protocol - Francisco Leal, Panagiotis Matsinopoulos
 /// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
-contract TalentVault is Ownable, ReentrancyGuard {
-  using SafeERC20 for IERC20;
+/// @dev This is an ERC4626 compliant contract.
+contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
 
-  /// @notice Emitted when a user deposits tokens
-  /// @param user The address of the user who deposited tokens
-  /// @param amount The amount of tokens deposited
-  event Deposited(address indexed user, uint256 amount);
+    /// @notice Emitted when the yield rate is updated
+    /// @param yieldRate The new yield rate
+    event YieldRateUpdated(uint256 yieldRate);
 
-  /// @notice Emitted when a user withdraws tokens
-  /// @param user The address of the user who withdrew tokens
-  /// @param amount The amount of tokens withdrawn
-  event Withdrawn(address indexed user, uint256 amount);
+    /// @notice Emitted when the maximum yield amount is updated
+    /// @param maxYieldAmount The new maximum yield amount
+    event MaxYieldAmountUpdated(uint256 maxYieldAmount);
 
-  /// @notice Emitted when the yield rate is updated
-  /// @param yieldRate The new yield rate
-  event YieldRateUpdated(uint256 yieldRate);
+    /// @notice Emitted when the yield accrual deadline is updated
+    /// @param yieldAccrualDeadline The new yield accrual deadline
+    event YieldAccrualDeadlineUpdated(uint256 yieldAccrualDeadline);
 
-  /// @notice Emitted when the maximum yield amount is updated
-  /// @param maxYieldAmount The new maximum yield amount
-  event MaxYieldAmountUpdated(uint256 maxYieldAmount);
+    error CantWithdrawWithinTheLockPeriod();
+    error ContractInsolvent();
+    error InsufficientAllowance();
+    error InsufficientBalance();
+    error InvalidAddress();
+    error InvalidDepositAmount();
+    error NoDepositFound();
+    error TalentVaultNonTransferable();
+    error TransferFailed();
 
-  /// @notice Emitted when the yield accrual deadline is updated
-  /// @param yieldAccrualDeadline The new yield accrual deadline
-  event YieldAccrualDeadlineUpdated(uint256 yieldAccrualDeadline);
-
-  /// @notice Represents a user's deposit
-  /// @param amount The amount of tokens deposited, plus any accrued interest
-  /// @param depositedAmount The amount of tokens that were deposited, excluding interest
-  /// @param lastInterestCalculation The timestamp of the last interest calculation for this deposit
-  struct Deposit {
-    uint256 amount;
-    uint256 depositedAmount;
-    uint256 lastInterestCalculation;
-    uint256 lastDepositTimestamp;
-    address user;
-  }
-
-  /// @notice The number of seconds in a year
-  uint256 public constant SECONDS_PER_YEAR = 31536000;
-
-  /// @notice The maximum yield rate that can be set, represented as a percentage.
-  uint256 public constant ONE_HUNDRED_PERCENT = 100_00;
-
-  /// @notice The token that will be deposited into the contract
-  IERC20 public immutable token;
-
-  /// @notice The wallet paying for the yield
-  address public yieldSource;
-
-  /// @notice The yield base rate for the contract, represented as a percentage.
-  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-  uint256 public yieldRateBase;
-
-  /// @notice The yield rate for the contract for competent builders, represented as a percentage.
-  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-  uint256 public yieldRateCompetent;
-
-  /// @notice The yield rate for the contract for proficient builders, represented as a percentage.
-  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-  uint256 public yieldRateProficient;
-
-  /// @notice The yield rate for the contract for expert builders, represented as a percentage.
-  /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
-  uint256 public yieldRateExpert;
-
-  /// @notice The maximum amount of tokens that can be used to calculate interest.
-  uint256 public maxYieldAmount;
-
-  /// @notice The time at which the users of the contract will stop accruing interest
-  uint256 public yieldAccrualDeadline;
-
-  PassportBuilderScore public passportBuilderScore;
-
-  /// @notice A mapping of user addresses to their deposits
-  mapping(address => Deposit) public getDeposit;
-
-  /// @notice Create a new Talent Vault contract
-  /// @param _token The token that will be deposited into the contract
-  /// @param _yieldSource The wallet paying for the yield
-  /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate interest
-  /// @param _passportBuilderScore The Passport Builder Score contract
-  constructor(
-      IERC20 _token,
-      address _yieldSource,
-      uint256 _maxYieldAmount,
-      PassportBuilderScore _passportBuilderScore
-  ) Ownable(msg.sender) {
-    require(
-      address(_token) != address(0) &&
-      address(_yieldSource) != address(0),
-      "Invalid address"
-    );
-
-    token = _token;
-    yieldRateBase = 10_00;
-    yieldRateProficient = 15_00;
-    yieldRateCompetent = 20_00;
-    yieldRateExpert = 25_00;
-    yieldSource = _yieldSource;
-    maxYieldAmount = _maxYieldAmount;
-    passportBuilderScore = _passportBuilderScore;
-  }
-
-  /// @notice Deposit tokens into a user's account, which will start accruing interest.
-  /// @param account The address of the user to deposit tokens for
-  /// @param amount The amount of tokens to deposit
-  function depositForAddress(address account, uint256 amount) public {
-    require(amount > 0, "Invalid deposit amount");
-    require(token.balanceOf(msg.sender) >= amount, "Insufficient balance");
-    require(token.allowance(msg.sender, address(this)) >= amount, "Insufficient allowance");
-
-    Deposit storage userDeposit = getDeposit[account];
-
-    if (userDeposit.amount > 0) {
-      uint256 interest = calculateInterest(userDeposit);
-      userDeposit.amount += interest;
+    /// @notice Represents user's balance meta data
+    /// @param depositedAmount The amount of tokens that were deposited, excluding interest
+    /// @param lastInterestCalculation The timestamp (seconds since Epoch) of the last interest calculation
+    struct UserBalanceMeta {
+        uint256 depositedAmount;
+        uint256 lastInterestCalculation;
+        uint256 lastDepositAt;
     }
 
-    userDeposit.amount += amount;
-    userDeposit.depositedAmount += amount;
-    userDeposit.lastInterestCalculation = block.timestamp;
-    userDeposit.user = account;
-    userDeposit.lastDepositTimestamp = block.timestamp;
+    /// @notice The amount of days that your deposits are locked and can't be withdrawn.
+    /// Lock period end-day is calculated base on the last datetime user did a deposit.
+    uint256 public lockPeriod;
 
-    emit Deposited(account, amount);
+    uint256 internal constant SECONDS_WITHIN_DAY = 86400;
 
-    require(token.transferFrom(msg.sender, address(this), amount), "Transfer failed");
-  }
+    /// @notice The number of seconds in a year
+    uint256 internal constant SECONDS_PER_YEAR = 31536000;
 
-  /// @notice Deposit tokens into the contract, which will start accruing interest.
-  /// @param amount The amount of tokens to deposit
-  function deposit(uint256 amount) public {
-    depositForAddress(msg.sender, amount);
-  }
+    /// @notice The maximum yield rate that can be set, represented as a percentage.
+    uint256 internal constant ONE_HUNDRED_PERCENT = 100_00;
 
-  /// @notice Calculate any accrued interest.
-  /// @param account The address of the user to refresh
-  function refreshForAddress(address account) public {
-    Deposit storage userDeposit = getDeposit[account];
-    require(userDeposit.amount > 0, "No deposit found");
-    refreshInterest(userDeposit);
-  }
+    uint256 internal constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
 
-  /// @notice Calculate any accrued interest.
-  function refresh() external {
-    refreshForAddress(msg.sender);
-  }
+    /// @notice The token that will be deposited into the contract
+    IERC20 public immutable token;
 
-  /// @notice Returns the balance of the user, including any accrued interest.
-  /// @param user The address of the user to check the balance of
-  function balanceOf(address user) public view returns (uint256) {
-    Deposit storage userDeposit = getDeposit[user];
-    if (userDeposit.amount == 0) return 0;
+    /// @notice The wallet paying for the yield
+    address public yieldSource;
 
-    uint256 interest = calculateInterest(userDeposit);
+    /// @notice The yield base rate for the contract, represented as a percentage.
+    /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
+    uint256 public yieldRateBase;
 
-    return userDeposit.amount + interest;
-  }
+    /// @notice The maximum amount of tokens that can be used to calculate interest.
+    uint256 public maxYieldAmount;
 
-  /// @notice Withdraws the requested amount from the user's balance.
-  function withdraw(uint256 amount) external nonReentrant {
-    _withdraw(msg.sender, amount);
-  }
+    /// @notice The time at which the users of the contract will stop accruing interest
+    uint256 public yieldAccrualDeadline;
 
-  /// @notice Withdraws all of the user's balance, including any accrued interest.
-  function withdrawAll() external nonReentrant {
-    _withdraw(msg.sender, balanceOf(msg.sender));
-  }
+    bool public yieldInterestFlag;
 
-  function recoverDeposit() external {
-    Deposit storage userDeposit = getDeposit[msg.sender];
-    require(userDeposit.amount > 0, "No deposit found");
+    PassportBuilderScore public passportBuilderScore;
 
-    refreshInterest(userDeposit);
-    uint256 amount = userDeposit.depositedAmount;
+    /// @notice A mapping of user addresses to their deposits
+    mapping(address => UserBalanceMeta) public userBalanceMeta;
 
-    userDeposit.amount -= amount;
-    userDeposit.depositedAmount = 0;
+    mapping(address => bool) private maxDepositLimitFlags;
+    mapping(address => uint256) private maxDeposits;
 
-    emit Withdrawn(msg.sender, amount);
-    require(token.balanceOf(address(this)) >= amount, "Contract insolvent");
-    require(token.transfer(msg.sender, amount), "Transfer failed");
-  }
+    /// @notice Create a new Talent Vault contract
+    /// @param _token The token that will be deposited into the contract
+    /// @param _yieldSource The wallet paying for the yield
+    /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate interest
+    /// @param _passportBuilderScore The Passport Builder Score contract
+    constructor(
+        IERC20 _token,
+        address _yieldSource,
+        uint256 _maxYieldAmount,
+        PassportBuilderScore _passportBuilderScore
+    ) ERC4626(_token) ERC20("TalentProtocolVaultToken", "TALENTVAULT") Ownable(msg.sender) {
+        if (
+            address(_token) == address(0) ||
+            address(_yieldSource) == address(0) ||
+            address(_passportBuilderScore) == address(0)
+        ) {
+            revert InvalidAddress();
+        }
 
-  /// @notice Update the yield rate for the contract
-  /// @dev Can only be called by the owner
-  function setYieldRate(uint256 _yieldRate) external onlyOwner {
-    require(_yieldRate < 100_00, "Yield rate cannot be greater than 100%");
-    require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
-
-    yieldRateBase = _yieldRate;
-    emit YieldRateUpdated(_yieldRate);
-  }
-
-  /// @notice Get the yield rate for the contract for a given user
-  /// @param user The address of the user to get the yield rate for
-  function getYieldRateForScore(address user) public view returns (uint256) {
-    uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
-    uint256 builderScore = passportBuilderScore.getScore(passportId);
-
-    if (builderScore < 25) return yieldRateBase;
-    if (builderScore < 50) return yieldRateProficient;
-    if (builderScore < 75) return yieldRateCompetent;
-    return yieldRateExpert;
-  }
-
-  /// @notice Update the maximum amount of tokens that can be used to calculate interest
-  /// @dev Can only be called by the owner
-  function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
-    maxYieldAmount = _maxYieldAmount;
-
-    emit MaxYieldAmountUpdated(_maxYieldAmount);
-  }
-
-  /// @notice Update the time at which the users of the contract will stop accruing interest
-  /// @dev Can only be called by the owner
-  function setYieldAccrualDeadline(
-      uint256 _yieldAccrualDeadline
-  ) external onlyOwner {
-    require(_yieldAccrualDeadline > block.timestamp, "Invalid yield accrual deadline");
-
-    yieldAccrualDeadline = _yieldAccrualDeadline;
-
-    emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
-  }
-
-  /// @notice Prevents the owner from renouncing ownership
-  /// @dev Can only be called by the owner
-  function renounceOwnership() public view override onlyOwner {
-    revert("Cannot renounce ownership");
-  }
-
-  /// @notice Set the Passport Builder Score contract
-  /// @dev Can only be called by the owner
-  function setPassportBuilderScore(PassportBuilderScore _passportBuilderScore) external onlyOwner {
-    passportBuilderScore = _passportBuilderScore;
-  }
-
-  /// @dev Calculates the interest accrued on the deposit
-  /// @param userDeposit The user's deposit
-  /// @return The amount of interest accrued
-  function calculateInterest(
-      Deposit memory userDeposit
-  ) internal view returns (uint256) {
-    if (userDeposit.amount > maxYieldAmount) {
-      userDeposit.amount = maxYieldAmount;
+        token = _token;
+        yieldRateBase = 10_00;
+        yieldSource = _yieldSource;
+        yieldInterestFlag = true;
+        maxYieldAmount = _maxYieldAmount;
+        passportBuilderScore = _passportBuilderScore;
+        lockPeriod = 7 days;
     }
 
-    uint256 endTime;
-    if (yieldAccrualDeadline != 0 && block.timestamp > yieldAccrualDeadline) {
-      endTime = yieldAccrualDeadline;
-    } else {
-      endTime = block.timestamp;
+    // ------------------- EXTERNAL --------------------------------------------
+
+    function setLockPeriod(uint256 _lockPeriod) external onlyOwner {
+        lockPeriod = _lockPeriod * SECONDS_WITHIN_DAY;
     }
 
-    uint256 timeElapsed;
-    if (block.timestamp > endTime) {
-      timeElapsed = endTime > userDeposit.lastInterestCalculation
-        ? endTime - userDeposit.lastInterestCalculation
-        : 0;
-    } else {
-      timeElapsed = block.timestamp - userDeposit.lastInterestCalculation;
+    function setMaxMint(address receiver, uint256 shares) external onlyOwner {
+        setMaxDeposit(receiver, shares);
     }
 
-    uint256 yieldRate = getYieldRateForScore(userDeposit.user);
-    return
-      (userDeposit.amount * yieldRate * timeElapsed) /
-      (SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT);
-  }
-
-  /// @dev Refreshes the interest on a user's deposit
-  /// @param userDeposit The user's deposit
-  function refreshInterest(Deposit storage userDeposit) internal {
-    if (userDeposit.amount == 0) return;
-
-    uint256 interest = calculateInterest(userDeposit);
-    userDeposit.amount += interest;
-    userDeposit.lastInterestCalculation = block.timestamp;
-  }
-
-  /// @dev Withdraws the user's balance, including any accrued interest
-  /// @param user The address of the user to withdraw the balance of
-  /// @param amount The amount of tokens to withdraw
-  function _withdraw(address user, uint256 amount) internal {
-    Deposit storage userDeposit = getDeposit[user];
-    require(userDeposit.amount > 0, "No deposit found");
-
-    refreshInterest(userDeposit);
-    require(userDeposit.amount >= amount, "Not enough balance");
-
-    uint256 contractBalance = token.balanceOf(address(this));
-    uint256 fromContractAmount = amount < userDeposit.depositedAmount
-      ? amount
-      : userDeposit.depositedAmount;
-    uint256 fromYieldSourceAmount = amount - fromContractAmount;
-
-    require(contractBalance >= fromContractAmount, "Contract insolvent");
-
-    userDeposit.amount -= amount;
-    userDeposit.depositedAmount -= fromContractAmount;
-
-    emit Withdrawn(user, amount);
-
-    if (fromContractAmount > 0) {
-      require(token.transfer(user, fromContractAmount), "Transfer failed");
+    function removeMaxMintLimit(address receiver) external onlyOwner {
+        removeMaxDepositLimit(receiver);
     }
 
-    if (fromYieldSourceAmount > 0) {
-      require(token.transferFrom(yieldSource, user, fromYieldSourceAmount), "Transfer failed");
+    /// @notice Calculate any accrued interest.
+    function refresh() external {
+        refreshForAddress(msg.sender);
     }
-  }
+
+    /// @notice Withdraws all of the user's balance, including any accrued interest.
+    function withdrawAll() external nonReentrant {
+        refreshForAddress(msg.sender);
+        redeem(balanceOf(msg.sender), msg.sender, msg.sender);
+    }
+
+    /// @notice Update the yield rate for the contract
+    /// @dev Can only be called by the owner
+    function setYieldRate(uint256 _yieldRate) external onlyOwner {
+        require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
+
+        yieldRateBase = _yieldRate;
+        emit YieldRateUpdated(_yieldRate);
+    }
+
+    /// @notice Update the maximum amount of tokens that can be used to calculate interest
+    /// @dev Can only be called by the owner
+    function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
+        maxYieldAmount = _maxYieldAmount;
+
+        emit MaxYieldAmountUpdated(_maxYieldAmount);
+    }
+
+    /// @notice Update the time at which the users of the contract will stop accruing interest
+    /// @dev Can only be called by the owner
+    function setYieldAccrualDeadline(uint256 _yieldAccrualDeadline) external onlyOwner {
+        require(_yieldAccrualDeadline > block.timestamp, "Invalid yield accrual deadline");
+
+        yieldAccrualDeadline = _yieldAccrualDeadline;
+
+        emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
+    }
+
+    function stopYieldingInterest() external onlyOwner {
+        yieldInterestFlag = false;
+    }
+
+    function startYieldingInterest() external onlyOwner {
+        yieldInterestFlag = true;
+    }
+
+    function setYieldSource(address _yieldSource) external onlyOwner {
+        yieldSource = _yieldSource;
+    }
+
+    // ------------------------- PUBLIC ----------------------------------------------------
+
+    function maxDeposit(address receiver) public view virtual override returns (uint256) {
+        if (maxDepositLimitFlags[receiver]) {
+            return maxDeposits[receiver];
+        } else {
+            return type(uint256).max;
+        }
+    }
+
+    function maxMint(address receiver) public view virtual override returns (uint256) {
+        return maxDeposit(receiver);
+    }
+
+    function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
+        if (assets <= 0) {
+            revert InvalidDepositAmount();
+        }
+
+        refreshForAddress(receiver);
+
+        uint256 shares = super.deposit(assets, receiver);
+
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[receiver];
+
+        balanceMeta.depositedAmount += assets;
+
+        balanceMeta.lastDepositAt = block.timestamp;
+
+        return shares;
+    }
+
+    function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
+        return deposit(shares, receiver);
+    }
+
+    /// @notice Calculate any accrued interest.
+    /// @param account The address of the user to refresh
+    function refreshForAddress(address account) public {
+        if (balanceOf(account) <= 0) {
+            UserBalanceMeta storage balanceMeta = userBalanceMeta[account];
+            balanceMeta.lastInterestCalculation = block.timestamp;
+            return;
+        }
+
+        yieldInterest(account);
+    }
+
+    /// @notice Get the yield rate for the contract for a given user
+    /// @param user The address of the user to get the yield rate for
+    function getYieldRateForScore(address user) public view returns (uint256) {
+        uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
+        uint256 builderScore = passportBuilderScore.getScore(passportId);
+
+        if (builderScore < 25) return yieldRateBase;
+        if (builderScore < 50) return yieldRateBase + 5_00;
+        if (builderScore < 75) return yieldRateBase + 10_00;
+        return yieldRateBase + 15_00;
+    }
+
+    /// @notice Prevents the owner from renouncing ownership
+    /// @dev Can only be called by the owner
+    function renounceOwnership() public view override onlyOwner {
+        revert("Cannot renounce ownership");
+    }
+
+    /// @notice Set the Passport Builder Score contract
+    /// @dev Can only be called by the owner
+    function setPassportBuilderScore(PassportBuilderScore _passportBuilderScore) external onlyOwner {
+        passportBuilderScore = _passportBuilderScore;
+    }
+
+    /// @notice This reverts because TalentVault is non-transferable
+    /// @dev reverts with TalentVaultNonTransferable
+    function transfer(address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
+        revert TalentVaultNonTransferable();
+    }
+
+    /// @notice This reverts because TalentVault is non-transferable
+    /// @dev reverts with TalentVaultNonTansferable
+    function transferFrom(address, address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
+        revert TalentVaultNonTransferable();
+    }
+
+    function calculateInterest(address user) public view returns (uint256) {
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
+
+        if (!yieldInterestFlag) {
+            return 0;
+        }
+
+        uint256 userBalance = balanceOf(user);
+
+        if (userBalance > maxYieldAmount) {
+            userBalance = maxYieldAmount;
+        }
+
+        uint256 endTime;
+
+        if (yieldAccrualDeadline != 0 && block.timestamp > yieldAccrualDeadline) {
+            endTime = yieldAccrualDeadline;
+        } else {
+            endTime = block.timestamp;
+        }
+
+        uint256 timeElapsed;
+
+        if (block.timestamp > endTime) {
+            timeElapsed = endTime > balanceMeta.lastInterestCalculation
+                ? endTime - balanceMeta.lastInterestCalculation
+                : 0;
+        } else {
+            timeElapsed = block.timestamp - balanceMeta.lastInterestCalculation;
+        }
+
+        uint256 yieldRate = getYieldRateForScore(user);
+
+        return (userBalance * yieldRate * timeElapsed) / (SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT);
+    }
+
+    // ---------- INTERNAL --------------------------------------
+
+    function setMaxDeposit(address receiver, uint256 assets) internal onlyOwner {
+        maxDeposits[receiver] = assets;
+        maxDepositLimitFlags[receiver] = true;
+    }
+
+    function removeMaxDepositLimit(address receiver) internal onlyOwner {
+        delete maxDeposits[receiver];
+        delete maxDepositLimitFlags[receiver];
+    }
+
+    /// @dev Refreshes the balance of an address
+    function yieldInterest(address user) internal {
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
+        uint256 interest = calculateInterest(user);
+        balanceMeta.lastInterestCalculation = block.timestamp;
+
+        _deposit(yieldSource, user, interest, interest);
+    }
+
+    function _withdraw(
+        address caller,
+        address receiver,
+        address owner,
+        uint256 assets,
+        uint256 shares
+    ) internal virtual override {
+        UserBalanceMeta storage receiverUserBalanceMeta = userBalanceMeta[receiver];
+
+        if (receiverUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {
+            revert CantWithdrawWithinTheLockPeriod();
+        }
+
+        super._withdraw(caller, receiver, owner, assets, shares);
+    }
 }

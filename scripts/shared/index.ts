@@ -139,10 +139,20 @@ export async function deployTalentTGEUnlockTimestamps(
   return deployedTGEUnlock as TalentTGEUnlockTimestamp;
 }
 
-export async function deployTalentVault(owner: string, talentToken: string, yieldSource: string): Promise<TalentVault> {
+export async function deployTalentVault(
+  talentToken: string,
+  yieldSource: string,
+  maxYieldAmount: BigNumber,
+  passportBuilderScore: string
+): Promise<TalentVault> {
   const talentVaultContract = await ethers.getContractFactory("TalentVault");
 
-  const deployedTalentVault = await talentVaultContract.deploy(owner, talentToken, yieldSource);
+  const deployedTalentVault = await talentVaultContract.deploy(
+    talentToken,
+    yieldSource,
+    maxYieldAmount,
+    passportBuilderScore
+  );
   await deployedTalentVault.deployed();
 
   return deployedTalentVault as TalentVault;

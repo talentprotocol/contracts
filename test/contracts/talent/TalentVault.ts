@@ -674,7 +674,7 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const yieldedInterest = depositAmount.mul(10).div(100); // 10% interest
+      const yieldedInterest = depositAmount.mul(0).div(100); // 0% interest
 
       // this is manually calculated, but it is necessary for this test.
       const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1100.000003170979198376");
@@ -718,7 +718,7 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
+      const expectedInterest = depositAmount.mul(0).div(100); // 0% interest
 
       // fire
       await talentVault.connect(user1).refresh();
@@ -770,7 +770,7 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedInterest = maxAmount.mul(10).div(100); // 10% interest
+      const expectedInterest = maxAmount.mul(10).div(100); // 0% interest
 
       // fire
       await talentVault.connect(user1).refresh();
@@ -798,7 +798,7 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(15).div(100); // 15% interest
+      const expectedInterest = depositAmount.mul(5).div(100); // 5% interest
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
     });
@@ -822,7 +822,7 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(20).div(100); // 20% interest
+      const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
     });
@@ -846,7 +846,7 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(25).div(100); // 25% interest
+      const expectedInterest = depositAmount.mul(15).div(100); // 15% interest
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
     });

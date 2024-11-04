@@ -251,7 +251,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         return deposit(shares, receiver);
     }
 
-    /// @notice Calculate any accrued interest for an address and update the deposit meta data including minting any interest
+    /// @notice Calculate any accrued interest for an address and update
+    ///         the deposit meta data including minting any interest
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
         if (balanceOf(account) <= 0) {

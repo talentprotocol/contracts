@@ -50,6 +50,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// Lock period end-day is calculated base on the last datetime user did a deposit.
     uint256 public lockPeriod;
 
+    /// @notice The number of seconds in a day
     uint256 internal constant SECONDS_WITHIN_DAY = 86400;
 
     /// @notice The number of seconds in a year
@@ -58,6 +59,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The maximum yield rate that can be set, represented as a percentage.
     uint256 internal constant ONE_HUNDRED_PERCENT = 100_00;
 
+    /// @notice The number of seconds in a year multiplied by 100% (to make it easier to calculate interest)
     uint256 internal constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
 
     /// @notice The token that will be deposited into the contract
@@ -76,14 +78,19 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The time at which the users of the contract will stop accruing interest
     uint256 public yieldAccrualDeadline;
 
+    /// @notice Whether the contract is accruing interest or not
     bool public yieldInterestFlag;
 
+    /// @notice The Passport Builder Score contract
     PassportBuilderScore public passportBuilderScore;
 
     /// @notice A mapping of user addresses to their deposits
     mapping(address => UserBalanceMeta) public userBalanceMeta;
 
+    /// @notice Whether the max deposit limit is enabled for an address or not
     mapping(address => bool) private maxDepositLimitFlags;
+
+    /// @notice The maximum deposit amount for an address (if there is one)
     mapping(address => uint256) private maxDeposits;
 
     /// @notice Create a new Talent Vault contract
@@ -106,7 +113,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         }
 
         token = _token;
-        yieldRateBase = 10_00;
+        yieldRateBase = 0;
         yieldSource = _yieldSource;
         yieldInterestFlag = true;
         maxYieldAmount = _maxYieldAmount;
@@ -116,19 +123,29 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     // ------------------- EXTERNAL --------------------------------------------
 
+    /// @notice Set the lock period for the contract
+    /// @dev Can only be called by the owner
+    /// @param _lockPeriod The lock period in days
     function setLockPeriod(uint256 _lockPeriod) external onlyOwner {
         lockPeriod = _lockPeriod * SECONDS_WITHIN_DAY;
     }
 
+    /// @notice Set the maximum deposit amount for an address
+    /// @dev Can only be called by the owner
+    /// @param receiver The address to set the maximum deposit amount for
+    /// @param shares The maximum deposit amount
     function setMaxMint(address receiver, uint256 shares) external onlyOwner {
         setMaxDeposit(receiver, shares);
     }
 
+    /// @notice Remove the maximum deposit limit for an address
+    /// @dev Can only be called by the owner
+    /// @param receiver The address to remove the maximum deposit limit for
     function removeMaxMintLimit(address receiver) external onlyOwner {
         removeMaxDepositLimit(receiver);
     }
 
-    /// @notice Calculate any accrued interest.
+    /// @notice Calculate any accrued interest for the caller
     function refresh() external {
         refreshForAddress(msg.sender);
     }
@@ -139,8 +156,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         redeem(balanceOf(msg.sender), msg.sender, msg.sender);
     }
 
-    /// @notice Update the yield rate for the contract
+    /// @notice Update the base yield rate for the contract
     /// @dev Can only be called by the owner
+    /// @param _yieldRate The new yield rate
     function setYieldRate(uint256 _yieldRate) external onlyOwner {
         require(_yieldRate > yieldRateBase, "Yield rate cannot be decreased");
 
@@ -150,6 +168,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Update the maximum amount of tokens that can be used to calculate interest
     /// @dev Can only be called by the owner
+    /// @param _maxYieldAmount The new maximum yield amount
     function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
         maxYieldAmount = _maxYieldAmount;
 
@@ -158,6 +177,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Update the time at which the users of the contract will stop accruing interest
     /// @dev Can only be called by the owner
+    /// @param _yieldAccrualDeadline The new yield accrual deadline
     function setYieldAccrualDeadline(uint256 _yieldAccrualDeadline) external onlyOwner {
         require(_yieldAccrualDeadline > block.timestamp, "Invalid yield accrual deadline");
 
@@ -166,20 +186,29 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
     }
 
+    /// @notice Stop the contract from accruing interest
+    /// @dev Can only be called by the owner
     function stopYieldingInterest() external onlyOwner {
         yieldInterestFlag = false;
     }
 
+    /// @notice Start the contract accruing interest
+    /// @dev Can only be called by the owner
     function startYieldingInterest() external onlyOwner {
         yieldInterestFlag = true;
     }
 
+    /// @notice Set the yield source for the contract
+    /// @dev Can only be called by the owner
+    /// @param _yieldSource The new yield source
     function setYieldSource(address _yieldSource) external onlyOwner {
         yieldSource = _yieldSource;
     }
 
     // ------------------------- PUBLIC ----------------------------------------------------
 
+    /// @notice Get the maximum deposit amount for an address
+    /// @param receiver The address to get the maximum deposit amount for
     function maxDeposit(address receiver) public view virtual override returns (uint256) {
         if (maxDepositLimitFlags[receiver]) {
             return maxDeposits[receiver];
@@ -188,10 +217,15 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         }
     }
 
+    /// @notice Get the maximum deposit amount for an address
+    /// @param receiver The address to get the maximum deposit amount for
     function maxMint(address receiver) public view virtual override returns (uint256) {
         return maxDeposit(receiver);
     }
 
+    /// @notice Deposit tokens into the contract
+    /// @param assets The amount of tokens to deposit
+    /// @param receiver The address to deposit the tokens for
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
         if (assets <= 0) {
             revert InvalidDepositAmount();
@@ -210,11 +244,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         return shares;
     }
 
+    /// @notice Deposit tokens into the contract
+    /// @param shares The amount of shares to deposit
+    /// @param receiver The address to deposit the shares for
     function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
         return deposit(shares, receiver);
     }
 
-    /// @notice Calculate any accrued interest.
+    /// @notice Calculate any accrued interest for an address and update the deposit meta data including minting any interest
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
         if (balanceOf(account) <= 0) {
@@ -229,6 +266,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Get the yield rate for the contract for a given user
     /// @param user The address of the user to get the yield rate for
     function getYieldRateForScore(address user) public view returns (uint256) {
+        /// @TODO: Update to use the PassportWalletRegistry instead for calculating the passport id
         uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
         uint256 builderScore = passportBuilderScore.getScore(passportId);
 
@@ -262,6 +300,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         revert TalentVaultNonTransferable();
     }
 
+    /// @notice Calculate the accrued interest for an address
+    /// @param user The address to calculate the accrued interest for
     function calculateInterest(address user) public view returns (uint256) {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
@@ -300,17 +340,25 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
     // ---------- INTERNAL --------------------------------------
 
+    /// @notice Set the maximum deposit amount for an address
+    /// @dev Can only be called by the owner
+    /// @param receiver The address to set the maximum deposit amount for
+    /// @param assets The maximum deposit amount
     function setMaxDeposit(address receiver, uint256 assets) internal onlyOwner {
         maxDeposits[receiver] = assets;
         maxDepositLimitFlags[receiver] = true;
     }
 
+    /// @notice Remove the maximum deposit limit for an address
+    /// @dev Can only be called by the owner
+    /// @param receiver The address to remove the maximum deposit limit for
     function removeMaxDepositLimit(address receiver) internal onlyOwner {
         delete maxDeposits[receiver];
         delete maxDepositLimitFlags[receiver];
     }
 
-    /// @dev Refreshes the balance of an address
+    /// @notice Calculate the accrued interest for an address and mint any interest
+    /// @param user The address to calculate the accrued interest for
     function yieldInterest(address user) internal {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
         uint256 interest = calculateInterest(user);
@@ -319,6 +367,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         _deposit(yieldSource, user, interest, interest);
     }
 
+    /// @notice Withdraws tokens from the contract
+    /// @param caller The address of the caller
+    /// @param receiver The address of the receiver
+    /// @param owner The address of the owner
+    /// @param assets The amount of tokens to withdraw
+    /// @param shares The amount of shares to withdraw
     function _withdraw(
         address caller,
         address receiver,

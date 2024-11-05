@@ -271,9 +271,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
         uint256 builderScore = passportBuilderScore.getScore(passportId);
 
-        if (builderScore < 25) return yieldRateBase;
-        if (builderScore < 50) return yieldRateBase + 5_00;
-        if (builderScore < 75) return yieldRateBase + 10_00;
+        if (builderScore < 50) return yieldRateBase;
+        if (builderScore < 75) return yieldRateBase + 5_00;
+        if (builderScore < 100) return yieldRateBase + 10_00;
         return yieldRateBase + 15_00;
     }
 

@@ -94,7 +94,7 @@ describe("TalentVault", () => {
     });
 
     it("Should set the correct initial values", async () => {
-      expect(await talentVault.yieldRateBase()).to.equal(10_00);
+      expect(await talentVault.yieldRateBase()).to.equal(0);
 
       expect(await talentVault.maxYieldAmount()).to.equal(ethers.utils.parseEther("10000"));
 
@@ -677,7 +677,7 @@ describe("TalentVault", () => {
       const yieldedInterest = depositAmount.mul(0).div(100); // 0% interest
 
       // this is manually calculated, but it is necessary for this test.
-      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1100.000003170979198376");
+      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1000"); // there is no interest
 
       // fire
       await talentVault.connect(user1).withdrawAll();
@@ -770,7 +770,7 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedInterest = maxAmount.mul(10).div(100); // 0% interest
+      const expectedInterest = maxAmount.mul(0).div(100); // 0% interest
 
       // fire
       await talentVault.connect(user1).refresh();
@@ -779,12 +779,11 @@ describe("TalentVault", () => {
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
     });
 
-    it("Should calculate interest correctly for builders with scores below 50", async () => {
+    it("Should calculate interest correctly for builders with scores above 50 but below 75", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
       const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
@@ -792,8 +791,7 @@ describe("TalentVault", () => {
 
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-
-      await passportBuilderScore.setScore(passportId, 40); // Set builder score below 50
+      await passportBuilderScore.setScore(passportId, 55); // Set builder score below 50
 
       // fire
       await talentVault.connect(user1).refresh();
@@ -803,12 +801,11 @@ describe("TalentVault", () => {
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
     });
 
-    it("Should calculate interest correctly for builders with scores above 50", async () => {
+    it("Should calculate interest correctly for builders with scores above 75 but below 100", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
       const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
@@ -816,8 +813,7 @@ describe("TalentVault", () => {
 
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-
-      await passportBuilderScore.setScore(passportId, 65); // Set builder score above 50
+      await passportBuilderScore.setScore(passportId, 80); // Set builder score above 50
 
       // fire
       await talentVault.connect(user1).refresh();
@@ -827,12 +823,11 @@ describe("TalentVault", () => {
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
     });
 
-    it("Should calculate interest correctly for builders with scores above 75", async () => {
+    it("Should calculate interest correctly for builders with scores above 100", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
       const passportId = await passportRegistry.passportId(user1.address);
-      await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
@@ -840,8 +835,7 @@ describe("TalentVault", () => {
 
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-
-      await passportBuilderScore.setScore(passportId, 90); // Set builder score above 75
+      await passportBuilderScore.setScore(passportId, 105); // Set builder score above 75
 
       // fire
       await talentVault.connect(user1).refresh();

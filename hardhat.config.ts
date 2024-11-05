@@ -1,5 +1,5 @@
 import { task } from "hardhat/config";
-
+import "hardhat-storage-layout";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
@@ -30,7 +30,12 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000,
+        runs: 4294967295,
+      },
+      outputSelection: {
+        "*": {
+          "*": ["storageLayout"],
+        },
       },
     },
   },
@@ -50,6 +55,7 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     currency: "ETH",
+    showMethodSig: true,
   },
   etherscan: {
     // Your API keys for Etherscan

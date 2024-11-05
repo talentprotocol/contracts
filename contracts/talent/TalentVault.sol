@@ -10,7 +10,7 @@ import "../passport/PassportBuilderScore.sol";
 
 /// @title Talent Protocol Vault Token Contract
 /// @author Talent Protocol - Francisco Leal, Panagiotis Matsinopoulos
-/// @notice Allows any $TALENT holders to deposit their tokens and earn interest.
+/// @notice Allows any $TALENT holders to deposit their tokens and earn rewards.
 /// @dev This is an ERC4626 compliant contract.
 contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -38,11 +38,11 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     error TransferFailed();
 
     /// @notice Represents user's balance meta data
-    /// @param depositedAmount The amount of tokens that were deposited, excluding interest
-    /// @param lastInterestCalculation The timestamp (seconds since Epoch) of the last interest calculation
+    /// @param depositedAmount The amount of tokens that were deposited, excluding rewards
+    /// @param lastRewardCalculation The timestamp (seconds since Epoch) of the last rewards calculation
     struct UserBalanceMeta {
         uint256 depositedAmount;
-        uint256 lastInterestCalculation;
+        uint256 lastRewardCalculation;
         uint256 lastDepositAt;
     }
 
@@ -59,7 +59,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The maximum yield rate that can be set, represented as a percentage.
     uint256 internal constant ONE_HUNDRED_PERCENT = 100_00;
 
-    /// @notice The number of seconds in a year multiplied by 100% (to make it easier to calculate interest)
+    /// @notice The number of seconds in a year multiplied by 100% (to make it easier to calculate rewards)
     uint256 internal constant SECONDS_PER_YEAR_x_ONE_HUNDRED_PERCENT = SECONDS_PER_YEAR * ONE_HUNDRED_PERCENT;
 
     /// @notice The token that will be deposited into the contract
@@ -72,14 +72,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
     uint256 public yieldRateBase;
 
-    /// @notice The maximum amount of tokens that can be used to calculate interest.
+    /// @notice The maximum amount of tokens that can be used to calculate reward.
     uint256 public maxYieldAmount;
 
-    /// @notice The time at which the users of the contract will stop accruing interest
+    /// @notice The time at which the users of the contract will stop accruing rewards
     uint256 public yieldAccrualDeadline;
 
-    /// @notice Whether the contract is accruing interest or not
-    bool public yieldInterestFlag;
+    /// @notice Whether the contract is accruing rewards or not
+    bool public yieldRewardsFlag;
 
     /// @notice The Passport Builder Score contract
     PassportBuilderScore public passportBuilderScore;
@@ -96,7 +96,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Create a new Talent Vault contract
     /// @param _token The token that will be deposited into the contract
     /// @param _yieldSource The wallet paying for the yield
-    /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate interest
+    /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate rewards
     /// @param _passportBuilderScore The Passport Builder Score contract
     constructor(
         IERC20 _token,
@@ -115,7 +115,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         token = _token;
         yieldRateBase = 0;
         yieldSource = _yieldSource;
-        yieldInterestFlag = true;
+        yieldRewardsFlag = true;
         maxYieldAmount = _maxYieldAmount;
         passportBuilderScore = _passportBuilderScore;
         lockPeriod = 7 days;
@@ -145,12 +145,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         removeMaxDepositLimit(receiver);
     }
 
-    /// @notice Calculate any accrued interest for the caller
+    /// @notice Calculate any accrued rewards for the caller
     function refresh() external {
         refreshForAddress(msg.sender);
     }
 
-    /// @notice Withdraws all of the user's balance, including any accrued interest.
+    /// @notice Withdraws all of the user's balance, including any accrued rewards.
     function withdrawAll() external nonReentrant {
         refreshForAddress(msg.sender);
         redeem(balanceOf(msg.sender), msg.sender, msg.sender);
@@ -166,7 +166,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         emit YieldRateUpdated(_yieldRate);
     }
 
-    /// @notice Update the maximum amount of tokens that can be used to calculate interest
+    /// @notice Update the maximum amount of tokens that can be used to calculate rewards
     /// @dev Can only be called by the owner
     /// @param _maxYieldAmount The new maximum yield amount
     function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
@@ -175,7 +175,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         emit MaxYieldAmountUpdated(_maxYieldAmount);
     }
 
-    /// @notice Update the time at which the users of the contract will stop accruing interest
+    /// @notice Update the time at which the users of the contract will stop accruing rewards
     /// @dev Can only be called by the owner
     /// @param _yieldAccrualDeadline The new yield accrual deadline
     function setYieldAccrualDeadline(uint256 _yieldAccrualDeadline) external onlyOwner {
@@ -186,16 +186,16 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         emit YieldAccrualDeadlineUpdated(_yieldAccrualDeadline);
     }
 
-    /// @notice Stop the contract from accruing interest
+    /// @notice Stop the contract from accruing rewards
     /// @dev Can only be called by the owner
-    function stopYieldingInterest() external onlyOwner {
-        yieldInterestFlag = false;
+    function stopYieldingRewards() external onlyOwner {
+        yieldRewardsFlag = false;
     }
 
-    /// @notice Start the contract accruing interest
+    /// @notice Start the contract accruing rewards
     /// @dev Can only be called by the owner
-    function startYieldingInterest() external onlyOwner {
-        yieldInterestFlag = true;
+    function startYieldingRewards() external onlyOwner {
+        yieldRewardsFlag = true;
     }
 
     /// @notice Set the yield source for the contract
@@ -251,17 +251,17 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         return deposit(shares, receiver);
     }
 
-    /// @notice Calculate any accrued interest for an address and update
-    ///         the deposit meta data including minting any interest
+    /// @notice Calculate any accrued rewards for an address and update
+    ///         the deposit meta data including minting any rewards
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
         if (balanceOf(account) <= 0) {
             UserBalanceMeta storage balanceMeta = userBalanceMeta[account];
-            balanceMeta.lastInterestCalculation = block.timestamp;
+            balanceMeta.lastRewardCalculation = block.timestamp;
             return;
         }
 
-        yieldInterest(account);
+        yieldRewards(account);
     }
 
     /// @notice Get the yield rate for the contract for a given user
@@ -301,12 +301,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         revert TalentVaultNonTransferable();
     }
 
-    /// @notice Calculate the accrued interest for an address
-    /// @param user The address to calculate the accrued interest for
-    function calculateInterest(address user) public view returns (uint256) {
+    /// @notice Calculate the accrued rewards for an address
+    /// @param user The address to calculate the accrued rewards for
+    function calculateRewards(address user) public view returns (uint256) {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
-        if (!yieldInterestFlag) {
+        if (!yieldRewardsFlag) {
             return 0;
         }
 
@@ -327,11 +327,11 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         uint256 timeElapsed;
 
         if (block.timestamp > endTime) {
-            timeElapsed = endTime > balanceMeta.lastInterestCalculation
-                ? endTime - balanceMeta.lastInterestCalculation
+            timeElapsed = endTime > balanceMeta.lastRewardCalculation
+                ? endTime - balanceMeta.lastRewardCalculation
                 : 0;
         } else {
-            timeElapsed = block.timestamp - balanceMeta.lastInterestCalculation;
+            timeElapsed = block.timestamp - balanceMeta.lastRewardCalculation;
         }
 
         uint256 yieldRate = getYieldRateForScore(user);
@@ -358,14 +358,14 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         delete maxDepositLimitFlags[receiver];
     }
 
-    /// @notice Calculate the accrued interest for an address and mint any interest
-    /// @param user The address to calculate the accrued interest for
-    function yieldInterest(address user) internal {
+    /// @notice Calculate the accrued rewards for an address and mint any rewards
+    /// @param user The address to calculate the accrued rewards for
+    function yieldRewards(address user) internal {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
-        uint256 interest = calculateInterest(user);
-        balanceMeta.lastInterestCalculation = block.timestamp;
+        uint256 rewards = calculateRewards(user);
+        balanceMeta.lastRewardCalculation = block.timestamp;
 
-        _deposit(yieldSource, user, interest, interest);
+        _deposit(yieldSource, user, rewards, rewards);
     }
 
     /// @notice Withdraws tokens from the contract

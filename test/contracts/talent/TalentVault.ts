@@ -101,7 +101,7 @@ describe("TalentVault", () => {
       expect(await talentVault.passportBuilderScore()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
 
-      expect(await talentVault.yieldInterestFlag()).to.equal(true);
+      expect(await talentVault.yieldRewardsFlag()).to.equal(true);
 
       expect(await talentVault.lockPeriod()).to.equal(7 * 24 * 60 * 60);
     });
@@ -622,33 +622,32 @@ describe("TalentVault", () => {
 
   describe("#refreshForAddress", async () => {
     context("when address does not have a deposit", async () => {
-      it("just updates the last interest calculation", async () => {
-        const lastInterestCalculationBefore = (await talentVault.userBalanceMeta(user3.address))
-          .lastInterestCalculation;
+      it("just updates the last reward calculation", async () => {
+        const lastRewardCalculationBefore = (await talentVault.userBalanceMeta(user3.address)).lastRewardCalculation;
 
-        expect(lastInterestCalculationBefore).to.equal(0);
+        expect(lastRewardCalculationBefore).to.equal(0);
 
         // fire
         await talentVault.refreshForAddress(user3.address);
 
-        const lastInterestCalculation = (await talentVault.userBalanceMeta(user3.address)).lastInterestCalculation;
+        const lastRewardCalculation = (await talentVault.userBalanceMeta(user3.address)).lastRewardCalculation;
 
-        expect(lastInterestCalculation).not.to.equal(0);
+        expect(lastRewardCalculation).not.to.equal(0);
       });
     });
 
-    // Make sure user balance is updated according to yielded interest. This is done in the
-    // tests below, in the Interest Calculation tests, where we call #refresh
+    // Make sure user balance is updated according to yielded rewards. This is done in the
+    // tests below, in the Rewards Calculation tests, where we call #refresh
   });
 
   // withdrawAll
   //
   // $TALENT for user is increased by their $TALENTVAULT balance
-  // which is updated with the yield interest.
+  // which is updated with the yield rewards.
   //
   // TalentVault $TALENT balance is reduced by the originally deposited amount
   //
-  // yieldSource $TALENT balance is reduced by the yieldInterest
+  // yieldSource $TALENT balance is reduced by the yieldRewards
   //
   // user $TALENTVAULT balance goes to 0.
 
@@ -674,10 +673,10 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const yieldedInterest = depositAmount.mul(0).div(100); // 0% interest
+      const yieldedRewards = depositAmount.mul(0).div(100); // 0% rewards
 
       // this is manually calculated, but it is necessary for this test.
-      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1000"); // there is no interest
+      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1000"); // there are no rewards
 
       // fire
       await talentVault.connect(user1).withdrawAll();
@@ -698,9 +697,9 @@ describe("TalentVault", () => {
       const user1TalentVaultBalanceAfter = await talentVault.balanceOf(user1.address);
       expect(user1TalentVaultBalanceAfter).to.equal(0);
 
-      // yieldSource $TALENT balance is decreased by the yieldInterest
+      // yieldSource $TALENT balance is decreased by the yieldRewards
       const yieldSourceTalentBalanceAfter = await talentToken.balanceOf(yieldSource.address);
-      const expectedYieldSourceTalentBalanceAfter = yieldSourceTalentBalanceBefore.sub(yieldedInterest);
+      const expectedYieldSourceTalentBalanceAfter = yieldSourceTalentBalanceBefore.sub(yieldedRewards);
       expect(yieldSourceTalentBalanceAfter).to.be.closeTo(
         expectedYieldSourceTalentBalanceAfter,
         ethers.utils.parseEther("0.001")
@@ -708,8 +707,8 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("Interest Calculation", async () => {
-    it("Should calculate interest correctly", async () => {
+  describe("Rewards Calculation", async () => {
+    it("Should calculate rewards correctly", async () => {
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
@@ -718,29 +717,29 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedInterest = depositAmount.mul(0).div(100); // 0% interest
+      const expectedRewards = depositAmount.mul(0).div(100); // 0% rewards
 
       // fire
       await talentVault.connect(user1).refresh();
 
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.001"));
 
-      const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
+      const userLastRewardCalculation = (await talentVault.userBalanceMeta(user1.address)).lastRewardCalculation;
       const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
 
-      expect(userLastInterestCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
+      expect(userLastRewardCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
     });
 
-    context("when yielding interest is stopped", async () => {
-      it("does not yield any interest but it updates the lastInterestCalculation", async () => {
+    context("when yielding rewards is stopped", async () => {
+      it("does not yield any rewards but it updates the lastRewardCalculation", async () => {
         const depositAmount = ethers.utils.parseEther("1000");
         await talentToken.transfer(user1.address, depositAmount);
         const user1BalanceBefore = await talentToken.balanceOf(user1.address);
         await talentToken.connect(user1).approve(talentVault.address, depositAmount);
         await talentVault.connect(user1).deposit(depositAmount, user1.address);
 
-        await talentVault.stopYieldingInterest();
+        await talentVault.stopYieldingRewards();
 
         // Simulate time passing
 
@@ -752,15 +751,15 @@ describe("TalentVault", () => {
         const user1BalanceAfter = await talentVault.balanceOf(user1.address);
         expect(user1BalanceAfter).to.equal(user1BalanceBefore);
 
-        const userLastInterestCalculation = (await talentVault.userBalanceMeta(user1.address)).lastInterestCalculation;
+        const userLastRewardCalculation = (await talentVault.userBalanceMeta(user1.address)).lastRewardCalculation;
         const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
 
-        expect(userLastInterestCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
+        expect(userLastRewardCalculation.toNumber()).to.equal(oneYearAfterEpochSeconds);
       });
     });
 
     // 10000
-    it("Should calculate interest even if amount is above the max yield amount correctly", async () => {
+    it("Should calculate rewards even if amount is above the max yield amount correctly", async () => {
       const depositAmount = ethers.utils.parseEther("15000");
       const maxAmount = ethers.utils.parseEther("10000");
       await talentToken.transfer(user1.address, depositAmount);
@@ -770,16 +769,16 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedInterest = maxAmount.mul(0).div(100); // 0% interest
+      const expectedRewards = maxAmount.mul(0).div(100); // 0% rewards
 
       // fire
       await talentVault.connect(user1).refresh();
 
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.001"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.001"));
     });
 
-    it("Should calculate interest correctly for builders with scores above 50 but below 75", async () => {
+    it("Should calculate rewards correctly for builders with scores above 50 but below 75", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
@@ -796,12 +795,12 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(5).div(100); // 5% interest
+      const expectedRewards = depositAmount.mul(5).div(100); // 5% rewards
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
     });
 
-    it("Should calculate interest correctly for builders with scores above 75 but below 100", async () => {
+    it("Should calculate rewards correctly for builders with scores above 75 but below 100", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
@@ -818,12 +817,12 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(10).div(100); // 10% interest
+      const expectedRewards = depositAmount.mul(10).div(100); // 10% rewards
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
     });
 
-    it("Should calculate interest correctly for builders with scores above 100", async () => {
+    it("Should calculate rewards correctly for builders with scores above 100", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
@@ -840,9 +839,9 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedInterest = depositAmount.mul(15).div(100); // 15% interest
+      const expectedRewards = depositAmount.mul(15).div(100); // 15% rewards
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedInterest), ethers.utils.parseEther("0.1"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
     });
   });
 
@@ -861,38 +860,38 @@ describe("TalentVault", () => {
     });
   });
 
-  describe("#stopYieldingInterest", async () => {
+  describe("#stopYieldingRewards", async () => {
     context("when called by an non-owner account", async () => {
       it("reverts", async () => {
-        await expect(talentVault.connect(user1).stopYieldingInterest()).to.be.revertedWith(
+        await expect(talentVault.connect(user1).stopYieldingRewards()).to.be.revertedWith(
           `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });
 
     context("when called by the owner account", async () => {
-      it("stops yielding interest", async () => {
-        await talentVault.stopYieldingInterest();
+      it("stops yielding rewards", async () => {
+        await talentVault.stopYieldingRewards();
 
-        expect(await talentVault.yieldInterestFlag()).to.equal(false);
+        expect(await talentVault.yieldRewardsFlag()).to.equal(false);
       });
     });
   });
 
-  describe("#startYieldingInterest", async () => {
+  describe("#startYieldingRewards", async () => {
     context("when called by an non-owner account", async () => {
       it("reverts", async () => {
-        await expect(talentVault.connect(user1).startYieldingInterest()).to.be.revertedWith(
+        await expect(talentVault.connect(user1).startYieldingRewards()).to.be.revertedWith(
           `OwnableUnauthorizedAccount("${user1.address}")`
         );
       });
     });
 
     context("when called by the owner account", async () => {
-      it("starts yielding interest", async () => {
-        await talentVault.startYieldingInterest();
+      it("starts yielding rewards", async () => {
+        await talentVault.startYieldingRewards();
 
-        expect(await talentVault.yieldInterestFlag()).to.equal(true);
+        expect(await talentVault.yieldRewardsFlag()).to.equal(true);
       });
     });
   });

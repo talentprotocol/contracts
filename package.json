@@ -56,7 +56,7 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "lint": "solhint contracts/**.sol && prettier --check contracts/**/*.sol",
+    "lint": "solhint contracts/**/*.sol && prettier --check contracts/**/*.sol",
     "docgen": "solidity-docgen --solc-module solc-0.8.25 --templates=docgen/templates"
   }
 }

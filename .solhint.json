@@ -1,3 +1,18 @@
 {
-  "extends": "solhint:default"
+  "extends": "solhint:recommended",
+  "rules": {
+    "func-visibility": [
+      "warn",
+      {
+        "ignoreConstructors": true
+      }
+    ],
+    "var-name-mixedcase": "off",
+    "custom-errors": "off",
+    "no-global-import": "off",
+    "reason-string": "off",
+    "no-inline-assembly": "off",
+    "immutable-vars-naming": "off",
+    "one-contract-per-file": "off"
+  }
 }

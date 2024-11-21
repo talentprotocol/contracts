@@ -16,7 +16,8 @@ jobs:
 
     env:
       FORCE_COLOR: true
-      PRIVATE_KEY: '5ede2113cda8f729bf0736e05bdec3faf310222f0e0e481ec504b4f3eea9a43b'
+      PRIVATE_KEY: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2

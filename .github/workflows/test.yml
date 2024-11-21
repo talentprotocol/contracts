@@ -16,7 +16,7 @@ jobs:
 
     env:
       FORCE_COLOR: true
-      PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
+      PRIVATE_KEY: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
     steps:
       - uses: actions/checkout@v2

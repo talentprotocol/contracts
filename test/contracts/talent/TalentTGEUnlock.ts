@@ -3,7 +3,7 @@ import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { TalentProtocolToken, TalentTGEUnlock } from "../../../typechain-types";
+import { TalentProtocolToken, TalentTGEUnlock, PassportBuilderScore, PassportRegistry } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import generateMerkleTree from "../../../functions/generateMerkleTree";
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
@@ -22,6 +22,8 @@ describe("TalentTGEUnlock", () => {
 
   let talentToken: TalentProtocolToken;
   let TalentTGEUnlock: TalentTGEUnlock;
+  let passportRegistry: PassportRegistry;
+  let passportBuilderScore: PassportBuilderScore;
   let merkleTree: StandardMerkleTree<(string | BigNumber)[]>;
   let totalTalentAmount: BigNumber;
 
@@ -33,10 +35,17 @@ describe("TalentTGEUnlock", () => {
       [user1.address]: ethers.utils.parseUnits("10000", 18),
       [user2.address]: ethers.utils.parseUnits("20000", 18),
     });
+    passportRegistry = (await deployContract(admin, Artifacts.PassportRegistry, [admin.address])) as PassportRegistry;
+    passportBuilderScore = (await deployContract(admin, Artifacts.PassportBuilderScore, [
+      passportRegistry.address,
+      admin.address,
+    ])) as PassportBuilderScore;
 
     TalentTGEUnlock = (await deployContract(admin, Artifacts.TalentTGEUnlock, [
       talentToken.address,
       merkleTree.root,
+      passportBuilderScore.address,
+      40,
       admin.address,
     ])) as TalentTGEUnlock;
 
@@ -50,6 +59,10 @@ describe("TalentTGEUnlock", () => {
     it("Should set the right owner", async () => {
       expect(await TalentTGEUnlock.owner()).to.equal(admin.address);
     });
+
+    it("Should set the right minimum builder score", async () => {
+      expect(await TalentTGEUnlock.minimumClaimBuilderScore()).to.equal(40);
+    });
   });
 
   describe("Setup", () => {
@@ -61,6 +74,12 @@ describe("TalentTGEUnlock", () => {
     });
 
     it("Should allow claims after contract is enabled", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 40); // Set builder score 40
+
       const amount = ethers.utils.parseUnits("10000", 18);
       const proof = merkleTree.getProof([user1.address, amount]);
 
@@ -85,14 +104,40 @@ describe("TalentTGEUnlock", () => {
       await TalentTGEUnlock.connect(admin).enableContract();
     });
 
-    it("Should allow users to claim tokens", async () => {
+    it("Should allow users to claim tokens when the builder score is above the minimum", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 40); // Set builder score 40
+
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
 
       await TalentTGEUnlock.connect(user1).claim(proof1, ethers.utils.parseUnits("10000", 18));
       expect(await talentToken.balanceOf(user1.address)).to.equal(ethers.utils.parseUnits("10000", 18));
     });
 
+    it("Should not allow users to claim tokens when the builder score is below the minimum", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 39); // Set builder score 39
+
+      const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
+
+      await expect(
+        TalentTGEUnlock.connect(user1).claim(proof1, ethers.utils.parseUnits("100000", 18))
+      ).to.be.revertedWith("Onchain Builder Score is too low");
+    });
+
     it("Should not allow claiming more than the amount", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user1).create("source1");
+
+      const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 41); // Set builder score 41
+
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
 
       await expect(
@@ -101,6 +146,12 @@ describe("TalentTGEUnlock", () => {
     });
 
     it("Should not allow the wrong user to claim", async () => {
+      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
+      await passportRegistry.connect(user2).create("source1");
+
+      const passportId = await passportRegistry.passportId(user2.address);
+      await passportBuilderScore.setScore(passportId, 41); // Set builder score 41
+
       const proof1 = merkleTree.getProof([user1.address, ethers.utils.parseUnits("10000", 18)]);
 
       await expect(
@@ -126,6 +177,19 @@ describe("TalentTGEUnlock", () => {
 
     it("Should not allow non-owner to withdraw funds", async () => {
       await expect(TalentTGEUnlock.connect(user1).withdraw()).to.be.revertedWith(
+        `OwnableUnauthorizedAccount("${user1.address}")`
+      );
+    });
+  });
+
+  describe("update the minimum builder score to claim", () => {
+    it("Should allow owner to set the minimum builder score", async () => {
+      await TalentTGEUnlock.connect(admin).setMinimumBuilderScore(50);
+      expect(await TalentTGEUnlock.minimumClaimBuilderScore()).to.equal(50);
+    });
+
+    it("Should not allow non-owner to withdraw funds", async () => {
+      await expect(TalentTGEUnlock.connect(user1).setMinimumBuilderScore(100)).to.be.revertedWith(
         `OwnableUnauthorizedAccount("${user1.address}")`
       );
     });

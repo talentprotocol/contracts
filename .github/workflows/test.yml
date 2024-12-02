@@ -17,6 +17,8 @@ jobs:
     env:
       FORCE_COLOR: true
       PRIVATE_KEY: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+      BASE_SEPOLIA_RPC_URL: ''
+      BASE_RPC_URL: ''
 
     steps:
       - name: Checkout code

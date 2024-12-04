@@ -100,11 +100,13 @@ export async function deployTalentCommunitySale(
 export async function deployTalentTGEUnlock(
   token: string,
   owner: string,
-  merkleTreeRoot: string
+  merkleTreeRoot: string,
+  passportBuilderScore: string,
+  minimumClaimBuilderScore: number,
 ): Promise<TalentTGEUnlock> {
   const talentTGEUnlockContract = await ethers.getContractFactory("TalentTGEUnlock");
 
-  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, owner, merkleTreeRoot);
+  const deployedTGEUnlock = await talentTGEUnlockContract.deploy(token, merkleTreeRoot, passportBuilderScore, minimumClaimBuilderScore, owner);
   await deployedTGEUnlock.deployed();
   return deployedTGEUnlock as TalentTGEUnlock;
 }

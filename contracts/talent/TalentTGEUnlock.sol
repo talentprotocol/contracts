@@ -61,12 +61,11 @@ contract TalentTGEUnlock is Ownable {
         verifyAmount(merkleProofClaim, amountAllocated);
 
         address beneficiary = msg.sender;
-        uint256 amountToClaim = calculate(beneficiary, amountAllocated);
 
-        claimed[beneficiary] += amountToClaim;
-        IERC20(token).safeTransfer(beneficiary, amountToClaim);
+        claimed[beneficiary] += amountAllocated;
+        IERC20(token).safeTransfer(beneficiary, amountAllocated);
 
-        emit Claimed(beneficiary, amountToClaim, 0);
+        emit Claimed(beneficiary, amountAllocated, 0);
     }
 
     function verifyAmount(
@@ -82,15 +81,6 @@ contract TalentTGEUnlock is Ownable {
             MerkleProof.verify(proof, root, leaf),
             "Invalid Allocation Proof"
         );
-    }
-
-    function calculate(
-        address beneficiary,
-        uint256 amountAllocated
-    ) internal view returns (uint256 amountToClaim) {
-        uint256 amountClaimed = claimed[beneficiary];
-        assert(amountClaimed <= amountAllocated);
-        amountToClaim = amountAllocated - amountClaimed;
     }
 
     function setMerkleRoot(bytes32 nextMerkleRoot) external onlyOwner {

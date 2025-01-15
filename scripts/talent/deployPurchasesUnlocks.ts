@@ -6,13 +6,13 @@ import { BigNumberish } from "ethers";
 
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
-import distributionSetup from "../data/ecosystem-incentives-04.json";
+import distributionSetup from "../data/inAppPurchases.json";
 import { createClient } from "@supabase/supabase-js";
 
 const TALENT_TOKEN_ADDRESS_TESTNET = "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
 const TALENT_TOKEN_ADDRESS_MAINNET = "0x9a33406165f562E16C3abD82fd1185482E01b49a";
 
-const VESTING_CATEGORY = "ecosystem_incentives_04";
+const VESTING_CATEGORY = "ecosystem_incentives_02";
 
 type BalanceMap = {
   [key: string]: BigNumberish;
@@ -52,9 +52,9 @@ async function main() {
 
   const merkleTree = generateMerkleTree(merkleBase);
 
-  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_MAINNET} ${merkleTree.root} ${admin.address}`);
+  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${merkleTree.root} ${admin.address}`);
   const tgeUnlockDistribution = await deployTalentTGEUnlock(
-    TALENT_TOKEN_ADDRESS_MAINNET,
+    TALENT_TOKEN_ADDRESS_TESTNET,
     admin.address,
     merkleTree.root
   );

@@ -16,11 +16,16 @@ jobs:
 
     env:
       FORCE_COLOR: true
-      PRIVATE_KEY: ${{secrets.PRIVATE_KEY}}
+      PRIVATE_KEY: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+      BASE_SEPOLIA_RPC_URL: ''
+      BASE_RPC_URL: ''
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
 
@@ -28,7 +33,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}

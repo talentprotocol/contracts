@@ -41,13 +41,13 @@ const config: HardhatUserConfig = {
   },
   networks: {
     baseSepolia: {
-      url: "https://api.developer.coinbase.com/rpc/v1/base-sepolia/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
+      url: process.env.BASE_SEPOLIA_RPC_URL,
       accounts: deployer,
       chainId: 84532,
       gasMultiplier: 1.5,
     },
     base: {
-      url: "https://api.developer.coinbase.com/rpc/v1/base/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
+      url: process.env.BASE_RPC_URL,
       accounts: deployer,
       chainId: 8453,
       gasMultiplier: 1.5,

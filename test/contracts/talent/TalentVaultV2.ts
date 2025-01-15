@@ -100,4 +100,28 @@ describe("TalentVaultV2", () => {
     expect(userFinalTalent.sub(userInitialTalent)).to.eq(redeemAmount);
     expect(userInitialShares.sub(userFinalShares)).to.eq(redeemAmount);
   });
+
+  it("should set the vault option as true when a vault option is added", async () => {
+    await talentVault.connect(admin).addVaultOption(user2.address);
+    expect(await talentVault.isWhitelisted(user2.address)).to.be.true;
+  });
+
+  it("should set the vault option as false when a vault option is removed", async () => {
+    await talentVault.connect(admin).addVaultOption(user2.address);
+    expect(await talentVault.isWhitelisted(user2.address)).to.be.true;
+
+    await talentVault.connect(admin).removeVaultOption(user2.address);
+    expect(await talentVault.isWhitelisted(user2.address)).to.be.false;
+  });
+
+  it("should emit VaultOptionAdded event when a vault option is added", async () => {
+    const addVaultOptionTx = talentVault.connect(admin).addVaultOption(user2.address);
+    await expect(addVaultOptionTx).to.emit(talentVault, "VaultOptionAdded").withArgs(user2.address);
+  });
+
+  it("should emit VaultOptionRemoved event when a vault option is removed", async () => {
+    await talentVault.connect(admin).addVaultOption(user2.address);
+    const removeVaultOptionTx = talentVault.connect(admin).removeVaultOption(user2.address);
+    await expect(removeVaultOptionTx).to.emit(talentVault, "VaultOptionRemoved").withArgs(user2.address);
+  });
 });

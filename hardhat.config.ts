@@ -47,7 +47,7 @@ const config: HardhatUserConfig = {
       gasMultiplier: 1.5,
     },
     base: {
-      url: "https://api.developer.coinbase.com/rpc/v1/base/Ip9cOQPtBOm81rN2I9_1rBiMXOfKBxii",
+      url: "https://api.developer.coinbase.com/rpc/v1/base/w6ubd9S5jJzUzPlMn0yYmuP9UWbjKvrH",
       accounts: deployer,
       chainId: 8453,
       gasMultiplier: 1.5,

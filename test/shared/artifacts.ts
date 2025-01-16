@@ -12,6 +12,7 @@ import PassportWalletRegistry from "../../artifacts/contracts/passport/PassportW
 import TalentTGEUnlockTimestamp from "../../artifacts/contracts/talent/TalentTGEUnlockTimestamp.sol/TalentTGEUnlockTimestamp.json";
 import TalentVault from "../../artifacts/contracts/talent/TalentVault.sol/TalentVault.json";
 import TalentVaultV2 from "../../artifacts/contracts/talent/TalentVaultV2.sol/TalentVaultV2.json";
+import BaseAPY from "../../artifacts/contracts/talent/vault-options/BaseAPY.sol/BaseAPY.json";
 
 export {
   PassportRegistry,
@@ -28,4 +29,5 @@ export {
   TalentTGEUnlockTimestamp,
   TalentVault,
   TalentVaultV2,
+  BaseAPY,
 };

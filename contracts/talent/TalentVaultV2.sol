@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "./vault-options/IVaultOption.sol";
 
 contract TalentVaultV2 is ERC4626, Ownable {
   using SafeERC20 for IERC20;
@@ -34,6 +35,8 @@ contract TalentVaultV2 is ERC4626, Ownable {
     require(vaultOption != address(0), "Invalid address");
     require(!_whitelistedStrategies[vaultOption], "Already whitelisted");
     
+    token.approve(vaultOption, type(uint256).max);
+
     _whitelistedStrategies[vaultOption] = true;
     emit VaultOptionAdded(vaultOption);
   }
@@ -70,5 +73,44 @@ contract TalentVaultV2 is ERC4626, Ownable {
   // Total assets is simply the balance of the token in this contract.
   function totalAssets() public view virtual override returns (uint256) {
     return token.balanceOf(address(this));
+  }
+
+  function depositToOption(
+    uint256 assets,
+    address receiver,
+    address option
+  ) external returns (uint256 shares) {
+    require(_whitelistedStrategies[option], "Option not whitelisted");
+
+    // Deposit into the Vault which
+    // 1. Transfer TALENT from user -> vault
+    // 2. The vault mints sTALENT for the user, 1:1
+    shares = deposit(assets, receiver);
+    // 3. Vault calls the option’s deposit function which transfers the TALENT to the option
+    IVaultOption(option).depositIntoVaultOption(receiver, assets);
+    return shares;
+  }
+
+  function withdrawFromOption(
+    uint256 shares,
+    address receiver,
+    address owner,
+    address option
+  ) public returns (uint256 assets) {
+    // Check that option is whitelisted
+    require(_whitelistedStrategies[option], "Option not whitelisted");
+
+    // Option calculates principal + yield and sends it to the vault
+    uint256 rewardsOwed = IVaultOption(option).withdrawFromVaultOption(owner);
+    // Withdraw from the Vault which
+    // 1. Burns the user's shares
+    // 2. Transfers TALENT from the vault -> user
+    assets = withdraw(shares, receiver, owner);
+
+    // The vault then sends rewarded TALENT to the user
+    bool success = token.transfer(receiver, rewardsOwed);
+    require(success, "reward transfer failed");
+
+    return assets + rewardsOwed;
   }
 }

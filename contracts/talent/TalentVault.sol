@@ -97,7 +97,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         IERC20 _token,
         address _yieldSource,
         PassportBuilderScore _passportBuilderScore
-    ) ERC4626(_token) ERC20("TalentProtocolVaultToken", "TALENTVAULT") Ownable(msg.sender) {
+    ) ERC4626(_token) ERC20("TalentVault", "sTALENT") Ownable(msg.sender) {
         if (
             address(_token) == address(0) ||
             address(_yieldSource) == address(0) ||

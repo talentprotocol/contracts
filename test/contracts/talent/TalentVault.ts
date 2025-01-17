@@ -13,7 +13,7 @@ const { expect } = chai;
 const { deployContract } = waffle;
 
 async function ensureTimeIsAfterLockPeriod() {
-  const lockPeriod = 8;
+  const lockPeriod = 31;
   const oneDayAfterLockPeriod = Math.floor(Date.now() / 1000) + lockPeriod * 24 * 60 * 60;
   await ensureTimestamp(oneDayAfterLockPeriod);
 }
@@ -32,6 +32,7 @@ describe("TalentVault", () => {
 
   let snapshotId: bigint;
   let currentDateEpochSeconds: number;
+  const yieldBasePerDay = ethers.utils.parseEther("0.137");
 
   before(async () => {
     await ethers.provider.send("hardhat_reset", []);
@@ -49,7 +50,6 @@ describe("TalentVault", () => {
     talentVault = (await deployContract(admin, Artifacts.TalentVault, [
       talentToken.address,
       yieldSource.address,
-      ethers.utils.parseEther("10000"),
       passportBuilderScore.address,
     ])) as TalentVault;
 
@@ -94,16 +94,14 @@ describe("TalentVault", () => {
     });
 
     it("Should set the correct initial values", async () => {
-      expect(await talentVault.yieldRateBase()).to.equal(0);
-
-      expect(await talentVault.maxYieldAmount()).to.equal(ethers.utils.parseEther("10000"));
+      expect(await talentVault.yieldRateBase()).to.equal(5_00);
 
       expect(await talentVault.passportBuilderScore()).not.to.equal(ethers.constants.AddressZero);
       expect(await talentVault.passportBuilderScore()).to.equal(passportBuilderScore.address);
 
       expect(await talentVault.yieldRewardsFlag()).to.equal(true);
 
-      expect(await talentVault.lockPeriod()).to.equal(7 * 24 * 60 * 60);
+      expect(await talentVault.lockPeriod()).to.equal(30 * 24 * 60 * 60);
     });
 
     it("reverts with InvalidAddress when _token given is 0", async () => {
@@ -673,10 +671,10 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const yieldedRewards = depositAmount.mul(0).div(100); // 0% rewards
+      const yieldedRewards = yieldBasePerDay.mul(90); // 5% rewards but over 90 days
 
       // this is manually calculated, but it is necessary for this test.
-      const expectedUser1TalentVaultBalanceAfter1Year = ethers.utils.parseEther("1000"); // there are no rewards
+      const expectedUser1TalentVaultBalanceAfter1Year = depositAmount.add(yieldedRewards);
 
       // fire
       await talentVault.connect(user1).withdrawAll();
@@ -690,7 +688,7 @@ describe("TalentVault", () => {
       const user1TalentBalanceAfter = await talentToken.balanceOf(user1.address);
       expect(user1TalentBalanceAfter).to.be.closeTo(
         expectedUser1TalentVaultBalanceAfter1Year,
-        ethers.utils.parseEther("0.001")
+        ethers.utils.parseEther("0.01")
       );
 
       // user1 $TALENTVAULT balance goes to 0
@@ -702,7 +700,7 @@ describe("TalentVault", () => {
       const expectedYieldSourceTalentBalanceAfter = yieldSourceTalentBalanceBefore.sub(yieldedRewards);
       expect(yieldSourceTalentBalanceAfter).to.be.closeTo(
         expectedYieldSourceTalentBalanceAfter,
-        ethers.utils.parseEther("0.001")
+        ethers.utils.parseEther("0.01")
       );
     });
   });
@@ -717,13 +715,13 @@ describe("TalentVault", () => {
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
 
-      const expectedRewards = depositAmount.mul(0).div(100); // 0% rewards
+      const expectedRewards = yieldBasePerDay.mul(90); // 5% rewards but over 90 days
 
       // fire
       await talentVault.connect(user1).refresh();
 
       const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.001"));
+      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.01"));
 
       const userLastRewardCalculation = (await talentVault.userBalanceMeta(user1.address)).lastRewardCalculation;
       const oneYearAfterEpochSeconds = currentDateEpochSeconds + 31536000;
@@ -758,27 +756,7 @@ describe("TalentVault", () => {
       });
     });
 
-    // 10000
-    it("Should calculate rewards even if amount is above the max yield amount correctly", async () => {
-      const depositAmount = ethers.utils.parseEther("15000");
-      const maxAmount = ethers.utils.parseEther("10000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount, user1.address);
-
-      // Simulate time passing
-      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-
-      const expectedRewards = maxAmount.mul(0).div(100); // 0% rewards
-
-      // fire
-      await talentVault.connect(user1).refresh();
-
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.001"));
-    });
-
-    it("Should calculate rewards correctly for builders with scores above 50 but below 75", async () => {
+    it("Should calculate rewards correctly for builders with scores below 60", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
@@ -795,16 +773,17 @@ describe("TalentVault", () => {
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedRewards = depositAmount.mul(5).div(100); // 5% rewards
+      const expectedRewards = yieldBasePerDay.mul(90); // 5% rewards but over 90 days
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
     });
 
-    it("Should calculate rewards correctly for builders with scores above 75 but below 100", async () => {
+    it("Should calculate rewards correctly for builders with scores above 60 (inclusive)", async () => {
       await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
       await passportRegistry.connect(user1).create("source1");
 
       const passportId = await passportRegistry.passportId(user1.address);
+      await passportBuilderScore.setScore(passportId, 60); // Set builder score above 60
       const depositAmount = ethers.utils.parseEther("1000");
       await talentToken.transfer(user1.address, depositAmount);
       await talentToken.connect(user1).approve(talentVault.address, depositAmount);
@@ -812,34 +791,12 @@ describe("TalentVault", () => {
 
       // Simulate time passing
       ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-      await passportBuilderScore.setScore(passportId, 80); // Set builder score above 50
+      await passportBuilderScore.setScore(passportId, 60); // Set builder score above 60
 
       // fire
       await talentVault.connect(user1).refresh();
 
-      const expectedRewards = depositAmount.mul(10).div(100); // 10% rewards
-      const userBalance = await talentVault.balanceOf(user1.address);
-      expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
-    });
-
-    it("Should calculate rewards correctly for builders with scores above 100", async () => {
-      await passportRegistry.setGenerationMode(true, 1); // Enable sequential mode
-      await passportRegistry.connect(user1).create("source1");
-
-      const passportId = await passportRegistry.passportId(user1.address);
-      const depositAmount = ethers.utils.parseEther("1000");
-      await talentToken.transfer(user1.address, depositAmount);
-      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
-      await talentVault.connect(user1).deposit(depositAmount, user1.address);
-
-      // Simulate time passing
-      ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
-      await passportBuilderScore.setScore(passportId, 105); // Set builder score above 75
-
-      // fire
-      await talentVault.connect(user1).refresh();
-
-      const expectedRewards = depositAmount.mul(15).div(100); // 15% rewards
+      const expectedRewards = yieldBasePerDay.mul(2).mul(90); // 10% rewards but over 90 days
       const userBalance = await talentVault.balanceOf(user1.address);
       expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
     });

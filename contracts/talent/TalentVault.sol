@@ -19,10 +19,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @param yieldRate The new yield rate
     event YieldRateUpdated(uint256 yieldRate);
 
-    /// @notice Emitted when the maximum yield amount is updated
-    /// @param maxYieldAmount The new maximum yield amount
-    event MaxYieldAmountUpdated(uint256 maxYieldAmount);
-
     /// @notice Emitted when the yield accrual deadline is updated
     /// @param yieldAccrualDeadline The new yield accrual deadline
     event YieldAccrualDeadlineUpdated(uint256 yieldAccrualDeadline);
@@ -36,7 +32,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     error NoDepositFound();
     error TalentVaultNonTransferable();
     error TransferFailed();
-
+    error MaxOverallDepositReached();
     /// @notice Represents user's balance meta data
     /// @param depositedAmount The amount of tokens that were deposited, excluding rewards
     /// @param lastRewardCalculation The timestamp (seconds since Epoch) of the last rewards calculation
@@ -49,6 +45,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The amount of days that your deposits are locked and can't be withdrawn.
     /// Lock period end-day is calculated base on the last datetime user did a deposit.
     uint256 public lockPeriod;
+
+    /// @notice The maximum amount of tokens that can be deposited into the vault
+    uint256 public maxOverallDeposit;
 
     /// @notice The number of seconds in a day
     uint256 internal constant SECONDS_WITHIN_DAY = 86400;
@@ -72,9 +71,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @dev Represented with 2 decimal places, e.g. 10_00 for 10%
     uint256 public yieldRateBase;
 
-    /// @notice The maximum amount of tokens that can be used to calculate reward.
-    uint256 public maxYieldAmount;
-
     /// @notice The time at which the users of the contract will stop accruing rewards
     uint256 public yieldAccrualDeadline;
 
@@ -96,12 +92,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Create a new Talent Vault contract
     /// @param _token The token that will be deposited into the contract
     /// @param _yieldSource The wallet paying for the yield
-    /// @param _maxYieldAmount The maximum amount of tokens that can be used to calculate rewards
     /// @param _passportBuilderScore The Passport Builder Score contract
     constructor(
         IERC20 _token,
         address _yieldSource,
-        uint256 _maxYieldAmount,
         PassportBuilderScore _passportBuilderScore
     ) ERC4626(_token) ERC20("TalentProtocolVaultToken", "TALENTVAULT") Ownable(msg.sender) {
         if (
@@ -113,15 +107,23 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         }
 
         token = _token;
-        yieldRateBase = 0;
+        yieldRateBase = 5_00;
         yieldSource = _yieldSource;
         yieldRewardsFlag = true;
-        maxYieldAmount = _maxYieldAmount;
+        yieldAccrualDeadline = block.timestamp + 90 days;
         passportBuilderScore = _passportBuilderScore;
-        lockPeriod = 7 days;
+        lockPeriod = 30 days;
+        maxOverallDeposit = 1_000_000 ether;
     }
 
     // ------------------- EXTERNAL --------------------------------------------
+
+    /// @notice Set the maximum amount of tokens that can be deposited into the vault
+    /// @dev Can only be called by the owner
+    /// @param _maxOverallDeposit The new maximum amount of tokens that can be deposited into the vault
+    function setMaxOverallDeposit(uint256 _maxOverallDeposit) external onlyOwner {
+        maxOverallDeposit = _maxOverallDeposit;
+    }
 
     /// @notice Set the lock period for the contract
     /// @dev Can only be called by the owner
@@ -164,15 +166,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         yieldRateBase = _yieldRate;
         emit YieldRateUpdated(_yieldRate);
-    }
-
-    /// @notice Update the maximum amount of tokens that can be used to calculate rewards
-    /// @dev Can only be called by the owner
-    /// @param _maxYieldAmount The new maximum yield amount
-    function setMaxYieldAmount(uint256 _maxYieldAmount) external onlyOwner {
-        maxYieldAmount = _maxYieldAmount;
-
-        emit MaxYieldAmountUpdated(_maxYieldAmount);
     }
 
     /// @notice Update the time at which the users of the contract will stop accruing rewards
@@ -231,6 +224,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
             revert InvalidDepositAmount();
         }
 
+        if (totalAssets() + assets > maxOverallDeposit) {
+            revert MaxOverallDepositReached();
+        }
+
         refreshForAddress(receiver);
 
         uint256 shares = super.deposit(assets, receiver);
@@ -271,10 +268,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
         uint256 builderScore = passportBuilderScore.getScore(passportId);
 
-        if (builderScore < 50) return yieldRateBase;
-        if (builderScore < 75) return yieldRateBase + 5_00;
-        if (builderScore < 100) return yieldRateBase + 10_00;
-        return yieldRateBase + 15_00;
+        if (builderScore < 60) return yieldRateBase;
+        return yieldRateBase + 5_00;
     }
 
     /// @notice Prevents the owner from renouncing ownership
@@ -311,10 +306,6 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         }
 
         uint256 userBalance = balanceOf(user);
-
-        if (userBalance > maxYieldAmount) {
-            userBalance = maxYieldAmount;
-        }
 
         uint256 endTime;
 

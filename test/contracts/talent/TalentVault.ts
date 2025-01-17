@@ -46,7 +46,7 @@ describe("TalentVault", () => {
       admin.address,
     ])) as PassportBuilderScore;
 
-    const adminInitialDeposit = ethers.utils.parseEther("200000");
+    // const adminInitialDeposit = ethers.utils.parseEther("200000");
     talentVault = (await deployContract(admin, Artifacts.TalentVault, [
       talentToken.address,
       yieldSource.address,
@@ -71,7 +71,7 @@ describe("TalentVault", () => {
 
     // just make sure that TV wallet has $TALENT as initial assets from admin initial deposit
     await talentToken.approve(talentVault.address, ethers.constants.MaxUint256);
-    await talentVault.mint(adminInitialDeposit, admin.address);
+    // await talentVault.mint(adminInitialDeposit, admin.address);
 
     // fund the yieldSource with lots of TALENT Balance
     await talentToken.transfer(yieldSource.address, ethers.utils.parseEther("100000"));
@@ -139,18 +139,18 @@ describe("TalentVault", () => {
   });
 
   describe("#name", async () => {
-    it("is 'TalentProtocolVaultToken' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
+    it("is 'TalentVault' reflects the underlying token name, i.e. of 'TalentProtocolToken'", async () => {
       const name = await talentVault.name();
 
-      expect(name).to.equal("TalentProtocolVaultToken");
+      expect(name).to.equal("TalentVault");
     });
   });
 
   describe("#symbol", async () => {
-    it("is 'TALENTVAULT' reflects the underlying token symbol, i.e. of 'TALENT'", async () => {
+    it("is 'sTALENT' reflects the underlying token symbol, i.e. of 'TALENT'", async () => {
       const symbol = await talentVault.symbol();
 
-      expect(symbol).to.equal("TALENTVAULT");
+      expect(symbol).to.equal("sTALENT");
     });
   });
 
@@ -270,6 +270,48 @@ describe("TalentVault", () => {
 
     it("Should revert if $TALENT deposited is 0", async () => {
       await expect(talentVault.connect(user1).deposit(0n, user1.address)).to.be.revertedWith("InvalidDepositAmount");
+    });
+
+    it("Should revert if $TALENT deposited is greater than the max overall deposit", async () => {
+      await talentVault.setMaxOverallDeposit(ethers.utils.parseEther("100000"));
+      await expect(
+        talentVault.connect(user1).deposit(ethers.utils.parseEther("100001"), user1.address)
+      ).to.be.revertedWith("MaxOverallDepositReached");
+    });
+
+    it("Should allow deposit of amount equal to the max overall deposit", async () => {
+      const maxOverallDeposit = ethers.utils.parseEther("100000");
+      const totalAssetsBefore = await talentVault.totalAssets();
+
+      await talentToken.transfer(user1.address, maxOverallDeposit.sub(totalAssetsBefore));
+      await talentToken.connect(user1).approve(talentVault.address, maxOverallDeposit.sub(totalAssetsBefore));
+      await talentVault.setMaxOverallDeposit(maxOverallDeposit.sub(totalAssetsBefore));
+      await talentVault.connect(user1).deposit(maxOverallDeposit.sub(totalAssetsBefore), user1.address);
+
+      expect(await talentVault.totalAssets()).to.equal(maxOverallDeposit);
+    });
+
+    it("Should allow deposit of amount greater than the max overall deposit if its increased", async () => {
+      const maxOverallDeposit = ethers.utils.parseEther("100000");
+      const totalAssetsBefore = await talentVault.totalAssets();
+
+      await talentToken.transfer(user1.address, maxOverallDeposit.sub(totalAssetsBefore));
+      await talentToken.connect(user1).approve(talentVault.address, maxOverallDeposit.sub(totalAssetsBefore));
+      await talentVault.setMaxOverallDeposit(maxOverallDeposit.sub(totalAssetsBefore));
+      await talentVault.connect(user1).deposit(maxOverallDeposit.sub(totalAssetsBefore), user1.address);
+
+      expect(await talentVault.totalAssets()).to.equal(maxOverallDeposit);
+
+      const nextDepositAmount = ethers.utils.parseEther("1");
+      await talentVault.setMaxOverallDeposit(maxOverallDeposit.add(nextDepositAmount));
+      await talentToken.transfer(user1.address, nextDepositAmount);
+      await talentToken.connect(user1).approve(talentVault.address, nextDepositAmount);
+      await talentVault.connect(user1).deposit(nextDepositAmount, user1.address);
+
+      expect(await talentVault.totalAssets()).to.be.closeTo(
+        maxOverallDeposit.add(nextDepositAmount),
+        ethers.utils.parseEther("0.01")
+      );
     });
 
     it("Should not allow deposit of amount that the sender does not have", async () => {
@@ -831,6 +873,24 @@ describe("TalentVault", () => {
         await talentVault.stopYieldingRewards();
 
         expect(await talentVault.yieldRewardsFlag()).to.equal(false);
+      });
+    });
+  });
+
+  describe("#maxOverallDeposit", async () => {
+    context("when called by an non-owner account", async () => {
+      it("reverts", async () => {
+        await expect(
+          talentVault.connect(user1).setMaxOverallDeposit(ethers.utils.parseEther("100000"))
+        ).to.be.revertedWith(`OwnableUnauthorizedAccount("${user1.address}")`);
+      });
+    });
+
+    context("when called by the owner account", async () => {
+      it("sets the max overall deposit", async () => {
+        await talentVault.setMaxOverallDeposit(ethers.utils.parseEther("500000"));
+
+        expect(await talentVault.maxOverallDeposit()).to.equal(ethers.utils.parseEther("500000"));
       });
     });
   });

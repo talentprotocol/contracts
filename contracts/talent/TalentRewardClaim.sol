@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./TalentProtocolToken.sol";
 import "../passport/PassportBuilderScore.sol";
+import "../passport/PassportWalletRegistry.sol";
 import "../merkle/MerkleProof.sol";
 
 contract TalentRewardClaim is Ownable, ReentrancyGuard {
@@ -14,6 +15,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
 
   TalentProtocolToken public talentToken;
   PassportBuilderScore public passportBuilderScore;
+  PassportWalletRegistry public passportWalletRegistry;
   address public holdingWallet;
   uint256 public constant WEEKLY_CLAIM_AMOUNT = 2000 ether;
   uint256 public constant WEEK_DURATION = 7 days;
@@ -36,6 +38,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
   constructor(
     TalentProtocolToken _talentToken,
     PassportBuilderScore _passportBuilderScore,
+    PassportWalletRegistry _passportWalletRegistry,
     address _holdingWallet,
     address initialOwner,
     bytes32 _merkleRoot
@@ -43,6 +46,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     merkleRoot = _merkleRoot;
     talentToken = _talentToken;
     passportBuilderScore = _passportBuilderScore;
+    passportWalletRegistry = _passportWalletRegistry;
     holdingWallet = _holdingWallet;
   }
 
@@ -80,6 +84,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     uint256 amountAllocated
   ) external nonReentrant {
     require(startTime > 0, "Start time not set");
+    require(block.timestamp >= startTime, "Claiming has not started yet");
 
     verify(merkleProof, amountAllocated);
 
@@ -89,7 +94,7 @@ contract TalentRewardClaim is Ownable, ReentrancyGuard {
     UserInfo storage user = userInfo[msg.sender];
     require(amountToClaim > 0, "No tokens owed");
 
-    uint256 passportId = passportBuilderScore.passportRegistry().passportId(beneficiary);
+    uint256 passportId = passportWalletRegistry.passportId(beneficiary);
     uint256 builderScore = passportBuilderScore.getScore(passportId);
 
     uint256 claimMultiplier = (builderScore > 40) ? 5 : 1;

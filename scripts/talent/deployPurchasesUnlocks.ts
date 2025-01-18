@@ -9,10 +9,10 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import distributionSetup from "../data/inAppPurchases.json";
 import { createClient } from "@supabase/supabase-js";
 
-const TALENT_TOKEN_ADDRESS_TESTNET =  "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
-const TALENT_TOKEN_ADDRESS_MAINNET =  "0x9a33406165f562E16C3abD82fd1185482E01b49a";
+const TALENT_TOKEN_ADDRESS_TESTNET = "0xb669707B3784B1284f6B6a398f6b04b1AD78C74E";
+const TALENT_TOKEN_ADDRESS_MAINNET = "0x9a33406165f562E16C3abD82fd1185482E01b49a";
 
-const VESTING_CATEGORY = "ecosystem_incentives_02"
+const VESTING_CATEGORY = "ecosystem_incentives_02";
 
 type BalanceMap = {
   [key: string]: BigNumberish;
@@ -31,19 +31,19 @@ async function main() {
 
   console.log(`Admin will be ${admin.address}`);
 
-  if(!process.env.PUBLIC_SUPABASE_URL) {
+  if (!process.env.PUBLIC_SUPABASE_URL) {
     console.error("Missing PUBLIC_SUPABASE_URL");
     return 0;
   }
 
-  if(!process.env.PUBLIC_SUPABASE_ANON_KEY) {
+  if (!process.env.PUBLIC_SUPABASE_ANON_KEY) {
     console.error("Missing PUBLIC_SUPABASE_ANON_KEY");
     return 0;
   }
 
   const allResults = distributionSetup as { amount: string; wallet: string }[];
 
-  console.log("Generate merkle tree")
+  console.log("Generate merkle tree");
 
   const merkleBase = allResults.reduce((acc, { wallet, amount }) => {
     acc[wallet.toLowerCase()] = ethers.utils.parseEther(amount).toBigInt();
@@ -52,8 +52,12 @@ async function main() {
 
   const merkleTree = generateMerkleTree(merkleBase);
 
-  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${merkleTree.root} ${admin.address}`)
-  const tgeUnlockDistribution = await deployTalentTGEUnlock(TALENT_TOKEN_ADDRESS_TESTNET, admin.address, merkleTree.root);
+  console.log(`Contract init args: ${TALENT_TOKEN_ADDRESS_TESTNET} ${merkleTree.root} ${admin.address}`);
+  const tgeUnlockDistribution = await deployTalentTGEUnlock(
+    TALENT_TOKEN_ADDRESS_TESTNET,
+    admin.address,
+    merkleTree.root
+  );
 
   console.log(`TGE Unlock distribution deployed at ${tgeUnlockDistribution.address}`);
   const proofList = allResults.map(({ wallet, amount }) => {
@@ -74,25 +78,24 @@ async function main() {
 
   console.log("Uploading proofs to database");
 
-  const supabase = createClient(process.env.PUBLIC_SUPABASE_URL, process.env.PUBLIC_SUPABASE_ANON_KEY)
+  const supabase = createClient(process.env.PUBLIC_SUPABASE_URL, process.env.PUBLIC_SUPABASE_ANON_KEY);
 
-  const proofsCount = proofList.length
+  const proofsCount = proofList.length;
   for (let i = 0; i < proofsCount; i++) {
-    const element = proofList[i]
+    const element = proofList[i];
 
-    console.log(`Uploading ${i + 1}/${proofsCount}: ${element.wallet}`)
+    console.log(`Uploading ${i + 1}/${proofsCount}: ${element.wallet}`);
 
     const { error } = await supabase
       .from("distributions")
       .update({ proof: element.proof })
       .eq("wallet", element.wallet)
-      .eq("vesting_category", VESTING_CATEGORY)
+      .eq("vesting_category", VESTING_CATEGORY);
 
-    if(error) {
+    if (error) {
       console.error(error);
     }
   }
-
 
   console.log("Done");
 }

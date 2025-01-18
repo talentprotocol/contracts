@@ -1,5 +1,4 @@
 import { ethers } from "hardhat";
-import { zeroHash } from "viem";
 import type {
   PassportRegistry,
   TalentProtocolToken,
@@ -12,8 +11,6 @@ import type {
   TalentTGEUnlockTimestamp,
   TalentVault,
 } from "../../typechain-types";
-import { BigNumber } from "ethers";
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
   const passportRegistryContract = await ethers.getContractFactory("PassportRegistry");
@@ -150,11 +147,18 @@ export async function deployTalentTGEUnlockTimestamps(
 export async function deployTalentVault(
   talentToken: string,
   yieldSource: string,
-  passportBuilderScore: string
+  passportBuilderScore: string,
+  passportWalletRegistry: string
 ): Promise<TalentVault> {
   const talentVaultContract = await ethers.getContractFactory("TalentVault");
 
-  const deployedTalentVault = await talentVaultContract.deploy(talentToken, yieldSource, passportBuilderScore);
+  const deployedTalentVault = await talentVaultContract.deploy(
+    talentToken,
+    yieldSource,
+    passportBuilderScore,
+    passportWalletRegistry
+  );
+
   await deployedTalentVault.deployed();
 
   return deployedTalentVault as TalentVault;

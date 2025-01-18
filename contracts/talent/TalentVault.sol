@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../passport/PassportBuilderScore.sol";
+import "../passport/PassportWalletRegistry.sol";
 
 /// @title Talent Protocol Vault Token Contract
 /// @author Talent Protocol - Francisco Leal, Panagiotis Matsinopoulos
@@ -80,6 +81,9 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice The Passport Builder Score contract
     PassportBuilderScore public passportBuilderScore;
 
+    /// @notice The Passport Wallet Registry contract
+    PassportWalletRegistry public passportWalletRegistry;
+
     /// @notice A mapping of user addresses to their deposits
     mapping(address => UserBalanceMeta) public userBalanceMeta;
 
@@ -96,7 +100,8 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     constructor(
         IERC20 _token,
         address _yieldSource,
-        PassportBuilderScore _passportBuilderScore
+        PassportBuilderScore _passportBuilderScore,
+        PassportWalletRegistry _passportWalletRegistry
     ) ERC4626(_token) ERC20("TalentVault", "sTALENT") Ownable(msg.sender) {
         if (
             address(_token) == address(0) ||
@@ -114,6 +119,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         passportBuilderScore = _passportBuilderScore;
         lockPeriod = 30 days;
         maxOverallDeposit = 1_000_000 ether;
+        passportWalletRegistry = _passportWalletRegistry;
     }
 
     // ------------------- EXTERNAL --------------------------------------------
@@ -264,8 +270,7 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Get the yield rate for the contract for a given user
     /// @param user The address of the user to get the yield rate for
     function getYieldRateForScore(address user) public view returns (uint256) {
-        /// @TODO: Update to use the PassportWalletRegistry instead for calculating the passport id
-        uint256 passportId = passportBuilderScore.passportRegistry().passportId(user);
+        uint256 passportId = passportWalletRegistry.passportId(user);
         uint256 builderScore = passportBuilderScore.getScore(passportId);
 
         if (builderScore < 60) return yieldRateBase;

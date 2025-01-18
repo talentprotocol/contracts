@@ -3,7 +3,13 @@ import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { TalentProtocolToken, TalentVault, PassportRegistry, PassportBuilderScore } from "../../../typechain-types";
+import {
+  TalentProtocolToken,
+  TalentVault,
+  PassportRegistry,
+  PassportBuilderScore,
+  PassportWalletRegistry,
+} from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import { ensureTimestamp } from "../../shared/utils";
 
@@ -27,6 +33,7 @@ describe("TalentVault", () => {
 
   let talentToken: TalentProtocolToken;
   let passportRegistry: PassportRegistry;
+  let passportWalletRegistry: PassportWalletRegistry;
   let passportBuilderScore: PassportBuilderScore;
   let talentVault: TalentVault;
 
@@ -41,6 +48,10 @@ describe("TalentVault", () => {
 
     talentToken = (await deployContract(admin, Artifacts.TalentProtocolToken, [admin.address])) as TalentProtocolToken;
     passportRegistry = (await deployContract(admin, Artifacts.PassportRegistry, [admin.address])) as PassportRegistry;
+    passportWalletRegistry = (await deployContract(admin, Artifacts.PassportWalletRegistry, [
+      admin.address,
+      passportRegistry.address,
+    ])) as PassportWalletRegistry;
     passportBuilderScore = (await deployContract(admin, Artifacts.PassportBuilderScore, [
       passportRegistry.address,
       admin.address,
@@ -51,6 +62,7 @@ describe("TalentVault", () => {
       talentToken.address,
       yieldSource.address,
       passportBuilderScore.address,
+      passportWalletRegistry.address,
     ])) as TalentVault;
 
     console.log("------------------------------------");

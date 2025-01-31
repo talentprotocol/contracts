@@ -7,14 +7,12 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MultiSendERC20, ERC20Mock } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 
-import { findEvent } from "../../shared/utils";
-
 chai.use(solidity);
 
 const { expect } = chai;
 const { deployContract } = waffle;
 
-describe("TalentProtocolToken", () => {
+describe("MultiSendERC20", () => {
   let admin: SignerWithAddress;
   let recipientOne: SignerWithAddress;
   let recipientTwo: SignerWithAddress;

@@ -24,7 +24,7 @@ contract MultiSendERC20 is Ownable {
     require(_recipients.length <= arrayLimit, "Array length exceeds limit");
     uint8 i = 0;
     for (i; i < _recipients.length; i++) {
-      token.transferFrom(msg.sender, _recipients[i], _amounts[i]);
+      require(token.transferFrom(msg.sender, _recipients[i], _amounts[i]), "Transfer failed");
       total += _amounts[i];
     }
 

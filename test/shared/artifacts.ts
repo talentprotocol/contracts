@@ -9,6 +9,7 @@ import SmartBuilderScore from "../../artifacts/contracts/passport/SmartBuilderSc
 import PassportSources from "../../artifacts/contracts/passport/PassportSources.sol/PassportSources.json";
 import TalentTGEUnlock from "../../artifacts/contracts/talent/TalentTGEUnlock.sol/TalentTGEUnlock.json";
 import PassportWalletRegistry from "../../artifacts/contracts/passport/PassportWalletRegistry.sol/PassportWalletRegistry.json";
+import MultiSendERC20 from "../../artifacts/contracts/utils/MultiSendERC20.sol/MultiSendERC20.json";
 
 export {
   PassportRegistry,
@@ -22,4 +23,5 @@ export {
   PassportSources,
   TalentTGEUnlock,
   PassportWalletRegistry,
+  MultiSendERC20,
 };

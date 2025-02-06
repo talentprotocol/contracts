@@ -6,7 +6,7 @@ import type {
   PassportBuilderScore,
   TalentCommunitySale,
   TalentTGEUnlock,
-  SmartBuilderScore,
+  TalentBuilderScore,
   PassportWalletRegistry,
   TalentTGEUnlockTimestamp,
   TalentVault,
@@ -74,23 +74,23 @@ export async function deployPassportBuilderScore(registry: string, owner: string
   return deployedPassportBuilderScore as PassportBuilderScore;
 }
 
-export async function deploySmartBuilderScore(
+export async function deployTalentBuilderScore(
   owner: string,
+  passportBuilderScore: string,
   passportRegistry: string,
   feeReceiver: string,
-  passportBuilderScore: string
-): Promise<SmartBuilderScore> {
-  const smartBuilderScoreContract = await ethers.getContractFactory("SmartBuilderScore");
+): Promise<TalentBuilderScore> {
+  const talentBuilderScoreContract = await ethers.getContractFactory("TalentBuilderScore");
 
-  const deployedSmartBuilderScore = await smartBuilderScoreContract.deploy(
+  const deployedTalentBuilderScore = await talentBuilderScoreContract.deploy(
     owner,
     passportBuilderScore,
     passportRegistry,
     feeReceiver
   );
-  await deployedSmartBuilderScore.deployed();
+  await deployedTalentBuilderScore.deployed();
 
-  return deployedSmartBuilderScore as SmartBuilderScore;
+  return deployedTalentBuilderScore as TalentBuilderScore;
 }
 
 export async function deployTalentCommunitySale(

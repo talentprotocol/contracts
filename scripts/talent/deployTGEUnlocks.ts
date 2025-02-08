@@ -45,7 +45,7 @@ async function main() {
   console.log(`TGE Unlock distribution deployed at ${tgeUnlockDistribution.address}`);
   const proofList = allResults.map(({ wallet, total }) => {
     const value = ethers.utils.parseEther(total);
-    const proof = merkleTree.getProof([wallet.toLowerCase(), value]);
+    const proof = merkleTree.getProof([wallet.toLowerCase(), value.toString()]);
     return {
       wallet,
       value,

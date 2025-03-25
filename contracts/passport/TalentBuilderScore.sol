@@ -6,8 +6,7 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./PassportBuilderScore.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// Deprecated in favor of TalentBuilderScorer
-contract SmartBuilderScore is Ownable {
+contract TalentBuilderScore is Ownable {
     using ECDSA for bytes32;
 
     address public trustedSigner;
@@ -16,7 +15,7 @@ contract SmartBuilderScore is Ownable {
     PassportRegistry public passportRegistry;
     uint256 public cost = 0.0001 ether;
 
-    event BuilderScoreSet(address indexed user, uint256 score, uint256 passportId);
+    event BuilderScoreSet(address indexed user, uint256 score, uint256 talentId);
 
     bool public enabled;
 
@@ -31,6 +30,15 @@ contract SmartBuilderScore is Ownable {
         passportRegistry = PassportRegistry(_passportRegistryAddress);
         feeReceiver = _feeReceiver;
         enabled = true;
+    }
+
+    /**
+     * @notice Changes the owner of passport registry.
+     * @param _newOwner The new owner of passport registry.
+     * @dev Can only be called by the owner.
+     */
+    function setPassportRegistryOwner(address _newOwner) public onlyOwner {
+        passportRegistry.transferOwnership(_newOwner);
     }
 
     /**
@@ -71,15 +79,16 @@ contract SmartBuilderScore is Ownable {
     /**
      * @notice Creates an attestation if the provided number is signed by the trusted signer.
      * @param score The number to be attested.
-     * @param passportId The number of the passport to receive the attestation.
+     * @param talentId The number of the talent profile to receive the attestation.
+     * @param wallet The wallet to receive the attestation.
      * @param signature The signature of the trusted signer.
      */
-    function addScore(uint256 score, uint256 passportId, bytes memory signature) public payable {
+    function addScore(uint256 score, uint256 talentId, address wallet, bytes memory signature) public payable {
         require(enabled, "Setting the Builder Score is disabled for this contract");
         // Ensure the caller has paid the required fee
         require(msg.value >= cost, "Insufficient payment");
         // Hash the number
-        bytes32 numberHash = keccak256(abi.encodePacked(score, passportId));
+        bytes32 numberHash = keccak256(abi.encodePacked(score, talentId, wallet));
 
         // Recover the address that signed the hash
         address signer = MessageHashUtils.toEthSignedMessageHash(numberHash).recover(signature);
@@ -90,8 +99,13 @@ contract SmartBuilderScore is Ownable {
         // Transfer fee to fee receiver
         payable(feeReceiver).transfer(msg.value);
 
+        // Create passport if it does not exist
+        if(passportRegistry.idPassport(talentId) == address(0)) {
+            passportRegistry.adminCreate("talent_builder_score", wallet, talentId);
+        }
+
         // Emit event
-        require(passportBuilderScore.setScore(passportId, score), "Failed to set score");
-        emit BuilderScoreSet(msg.sender, score, passportId);
+        require(passportBuilderScore.setScore(talentId, score), "Failed to set score");
+        emit BuilderScoreSet(wallet, score, talentId);
     }
 }

@@ -3,10 +3,9 @@ import "hardhat-storage-layout";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
-import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
-import "@nomiclabs/hardhat-etherscan";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -30,7 +29,7 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 4294967295,
+        runs: 200,
       },
       outputSelection: {
         "*": {
@@ -52,17 +51,20 @@ const config: HardhatUserConfig = {
       chainId: 8453,
       gasMultiplier: 1.5,
     },
+    celo: {
+      url: process.env.CELO_RPC_URL || "https://forno.celo.org",
+      accounts: deployer,
+      chainId: 42220,
+      gasMultiplier: 1.5,
+    },
   },
   gasReporter: {
     currency: "ETH",
     showMethodSig: true,
   },
   etherscan: {
-    // Your API keys for Etherscan
-    apiKey: {
-      base: process.env.BASE_API_KEY || "",
-      baseSepolia: process.env.BASE_API_KEY || "",
-    },
+    // Your API keys for Etherscan - using v2 format
+    apiKey: process.env.BASE_API_KEY || "",
     // Custom chains that are not supported by default
     customChains: [
       {
@@ -81,7 +83,18 @@ const config: HardhatUserConfig = {
           browserURL: "https://basescan.org",
         },
       },
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io",
+        },
+      },
     ],
+  },
+  sourcify: {
+    enabled: true,
   },
 };
 

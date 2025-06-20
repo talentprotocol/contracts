@@ -51,6 +51,12 @@ const config: HardhatUserConfig = {
       chainId: 8453,
       gasMultiplier: 1.5,
     },
+    celo: {
+      url: process.env.CELO_RPC_URL || "https://forno.celo.org",
+      accounts: deployer,
+      chainId: 42220,
+      gasMultiplier: 1.5,
+    },
   },
   gasReporter: {
     currency: "ETH",
@@ -75,6 +81,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://api.basescan.org/api",
           browserURL: "https://basescan.org",
+        },
+      },
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io",
         },
       },
     ],

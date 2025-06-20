@@ -21,7 +21,6 @@
     "@typechain/hardhat": "^6.1.6",
     "dayjs": "^1.10.7",
     "ethers": "^5.7.0",
-    "hardhat": "^2.22.4",
     "hardhat-gas-reporter": "^1.0.9",
     "openzeppelin-solidity": "^4.2.0",
     "permissionless": "^0.1.4",
@@ -36,6 +35,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomicfoundation/hardhat-verify": "^2.0.14",
     "@nomiclabs/hardhat-etherscan": "^3.1.7",
     "@types/chai": "^4.3.4",
     "@types/chai-as-promised": "^7.1.4",
@@ -49,6 +49,7 @@
     "dotenv": "^16.0.3",
     "eslint": "^8.19.0",
     "ethereum-waffle": "3.4.0",
+    "hardhat": "^2.24.3",
     "hardhat-storage-layout": "^0.1.7",
     "prettier": "^2.4.1",
     "prettier-plugin-solidity": "^1.0.0-beta.18",

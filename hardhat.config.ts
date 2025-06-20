@@ -3,10 +3,9 @@ import "hardhat-storage-layout";
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
-import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-gas-reporter";
-import "@nomiclabs/hardhat-etherscan";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -58,11 +57,8 @@ const config: HardhatUserConfig = {
     showMethodSig: true,
   },
   etherscan: {
-    // Your API keys for Etherscan
-    apiKey: {
-      base: process.env.BASE_API_KEY || "",
-      baseSepolia: process.env.BASE_API_KEY || "",
-    },
+    // Your API keys for Etherscan - using v2 format
+    apiKey: process.env.BASE_API_KEY || "",
     // Custom chains that are not supported by default
     customChains: [
       {
@@ -82,6 +78,9 @@ const config: HardhatUserConfig = {
         },
       },
     ],
+  },
+  sourcify: {
+    enabled: true,
   },
 };
 

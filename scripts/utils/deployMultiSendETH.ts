@@ -36,6 +36,16 @@ async function main() {
     } catch (error) {
       console.log("Sourcify verification failed:", error instanceof Error ? error.message : String(error));
     }
+
+    console.log("Verifying contract on Etherscan...");
+    try {
+      await hre.run("verify:verify", {
+        address: multiSendETH.address,
+      });
+      console.log("Contract verified successfully on Etherscan!");
+    } catch (error) {
+      console.log("Etherscan verification failed:", error instanceof Error ? error.message : String(error));
+    }
   }
 
   console.log("Done");

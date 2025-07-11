@@ -1,0 +1,1 @@
+{"version":3,"file":"state.d.ts","sourceRoot":"","sources":["../../../../src/name/pubsub/state.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,YAAY,CAAA;AAC/C,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,mBAAmB,CAAA;AAEtD,wBAAgB,WAAW,CAAE,MAAM,EAAE,aAAa,GAAG,aAAa,CAAC,OAAO,CAAC,CAU1E"}

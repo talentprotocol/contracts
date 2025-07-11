@@ -1,0 +1,1 @@
+{"version":3,"file":"provide.d.ts","sourceRoot":"","sources":["../../../src/routing/provide.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,UAAU,EAAE,MAAM,YAAY,CAAA;AAC5C,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAA;AAEnD,wBAAgB,aAAa,CAAE,MAAM,EAAE,aAAa,GAAG,UAAU,CAAC,SAAS,CAAC,CAiB3E"}

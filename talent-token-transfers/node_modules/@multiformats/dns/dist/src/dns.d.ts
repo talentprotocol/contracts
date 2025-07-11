@@ -1,0 +1,16 @@
+import type { DNS as DNSInterface, DNSInit, DNSResponse, QueryOptions } from './index.js';
+export declare class DNS implements DNSInterface {
+    private readonly resolvers;
+    private readonly cache;
+    constructor(init: DNSInit);
+    /**
+     * Queries DNS resolvers for the passed record types for the passed domain.
+     *
+     * If cached records exist for all desired types they will be returned
+     * instead.
+     *
+     * Any new responses will be added to the cache for subsequent requests.
+     */
+    query(domain: string, options?: QueryOptions): Promise<DNSResponse>;
+}
+//# sourceMappingURL=dns.d.ts.map

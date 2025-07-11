@@ -1,0 +1,1 @@
+{"version":3,"file":"publish.d.ts","sourceRoot":"","sources":["../../../src/pubsub/publish.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,YAAY,CAAA;AAC3C,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,gBAAgB,CAAA;AAEnD,wBAAgB,aAAa,CAAE,MAAM,EAAE,aAAa,GAAG,SAAS,CAAC,SAAS,CAAC,CAyB1E"}

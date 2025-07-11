@@ -1,0 +1,9 @@
+export declare const SendingQuery = 0;
+export declare const PeerResponse = 1;
+export declare const FinalPeer = 2;
+export declare const QueryError = 3;
+export declare const Provider = 4;
+export declare const Value = 5;
+export declare const AddingPeer = 6;
+export declare const DialingPeer = 7;
+//# sourceMappingURL=response-types.d.ts.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"aes-gcm.browser.d.ts","sourceRoot":"","sources":["../../../src/ciphers/aes-gcm.browser.ts"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,sBAAsB,EAAE,SAAS,EAAE,MAAM,gBAAgB,CAAA;AAYvE,eAAO,MAAM,uBAAuB;;;;;;CAOnC,CAAA;AAID,wBAAgB,MAAM,CAAE,IAAI,CAAC,EAAE,sBAAsB,GAAG,SAAS,CAyFhE"}

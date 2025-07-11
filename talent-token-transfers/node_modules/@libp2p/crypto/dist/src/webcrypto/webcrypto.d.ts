@@ -1,0 +1,6 @@
+import { webcrypto } from 'crypto';
+declare const _default: {
+    get(win?: typeof globalThis): webcrypto.Crypto;
+};
+export default _default;
+//# sourceMappingURL=webcrypto.d.ts.map

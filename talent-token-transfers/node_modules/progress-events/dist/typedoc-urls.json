@@ -1,0 +1,8 @@
+{
+  "CustomProgressEvent": "https://achingbrain.github.io/progress-events/classes/CustomProgressEvent.html",
+  ".:CustomProgressEvent": "https://achingbrain.github.io/progress-events/classes/CustomProgressEvent.html",
+  "ProgressEvent": "https://achingbrain.github.io/progress-events/interfaces/ProgressEvent.html",
+  ".:ProgressEvent": "https://achingbrain.github.io/progress-events/interfaces/ProgressEvent.html",
+  "ProgressOptions": "https://achingbrain.github.io/progress-events/interfaces/ProgressOptions.html",
+  ".:ProgressOptions": "https://achingbrain.github.io/progress-events/interfaces/ProgressOptions.html"
+}

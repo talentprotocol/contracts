@@ -1,0 +1,9 @@
+export declare const ascTypeForProtocol: (protocol: string, protocolType: string) => string;
+export declare const ascTypeForEthereum: (ethereumType: string) => string;
+export declare const ethereumTypeForAsc: (ascType: string) => string | RegExp;
+export declare const ethereumToAsc: (code: string, ethereumType: string, internalType?: string) => any;
+export declare const ethereumFromAsc: (code: string, ethereumType: string) => any;
+export declare const ascTypeForValue: (valueType: string) => unknown;
+export declare const valueTypeForAsc: (ascType: string) => unknown;
+export declare const valueToAsc: (code: string, valueType: string) => any;
+export declare const valueFromAsc: (code: string, valueType: string) => any;

@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../../src/object/patch/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,eAAe,CAAA;AAC7C,OAAO,EAAE,YAAY,EAAE,MAAM,cAAc,CAAA;AAW3C,MAAM,UAAU,WAAW,CAAE,MAAqB;IAChD,OAAO;QACL,OAAO,EAAE,aAAa,CAAC,MAAM,CAAC;QAC9B,MAAM,EAAE,YAAY,CAAC,MAAM,CAAC;KAC7B,CAAA;AACH,CAAC"}

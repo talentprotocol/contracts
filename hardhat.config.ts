@@ -5,6 +5,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-viem";
 import "@nomicfoundation/hardhat-verify";
 import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-chai-matchers";
 import "hardhat-gas-reporter";
 import dotenv from "dotenv";
 

@@ -6,6 +6,7 @@ import ERC20Mock from "../../artifacts/contracts/test/ERC20Mock.sol/ERC20Mock.js
 import TalentCommunitySale from "../../artifacts/contracts/talent/TalentCommunitySale.sol/TalentCommunitySale.json";
 import USDTMock from "../../artifacts/contracts/test/ERC20Mock.sol/USDTMock.json";
 import SmartBuilderScore from "../../artifacts/contracts/passport/SmartBuilderScore.sol/SmartBuilderScore.json";
+import TalentBuilderScore from "../../artifacts/contracts/passport/TalentBuilderScore.sol/TalentBuilderScore.json";
 import PassportSources from "../../artifacts/contracts/passport/PassportSources.sol/PassportSources.json";
 import TalentTGEUnlock from "../../artifacts/contracts/talent/TalentTGEUnlock.sol/TalentTGEUnlock.json";
 import PassportWalletRegistry from "../../artifacts/contracts/passport/PassportWalletRegistry.sol/PassportWalletRegistry.json";
@@ -24,6 +25,7 @@ export {
   TalentCommunitySale,
   USDTMock,
   SmartBuilderScore,
+  TalentBuilderScore,
   PassportSources,
   TalentTGEUnlock,
   PassportWalletRegistry,

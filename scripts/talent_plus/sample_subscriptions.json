@@ -1,0 +1,14 @@
+[
+  {
+    "wallet": "0x1234567890123456789012345678901234567890",
+    "expirationTime": 1735689600
+  },
+  {
+    "wallet": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    "expirationTime": 1735776000
+  },
+  {
+    "wallet": "0x9876543210987654321098765432109876543210",
+    "expirationTime": 1735862400
+  }
+]

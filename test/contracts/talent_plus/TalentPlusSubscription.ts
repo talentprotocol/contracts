@@ -271,6 +271,108 @@ describe("TalentPlusSubscription", () => {
     });
   });
 
+  describe("User Subscription Management with Custom Expiration", () => {
+    const basicSlug = "basic";
+    const premiumSlug = "premium";
+    const basicDuration = 30 * 24 * 60 * 60; // 30 days
+    const premiumDuration = 90 * 24 * 60 * 60; // 90 days
+    const basicPrice = ethers.utils.parseEther("50");
+    const premiumPrice = ethers.utils.parseEther("100");
+
+    beforeEach(async () => {
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice);
+    });
+
+    it("should allow trusted signer to add user subscription with custom expiration", async () => {
+      const customExpiration = Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60; // 60 days from now
+      
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
+        user1.address,
+        customExpiration
+      );
+      
+      const event = await findEvent(tx, "UserSubscriptionAdded");
+      expect(event).to.exist;
+
+      expect(await talentPlusSubscription.hasActiveSubscription(user1.address)).to.eq(true);
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, "custom")).to.eq(true);
+      
+      const expiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      expect(expiration.toNumber()).to.be.closeTo(customExpiration, 60); // Allow 1 minute tolerance
+    });
+
+    it("should not allow non-trusted signer to add user subscription with custom expiration", async () => {
+      const customExpiration = Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60; // 60 days from now
+      
+      const action = talentPlusSubscription.connect(nonTrustedSigner).addUserSubscriptionWithExpiration(
+        user1.address,
+        customExpiration
+      );
+      await expect(action).to.be.revertedWith("Only trusted signers can add user subscriptions");
+    });
+
+    it("should not allow subscription for zero address with custom expiration", async () => {
+      const customExpiration = Math.floor(Date.now() / 1000) + 60 * 24 * 60 * 60; // 60 days from now
+      
+      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
+        ethers.constants.AddressZero,
+        customExpiration
+      );
+      await expect(action).to.be.revertedWith("Invalid wallet address");
+    });
+
+    it("should not allow expiration time in the past", async () => {
+      const pastExpiration = Math.floor(Date.now() / 1000) - 60 * 24 * 60 * 60; // 60 days ago
+      
+      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
+        user1.address,
+        pastExpiration
+      );
+      await expect(action).to.be.revertedWith("Expiration time must be in the future");
+    });
+
+    it("should replace existing subscription when adding with custom expiration", async () => {
+      // First add a basic subscription
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      
+      // Then replace with premium subscription with custom expiration
+      const customExpiration = Math.floor(Date.now() / 1000) + 120 * 24 * 60 * 60; // 120 days from now
+      
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
+        user1.address,
+        customExpiration
+      );
+      
+      const event = await findEvent(tx, "UserSubscriptionReplaced");
+      expect(event).to.exist;
+
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, "custom")).to.eq(true);
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, basicSlug)).to.eq(false);
+      
+      const expiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      expect(expiration.toNumber()).to.be.closeTo(customExpiration, 60); // Allow 1 minute tolerance
+    });
+
+        it("should allow setting subscription with expiration very close to current time", async () => {
+            const currentBlockTime = (await ethers.provider.getBlock('latest')).timestamp;
+            const nearFutureExpiration = currentBlockTime + 86400; // 1 day from current block time
+      
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
+        user1.address,
+        nearFutureExpiration
+      );
+      
+      const event = await findEvent(tx, "UserSubscriptionAdded");
+      expect(event).to.exist;
+
+      expect(await talentPlusSubscription.hasActiveSubscription(user1.address)).to.eq(true);
+      
+      const expiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      expect(expiration.toNumber()).to.be.closeTo(nearFutureExpiration, 60); // Allow 1 minute tolerance
+    });
+  });
+
   describe("Subscription Queries", () => {
     const basicSlug = "basic";
     const basicDuration = 30 * 24 * 60 * 60; // 30 days

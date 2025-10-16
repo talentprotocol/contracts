@@ -213,6 +213,43 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Adds or updates a user subscription with a specific expiration time
+     * @param wallet The wallet address of the user
+     * @param expirationTime The specific expiration timestamp for the subscription
+     * @dev Can only be called by trusted signers
+     * @dev Allows setting custom expiration times for administrative purposes
+     * @dev Replaces any existing active subscription
+     * @dev Automatically sets subscription slug as "custom"
+     */
+    function addUserSubscriptionWithExpiration(
+        address wallet,
+        uint256 expirationTime
+    ) external nonReentrant {
+        require(trustedSigners[msg.sender], "Only trusted signers can add user subscriptions");
+        require(wallet != address(0), "Invalid wallet address");
+        require(expirationTime > block.timestamp, "Expiration time must be in the future");
+
+        string memory subscriptionSlug = "custom";
+
+        // Get current active subscription
+        UserActiveSubscription memory currentActive = userActiveSubscription[wallet];
+
+        // If user has an active subscription, emit replacement event
+        if (bytes(currentActive.subscriptionSlug).length > 0) {
+            emit UserSubscriptionReplaced(wallet, currentActive.subscriptionSlug, subscriptionSlug, expirationTime, block.timestamp);
+        } else {
+            emit UserSubscriptionAdded(wallet, subscriptionSlug, expirationTime, block.timestamp);
+        }
+
+        // Update user subscription with custom expiration time
+        userActiveSubscription[wallet] = UserActiveSubscription({
+            subscriptionSlug: subscriptionSlug,
+            expirationTime: expirationTime,
+            startTime: block.timestamp
+        });
+    }
+
+    /**
      * @notice Checks if a user has an active subscription
      * @param wallet The wallet address of the user to check
      * @return True if the user has an active subscription

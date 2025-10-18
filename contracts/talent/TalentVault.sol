@@ -37,9 +37,12 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Represents user's balance meta data
     /// @param depositedAmount The amount of tokens that were deposited, excluding rewards
     /// @param lastRewardCalculation The timestamp (seconds since Epoch) of the last rewards calculation
+    /// @param firstDepositAt The timestamp of the FIRST deposit (prevents micro-deposit reset)
+    /// @param lastDepositAt The timestamp of the most recent deposit
     struct UserBalanceMeta {
         uint256 depositedAmount;
         uint256 lastRewardCalculation;
+        uint256 firstDepositAt;
         uint256 lastDepositAt;
     }
 
@@ -242,6 +245,10 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
 
         balanceMeta.depositedAmount += assets;
 
+        if (balanceMeta.firstDepositAt == 0) {
+            balanceMeta.firstDepositAt = block.timestamp;
+        }
+
         balanceMeta.lastDepositAt = block.timestamp;
 
         return shares;
@@ -376,13 +383,18 @@ contract TalentVault is ERC4626, Ownable, ReentrancyGuard {
         address owner,
         uint256 assets,
         uint256 shares
-    ) internal virtual override {
-        UserBalanceMeta storage receiverUserBalanceMeta = userBalanceMeta[receiver];
+    ) internal virtual override {        
+        UserBalanceMeta storage ownerUserBalanceMeta = userBalanceMeta[owner];
 
-        if (receiverUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {
+        if (ownerUserBalanceMeta.firstDepositAt + lockPeriod > block.timestamp) {
             revert CantWithdrawWithinTheLockPeriod();
         }
 
         super._withdraw(caller, receiver, owner, assets, shares);
+
+        if (balanceOf(owner) == 0) {
+            ownerUserBalanceMeta.firstDepositAt = 0;
+            ownerUserBalanceMeta.depositedAmount = 0;
+        }
     }
 }

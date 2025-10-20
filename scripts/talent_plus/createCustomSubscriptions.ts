@@ -10,8 +10,11 @@ interface CustomSubscription {
 }
 
 // Configuration
-const SUBSCRIPTION_SLUG = "custom"; // This will be automatically set by the contract
 const BATCH_SIZE = 10; // Process subscriptions in batches to avoid gas limits
+
+// Contract and file configuration
+const CONTRACT_ADDRESS = "0xb7853f5bB059Df22B427C176c063198c6Bab0A15";
+const JSON_FILE_PATH = "scripts/talent_plus/sample_subscriptions.json";
 
 async function main() {
   console.log(`Creating custom subscriptions on ${network.name}`);
@@ -19,21 +22,9 @@ async function main() {
   const [admin] = await ethers.getSigners();
   console.log(`Admin: ${admin.address}`);
 
-  // Get TalentPlusSubscription contract address from command line arguments
-  const contractAddress = process.argv[2];
-  if (!contractAddress) {
-    console.error("❌ ERROR: Please provide TalentPlusSubscription contract address as first argument");
-    console.log("Usage: npx hardhat run scripts/talent_plus/createCustomSubscriptions.ts --network <network> <contract_address>");
-    process.exit(1);
-  }
-
-  // Get JSON file path from command line arguments
-  const jsonFilePath = process.argv[3];
-  if (!jsonFilePath) {
-    console.error("❌ ERROR: Please provide JSON file path as second argument");
-    console.log("Usage: npx hardhat run scripts/talent_plus/createCustomSubscriptions.ts --network <network> <contract_address> <json_file_path>");
-    process.exit(1);
-  }
+  // Use the configured contract address and JSON file path
+  const contractAddress = CONTRACT_ADDRESS;
+  const jsonFilePath = JSON_FILE_PATH;
 
   // Validate JSON file exists
   const fullPath = path.resolve(jsonFilePath);

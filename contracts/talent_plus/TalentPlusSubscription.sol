@@ -3,8 +3,18 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+// Interface for the vault contract to get staked amounts
+interface IVault {
+    function balanceOf(address account) external view returns (uint256);
+}
 
 contract TalentPlusSubscription is Ownable, ReentrancyGuard {
+
+    // TALENT token address for balance checking
+    IERC20 public immutable TALENT_TOKEN;
+    address public immutable VAULT_ADDRESS;
 
     // Mapping to store trusted signers
     mapping(address => bool) public trustedSigners;
@@ -13,7 +23,9 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     struct SubscriptionModel {
         string subscriptionSlug;
         uint256 durationInSeconds;
-        uint256 priceInTalent;
+        uint256 priceInEth;
+        uint256 discountPercentage; // Discount percentage (e.g., 10 for 10% discount)
+        uint256 talentRequiredForDiscount; // Amount of TALENT tokens required for discount
         bool active;
     }
 
@@ -29,22 +41,26 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     
     // Array to store all available subscription slugs
     string[] public availableSubscriptionSlugs;
+    
+    // Array to store only active subscription slugs (for efficient retrieval)
+    string[] public activeSubscriptionSlugs;
 
     // User active subscription: wallet => UserActiveSubscription
     mapping(address => UserActiveSubscription) public userActiveSubscription;
 
     // Events
-    event SubscriptionModelAdded(string indexed subscriptionSlug, uint256 durationInSeconds, uint256 priceInTalent);
-    event SubscriptionModelUpdated(string indexed subscriptionSlug, uint256 durationInSeconds, uint256 priceInTalent);
-    event SubscriptionModelDeactivated(string indexed subscriptionSlug);
-    event UserSubscriptionAdded(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime);
-    event UserSubscriptionReplaced(address indexed wallet, string indexed oldSlug, string indexed newSlug, uint256 expirationTime, uint256 startTime);
-    event UserSubscriptionExtended(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime);
+    event SubscriptionModelAdded(string subscriptionSlug, uint256 durationInSeconds, uint256 priceInEth, uint256 discountPercentage, uint256 talentRequiredForDiscount);
+    event SubscriptionModelUpdated(string subscriptionSlug, uint256 durationInSeconds, uint256 priceInEth, uint256 discountPercentage, uint256 talentRequiredForDiscount);
+    event SubscriptionModelDeactivated(string subscriptionSlug);
+    event UserSubscriptionAdded(address indexed wallet, string subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
+    event UserSubscriptionExtended(address indexed wallet, string subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
     event TrustedSignerAdded(address indexed signer);
     event TrustedSignerRemoved(address indexed signer);
 
-    constructor(address initialOwner) Ownable(initialOwner) {
+    constructor(address initialOwner, address talentTokenAddress, address vaultAddress) Ownable(initialOwner) {
         trustedSigners[initialOwner] = true;
+        TALENT_TOKEN = IERC20(talentTokenAddress);
+        VAULT_ADDRESS = vaultAddress;
     }
 
     /**
@@ -85,54 +101,69 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
      * @notice Adds a new subscription model
      * @param subscriptionSlug The subscription slug string for the subscription model
      * @param durationInSeconds The duration of the subscription in seconds
-     * @param priceInTalent The price in TALENT tokens
+     * @param priceInEth The price in ETH (wei)
+     * @param discountPercentage The discount percentage (e.g., 10 for 10% discount)
+     * @param talentRequiredForDiscount The amount of TALENT tokens required for discount
      * @dev Can only be called by the owner or trusted signers
      */
     function addSubscriptionModel(
         string memory subscriptionSlug,
         uint256 durationInSeconds,
-        uint256 priceInTalent
+        uint256 priceInEth,
+        uint256 discountPercentage,
+        uint256 talentRequiredForDiscount
     ) external {
         require(owner() == msg.sender || trustedSigners[msg.sender], "Only owner or trusted signers can add subscription models");
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         require(durationInSeconds > 0, "Duration must be greater than 0");
-        require(priceInTalent > 0, "Price must be greater than 0");
+        require(priceInEth > 0, "Price must be greater than 0");
+        require(discountPercentage <= 100, "Discount percentage cannot exceed 100%");
         require(!subscriptionModels[subscriptionSlug].active, "Subscription model already exists");
-
+        
         subscriptionModels[subscriptionSlug] = SubscriptionModel({
             subscriptionSlug: subscriptionSlug,
             durationInSeconds: durationInSeconds,
-            priceInTalent: priceInTalent,
+            priceInEth: priceInEth,
+            discountPercentage: discountPercentage,
+            talentRequiredForDiscount: talentRequiredForDiscount,
             active: true
         });
-
+        
         availableSubscriptionSlugs.push(subscriptionSlug);
-
-        emit SubscriptionModelAdded(subscriptionSlug, durationInSeconds, priceInTalent);
+        activeSubscriptionSlugs.push(subscriptionSlug);
+        
+        emit SubscriptionModelAdded(subscriptionSlug, durationInSeconds, priceInEth, discountPercentage, talentRequiredForDiscount);
     }
 
     /**
      * @notice Updates an existing subscription model
      * @param subscriptionSlug The subscription slug of the subscription model to update
      * @param durationInSeconds The new duration in seconds
-     * @param priceInTalent The new price in TALENT tokens
+     * @param priceInEth The new price in ETH (wei)
+     * @param discountPercentage The new discount percentage (e.g., 10 for 10% discount)
+     * @param talentRequiredForDiscount The new amount of TALENT tokens required for discount
      * @dev Can only be called by the owner or trusted signers
      */
     function updateSubscriptionModel(
         string memory subscriptionSlug,
         uint256 durationInSeconds,
-        uint256 priceInTalent
+        uint256 priceInEth,
+        uint256 discountPercentage,
+        uint256 talentRequiredForDiscount
     ) external {
         require(owner() == msg.sender || trustedSigners[msg.sender], "Only owner or trusted signers can update subscription models");
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         require(subscriptionModels[subscriptionSlug].active, "Subscription model does not exist");
         require(durationInSeconds > 0, "Duration must be greater than 0");
-        require(priceInTalent > 0, "Price must be greater than 0");
+        require(priceInEth > 0, "Price must be greater than 0");
+        require(discountPercentage <= 100, "Discount percentage cannot exceed 100%");
 
         subscriptionModels[subscriptionSlug].durationInSeconds = durationInSeconds;
-        subscriptionModels[subscriptionSlug].priceInTalent = priceInTalent;
+        subscriptionModels[subscriptionSlug].priceInEth = priceInEth;
+        subscriptionModels[subscriptionSlug].discountPercentage = discountPercentage;
+        subscriptionModels[subscriptionSlug].talentRequiredForDiscount = talentRequiredForDiscount;
 
-        emit SubscriptionModelUpdated(subscriptionSlug, durationInSeconds, priceInTalent);
+        emit SubscriptionModelUpdated(subscriptionSlug, durationInSeconds, priceInEth, discountPercentage, talentRequiredForDiscount);
     }
 
     /**
@@ -146,22 +177,34 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
         require(subscriptionModels[subscriptionSlug].active, "Subscription model does not exist or already inactive");
 
         subscriptionModels[subscriptionSlug].active = false;
+        
+        // Remove from active subscription slugs array
+        for (uint256 i = 0; i < activeSubscriptionSlugs.length; i++) {
+            if (keccak256(bytes(activeSubscriptionSlugs[i])) == keccak256(bytes(subscriptionSlug))) {
+                // Move the last element to the position of the element to delete
+                activeSubscriptionSlugs[i] = activeSubscriptionSlugs[activeSubscriptionSlugs.length - 1];
+                // Remove the last element
+                activeSubscriptionSlugs.pop();
+                break;
+            }
+        }
 
         emit SubscriptionModelDeactivated(subscriptionSlug);
     }
 
     /**
-     * @notice Adds or upgrades a user subscription for a specific model
+     * @notice Adds or extends a user subscription for a specific model
      * @param wallet The wallet address of the user
-     * @param subscriptionSlug The subscription slug of the subscription model to add/upgrade
+     * @param subscriptionSlug The subscription slug of the subscription model to add/extend
      * @dev Can only be called by trusted signers
-     * @dev Replaces any existing active subscription of different type
-     * @dev Extends existing subscription if same type
-     * @dev Prevents downgrades when current subscription is active
+     * @dev Extends existing subscription if same type (preserves original start time)
+     * @dev Extends existing subscription if different type (preserves remaining time + adds new duration)
+     * @dev Always preserves user's paid time - users never lose subscription days
      */
-    function addUserSubscription(address wallet, string memory subscriptionSlug) external nonReentrant {
+    function addUserSubscription(address wallet, string memory subscriptionSlug, address payer, uint256 pricePaid) external nonReentrant {
         require(trustedSigners[msg.sender], "Only trusted signers can add user subscriptions");
         require(wallet != address(0), "Invalid wallet address");
+        require(payer != address(0), "Invalid payer address");
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         require(subscriptionModels[subscriptionSlug].active, "Subscription model is not active");
 
@@ -183,26 +226,32 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
                         expirationTime: newExpirationTime,
                         startTime: currentActive.startTime // Keep original start time for extensions
                     });
-                    emit UserSubscriptionExtended(wallet, subscriptionSlug, newExpirationTime, currentActive.startTime);
+                    emit UserSubscriptionExtended(wallet, subscriptionSlug, newExpirationTime, currentActive.startTime, payer, pricePaid);
                     return;
                 } else {
-                    // Different subscription model - check if it's an upgrade
-                    SubscriptionModel memory currentModel = subscriptionModels[currentActive.subscriptionSlug];
-                    require(newModel.durationInSeconds > currentModel.durationInSeconds, "Cannot downgrade an active subscription");
+                    // Different subscription model - always allow extension (preserve remaining time + add new duration)
+                    // This allows users to extend premium subscriptions with basic subscriptions, etc.
+                    uint256 remainingTime = currentActive.expirationTime > block.timestamp ? 
+                        currentActive.expirationTime - block.timestamp : 0;
+                    uint256 newExpirationTime = block.timestamp + remainingTime + newModel.durationInSeconds;
+                    
+                    userActiveSubscription[wallet] = UserActiveSubscription({
+                        subscriptionSlug: subscriptionSlug,
+                        expirationTime: newExpirationTime,
+                        startTime: block.timestamp // New start time for different subscription type
+                    });
+                    emit UserSubscriptionExtended(wallet, subscriptionSlug, newExpirationTime, block.timestamp, payer, pricePaid);
+                    return;
                 }
             }
         }
 
-        // Calculate expiration time for new/replacement subscription
+        // Calculate expiration time for new subscription (no existing active subscription)
         uint256 currentTime = block.timestamp;
         uint256 expirationTime = currentTime + newModel.durationInSeconds;
 
-        // If user has an active subscription, emit replacement event
-        if (bytes(currentActive.subscriptionSlug).length > 0) {
-            emit UserSubscriptionReplaced(wallet, currentActive.subscriptionSlug, subscriptionSlug, expirationTime, currentTime);
-        } else {
-            emit UserSubscriptionAdded(wallet, subscriptionSlug, expirationTime, currentTime);
-        }
+        // This handles cases where user has no active subscription or subscription has expired
+        emit UserSubscriptionAdded(wallet, subscriptionSlug, expirationTime, currentTime, payer, pricePaid);
 
         // Update user subscription
         userActiveSubscription[wallet] = UserActiveSubscription({
@@ -213,12 +262,12 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Adds or updates a user subscription with a specific expiration time
+     * @notice Adds or extends a user subscription with a specific expiration time
      * @param wallet The wallet address of the user
      * @param expirationTime The specific expiration timestamp for the subscription
      * @dev Can only be called by trusted signers
      * @dev Allows setting custom expiration times for administrative purposes
-     * @dev Replaces any existing active subscription
+     * @dev Extends existing subscription if one exists, adds new subscription if none exists
      * @dev Automatically sets subscription slug as "custom"
      */
     function addUserSubscriptionWithExpiration(
@@ -234,11 +283,11 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
         // Get current active subscription
         UserActiveSubscription memory currentActive = userActiveSubscription[wallet];
 
-        // If user has an active subscription, emit replacement event
+        // If user has an active subscription, emit extension event
         if (bytes(currentActive.subscriptionSlug).length > 0) {
-            emit UserSubscriptionReplaced(wallet, currentActive.subscriptionSlug, subscriptionSlug, expirationTime, block.timestamp);
+            emit UserSubscriptionExtended(wallet, subscriptionSlug, expirationTime, block.timestamp, msg.sender, 0);
         } else {
-            emit UserSubscriptionAdded(wallet, subscriptionSlug, expirationTime, block.timestamp);
+            emit UserSubscriptionAdded(wallet, subscriptionSlug, expirationTime, block.timestamp, msg.sender, 0);
         }
 
         // Update user subscription with custom expiration time
@@ -293,18 +342,55 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
      * @notice Gets subscription model details
      * @param subscriptionSlug The subscription model subscription slug
      * @return durationInSeconds The duration in seconds
-     * @return priceInTalent The price in TALENT tokens
+     * @return priceInEth The price in ETH (wei)
+     * @return discountPercentage The discount percentage
+     * @return talentRequiredForDiscount The amount of TALENT tokens required for discount
      * @return active Whether the model is active
      */
     function getSubscriptionModel(string memory subscriptionSlug) external view returns (
         uint256 durationInSeconds,
-        uint256 priceInTalent,
+        uint256 priceInEth,
+        uint256 discountPercentage,
+        uint256 talentRequiredForDiscount,
         bool active
     ) {
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         
         SubscriptionModel memory model = subscriptionModels[subscriptionSlug];
-        return (model.durationInSeconds, model.priceInTalent, model.active);
+        return (model.durationInSeconds, model.priceInEth, model.discountPercentage, model.talentRequiredForDiscount, model.active);
+    }
+
+    /**
+     * @notice Calculates the discounted price for a subscription based on TALENT holdings (balance + vault staking)
+     * @param subscriptionSlug The subscription slug
+     * @param wallet The wallet address to check TALENT balance and vault staking for
+     * @return finalPrice The final price after applying discount (if applicable)
+     * @return discountApplied Whether a discount was applied
+     * @return discountAmount The amount of discount applied (0 if no discount)
+     */
+    function calculateDiscountedPrice(string memory subscriptionSlug, address wallet) external view returns (uint256 finalPrice, bool discountApplied, uint256 discountAmount) {
+        require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
+        require(wallet != address(0), "Invalid wallet address");
+        
+        SubscriptionModel memory model = subscriptionModels[subscriptionSlug];
+        require(model.active, "Subscription model is not active");
+        
+        uint256 talentBalance = TALENT_TOKEN.balanceOf(wallet);
+        uint256 vaultStaked = IVault(VAULT_ADDRESS).balanceOf(wallet);
+        uint256 totalTalentHoldings = talentBalance + vaultStaked;
+        
+        // Check if wallet qualifies for discount (TALENT balance + vault staking)
+        if (totalTalentHoldings >= model.talentRequiredForDiscount && model.discountPercentage > 0) {
+            discountAmount = (model.priceInEth * model.discountPercentage) / 100;
+            finalPrice = model.priceInEth - discountAmount;
+            discountApplied = true;
+        } else {
+            finalPrice = model.priceInEth;
+            discountApplied = false;
+            discountAmount = 0;
+        }
+        
+        return (finalPrice, discountApplied, discountAmount);
     }
 
     /**
@@ -313,6 +399,22 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
      */
     function getTotalModels() external view returns (uint256) {
         return availableSubscriptionSlugs.length;
+    }
+
+    /**
+     * @notice Gets all active subscription slugs
+     * @return An array of active subscription slugs
+     */
+    function getActiveSubscriptionSlugs() external view returns (string[] memory) {
+        return activeSubscriptionSlugs;
+    }
+
+    /**
+     * @notice Gets the count of active subscription models
+     * @return The number of active subscription models
+     */
+    function getActiveSubscriptionCount() external view returns (uint256) {
+        return activeSubscriptionSlugs.length;
     }
 
     /**

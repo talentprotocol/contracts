@@ -1,36 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./TalentPlusSubscription.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract TalentPlus is Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
 
-    // TALENT token address
-    IERC20 public immutable TALENT_TOKEN;
-
-    address public trustedSigner;
     address public feeReceiver;
     TalentPlusSubscription public talentPlusSubscription;
 
-    event SubscriptionCreated(address indexed payer, address indexed recipient, string subscriptionSlug);
+    event SubscriptionCreated(address indexed payer, address indexed recipient, string subscriptionSlug, uint256 finalPrice, bool discountApplied);
 
     bool public enabled;
 
     constructor(
-        address _trustedSigner,
         address _talentPlusSubscriptionAddress,
-        address _feeReceiver,
-        address _talentTokenAddress
+        address _feeReceiver
     ) Ownable(msg.sender) {
-        trustedSigner = _trustedSigner;
         talentPlusSubscription = TalentPlusSubscription(_talentPlusSubscriptionAddress);
         feeReceiver = _feeReceiver;
-        TALENT_TOKEN = IERC20(_talentTokenAddress);
         enabled = true;
     }
 
@@ -74,24 +63,35 @@ contract TalentPlus is Ownable, ReentrancyGuard {
      * @notice Creates a subscription for a specified wallet.
      * @param wallet The wallet address to create the subscription for.
      * @param subscriptionSlug The subscription slug to set in TalentPlusSubscription.
-     * @dev Only the trusted signer can call this function. TalentPlus contract is a trusted signer in TalentPlusSubscription.
+     * @dev Can be called by anyone. TalentPlus contract is a trusted signer in TalentPlusSubscription.
+     * @dev Requires ETH payment equal to the subscription cost.
      */
-    function subscribe(address wallet, string memory subscriptionSlug) public nonReentrant {
+    function subscribe(address wallet, string memory subscriptionSlug) public payable nonReentrant {
         require(enabled, "Subscription is disabled for this contract");
         require(wallet != address(0), "Invalid wallet address");
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
-        require(msg.sender == trustedSigner, "Only trusted signer can create subscriptions");
         
-        // Get the subscription model details including price
-        (, uint256 subscriptionCost, bool isActive) = talentPlusSubscription.getSubscriptionModel(subscriptionSlug);
+        // Get the subscription model details and calculate discounted price
+        (, , , , bool isActive) = talentPlusSubscription.getSubscriptionModel(subscriptionSlug);
         require(isActive, "Subscription model is not active");
+        
+        // Calculate discounted price based on TALENT holdings
+        (uint256 finalPrice, bool discountApplied,) = talentPlusSubscription.calculateDiscountedPrice(subscriptionSlug, wallet);
+        require(msg.value >= finalPrice, "Insufficient ETH payment");
 
-        // Transfer TALENT tokens from trusted signer to fee receiver
-        TALENT_TOKEN.safeTransferFrom(msg.sender, feeReceiver, subscriptionCost);
+        // Transfer ETH to fee receiver
+        (bool success, ) = feeReceiver.call{value: finalPrice}("");
+        require(success, "ETH transfer failed");
+
+        // Refund excess ETH if any
+        if (msg.value > finalPrice) {
+            (bool refundSuccess, ) = msg.sender.call{value: msg.value - finalPrice}("");
+            require(refundSuccess, "ETH refund failed");
+        }
 
         // Set the subscription for the target wallet in TalentPlusSubscription
-        talentPlusSubscription.addUserSubscription(wallet, subscriptionSlug);
+        talentPlusSubscription.addUserSubscription(wallet, subscriptionSlug, msg.sender, finalPrice);
         
-        emit SubscriptionCreated(msg.sender, wallet, subscriptionSlug);
+        emit SubscriptionCreated(msg.sender, wallet, subscriptionSlug, finalPrice, discountApplied);
     }
 }

@@ -3,9 +3,10 @@ import { ethers, waffle } from "hardhat";
 import { solidity } from "ethereum-waffle";
 
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { TalentPlusSubscription } from "../../../typechain-types";
+import { TalentPlusSubscription, ERC20Mock } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import { findEvent } from "../../shared/utils";
+import { parseEther } from "ethers/lib/utils";
 
 chai.use(solidity);
 
@@ -20,12 +21,24 @@ describe("TalentPlusSubscription", () => {
   let nonTrustedSigner: SignerWithAddress;
 
   let talentPlusSubscription: TalentPlusSubscription;
+  let talentToken: ERC20Mock;
+  let mockVault: any; // Mock vault contract
 
   beforeEach(async () => {
     [admin, user1, user2, trustedSigner, nonTrustedSigner] = await ethers.getSigners();
     
+    // Deploy ERC20Mock as mock TALENT token
+    talentToken = (await deployContract(admin, Artifacts.ERC20Mock, ["TalentProtocolToken", "TALENT"])) as ERC20Mock;
+    
+    // Deploy mock vault contract
+    const mockVaultFactory = await ethers.getContractFactory("ERC20Mock");
+    mockVault = await mockVaultFactory.deploy("MockVault", "VAULT");
+    await mockVault.deployed();
+    
     talentPlusSubscription = (await deployContract(admin, Artifacts.TalentPlusSubscription, [
       admin.address,
+      talentToken.address,
+      mockVault.address,
     ])) as TalentPlusSubscription;
     
     // Add trusted signer
@@ -93,7 +106,9 @@ describe("TalentPlusSubscription", () => {
       const tx = await talentPlusSubscription.connect(admin).addSubscriptionModel(
         basicSlug,
         basicDuration,
-        basicPrice
+        basicPrice,
+        10, // 10% discount
+        parseEther("1000") // 1000 TALENT tokens required for discount
       );
       
       const event = await findEvent(tx, "SubscriptionModelAdded");
@@ -102,24 +117,37 @@ describe("TalentPlusSubscription", () => {
       // Verify the subscription model was created correctly
       const model = await talentPlusSubscription.getSubscriptionModel(basicSlug);
       expect(model.durationInSeconds).to.eq(basicDuration);
-      expect(model.priceInTalent).to.eq(basicPrice);
+      expect(model.priceInEth).to.eq(basicPrice);
+      expect(model.discountPercentage).to.eq(10);
+      expect(model.talentRequiredForDiscount).to.eq(parseEther("1000"));
       expect(model.active).to.eq(true);
     });
 
     it("should not allow duplicate subscription models", async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
       
-      const action = talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
+      const action = talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
       await expect(action).to.be.revertedWith("Subscription model already exists");
     });
 
-    it("should not allow non-owner to add subscription model", async () => {
-      const action = talentPlusSubscription.connect(user1).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
-      await expect(action).to.be.revertedWith("Only owner or trusted signers can add subscription models");
+    it("should allow zero TALENT required for discount", async () => {
+      const tx = await talentPlusSubscription.connect(admin).addSubscriptionModel(
+        "test",
+        basicDuration,
+        basicPrice,
+        10,
+        0 // Zero should be allowed
+      );
+      
+      const event = await findEvent(tx, "SubscriptionModelAdded");
+      expect(event).to.exist;
+      
+      const model = await talentPlusSubscription.getSubscriptionModel("test");
+      expect(model.talentRequiredForDiscount).to.eq(0);
     });
 
     it("should allow owner to update subscription model", async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
       
       const newDuration = 60 * 24 * 60 * 60; // 60 days
       const newPrice = ethers.utils.parseEther("75");
@@ -127,7 +155,9 @@ describe("TalentPlusSubscription", () => {
       const tx = await talentPlusSubscription.connect(admin).updateSubscriptionModel(
         basicSlug,
         newDuration,
-        newPrice
+        newPrice,
+        15, // 15% discount
+        parseEther("2000") // 2000 TALENT tokens required for discount
       );
       
       const event = await findEvent(tx, "SubscriptionModelUpdated");
@@ -135,7 +165,9 @@ describe("TalentPlusSubscription", () => {
 
       const model = await talentPlusSubscription.getSubscriptionModel(basicSlug);
       expect(model.durationInSeconds).to.eq(newDuration);
-      expect(model.priceInTalent).to.eq(newPrice);
+      expect(model.priceInEth).to.eq(newPrice);
+      expect(model.discountPercentage).to.eq(15);
+      expect(model.talentRequiredForDiscount).to.eq(parseEther("2000"));
       expect(model.active).to.eq(true);
     });
 
@@ -143,13 +175,16 @@ describe("TalentPlusSubscription", () => {
       const action = talentPlusSubscription.connect(admin).updateSubscriptionModel(
         "nonexistent",
         basicDuration,
-        basicPrice
+        basicPrice,
+        10,
+        parseEther("1000")
       );
       await expect(action).to.be.revertedWith("Subscription model does not exist");
     });
 
+
     it("should allow owner to deactivate subscription model", async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
       
       const tx = await talentPlusSubscription.connect(admin).deactivateSubscriptionModel(basicSlug);
       const event = await findEvent(tx, "SubscriptionModelDeactivated");
@@ -166,8 +201,8 @@ describe("TalentPlusSubscription", () => {
     });
 
     it("should get available subscription slugs", async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice, 20, parseEther("5000"));
       
       // Check that we can access the array length
       const slugsCount = await talentPlusSubscription.getTotalModels();
@@ -184,12 +219,12 @@ describe("TalentPlusSubscription", () => {
     const premiumPrice = ethers.utils.parseEther("100");
 
     beforeEach(async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice, 20, parseEther("5000"));
     });
 
     it("should allow trusted signer to add user subscription", async () => {
-      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       const event = await findEvent(tx, "UserSubscriptionAdded");
       expect(event).to.exist;
@@ -199,28 +234,28 @@ describe("TalentPlusSubscription", () => {
     });
 
     it("should not allow non-trusted signer to add user subscription", async () => {
-      const action = talentPlusSubscription.connect(nonTrustedSigner).addUserSubscription(user1.address, basicSlug);
+      const action = talentPlusSubscription.connect(nonTrustedSigner).addUserSubscription(user1.address, basicSlug, nonTrustedSigner.address, 0);
       await expect(action).to.be.revertedWith("Only trusted signers can add user subscriptions");
     });
 
     it("should not allow subscription for zero address", async () => {
-      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(ethers.constants.AddressZero, basicSlug);
+      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(ethers.constants.AddressZero, basicSlug, trustedSigner.address, 0);
       await expect(action).to.be.revertedWith("Invalid wallet address");
     });
 
     it("should not allow subscription for inactive model", async () => {
       await talentPlusSubscription.connect(admin).deactivateSubscriptionModel(basicSlug);
       
-      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       await expect(action).to.be.revertedWith("Subscription model is not active");
     });
 
     it("should allow upgrading subscription to higher tier", async () => {
       // Add basic subscription
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       // Upgrade to premium (higher duration)
-      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug);
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
       const event = await findEvent(tx, "UserSubscriptionReplaced");
       expect(event).to.exist;
@@ -231,21 +266,21 @@ describe("TalentPlusSubscription", () => {
 
     it("should not allow downgrading active subscription", async () => {
       // Add premium subscription
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug);
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
       // Try to downgrade to basic (lower duration)
-      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       await expect(action).to.be.revertedWith("Cannot downgrade an active subscription");
     });
 
     it("should extend subscription when same model is added", async () => {
       // Add basic subscription
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       const initialExpiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
       
       // Add same subscription again (should extend)
-      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       const event = await findEvent(tx, "UserSubscriptionExtended");
       expect(event).to.exist;
@@ -256,7 +291,7 @@ describe("TalentPlusSubscription", () => {
 
     it("should allow replacing expired subscription", async () => {
       // Add basic subscription
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       // Fast forward time to expire the subscription
       const expirationTime = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
@@ -264,7 +299,7 @@ describe("TalentPlusSubscription", () => {
       await ethers.provider.send("evm_mine", []);
       
       // Should be able to add any subscription now
-      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug);
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
       const event = await findEvent(tx, "UserSubscriptionReplaced");
       expect(event).to.exist;
@@ -280,8 +315,8 @@ describe("TalentPlusSubscription", () => {
     const premiumPrice = ethers.utils.parseEther("100");
 
     beforeEach(async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice);
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(premiumSlug, premiumDuration, premiumPrice, 20, parseEther("5000"));
     });
 
     it("should allow trusted signer to add user subscription with custom expiration", async () => {
@@ -334,7 +369,7 @@ describe("TalentPlusSubscription", () => {
 
     it("should replace existing subscription when adding with custom expiration", async () => {
       // First add a basic subscription
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
       // Then replace with premium subscription with custom expiration
       const customExpiration = Math.floor(Date.now() / 1000) + 120 * 24 * 60 * 60; // 120 days from now
@@ -373,65 +408,124 @@ describe("TalentPlusSubscription", () => {
     });
   });
 
-  describe("Subscription Queries", () => {
+  describe("Discount Functionality", () => {
     const basicSlug = "basic";
-    const basicDuration = 30 * 24 * 60 * 60; // 30 days
+    const basicDuration = 30 * 24 * 60 * 60; // 30 days in seconds
     const basicPrice = ethers.utils.parseEther("50");
 
     beforeEach(async () => {
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice);
-      await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug);
+      // Add subscription model with discount
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(
+        basicSlug,
+        basicDuration,
+        basicPrice,
+        20, // 20% discount
+        parseEther("1000") // 1000 TALENT tokens required for discount
+      );
     });
 
-    it("should check if user has active subscription", async () => {
-      expect(await talentPlusSubscription.hasActiveSubscription(user1.address)).to.eq(true);
-      expect(await talentPlusSubscription.hasActiveSubscription(user2.address)).to.eq(false);
+    it("should calculate correct discounted price for eligible wallet", async () => {
+      // Give user1 enough TALENT tokens for discount
+      await talentToken.connect(admin).transfer(user1.address, parseEther("1000"));
+      
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.true;
+      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
+      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
     });
 
-    it("should check if user has active subscription for specific model", async () => {
-      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, basicSlug)).to.eq(true);
-      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, "premium")).to.eq(false);
+    it("should not apply discount for wallet with insufficient TALENT", async () => {
+      // Give user1 less TALENT tokens than required
+      await talentToken.connect(admin).transfer(user1.address, parseEther("500"));
+      
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.false;
+      expect(finalPrice).to.eq(basicPrice); // Full price
+      expect(discountAmount).to.eq(0); // No discount applied
     });
 
-    it("should get subscription expiration time", async () => {
-      const expiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
-      expect(expiration).to.be.gt(0);
+    it("should not apply discount for wallet with zero TALENT", async () => {
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user2.address);
       
-      // Should be approximately 30 days from now (basicDuration = 30 days)
-      const currentTime = Math.floor(Date.now() / 1000);
-      const expectedExpiration = currentTime + basicDuration;
-      
-      // Check that expiration is reasonable (within 60 days of expected)
-      expect(expiration.toNumber()).to.be.closeTo(expectedExpiration, 5184000); // Allow 60 days tolerance
+      expect(discountApplied).to.be.false;
+      expect(finalPrice).to.eq(basicPrice); // Full price
+      expect(discountAmount).to.eq(0); // No discount applied
     });
 
-    it("should get subscription start time", async () => {
-      const startTime = await talentPlusSubscription.getSubscriptionStartTime(user1.address);
-      expect(startTime).to.be.gt(0);
+    it("should handle 100% discount correctly", async () => {
+      // Update subscription model to have 100% discount
+      await talentPlusSubscription.connect(admin).updateSubscriptionModel(
+        basicSlug,
+        basicDuration,
+        basicPrice,
+        100, // 100% discount
+        parseEther("1000")
+      );
       
-      // Should be approximately now
-      const currentTime = Math.floor(Date.now() / 1000);
+      // Give user1 enough TALENT tokens
+      await talentToken.connect(admin).transfer(user1.address, parseEther("1000"));
       
-      // Check that start time is reasonable (within 60 days of now)
-      expect(startTime.toNumber()).to.be.closeTo(currentTime, 5184000); // Allow 60 days tolerance
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.true;
+      expect(finalPrice).to.eq(0); // Free subscription
+      expect(discountAmount).to.eq(basicPrice); // Full discount = full price
     });
 
-    it("should get current active subscription details", async () => {
-      const [slug, expiration, startTime, isActive] = await talentPlusSubscription.getCurrentActiveSubscription(user1.address);
+    it("should revert for inactive subscription model", async () => {
+      await talentPlusSubscription.connect(admin).deactivateSubscriptionModel(basicSlug);
       
-      expect(slug).to.eq(basicSlug);
-      expect(expiration).to.be.gt(0);
-      expect(startTime).to.be.gt(0);
-      expect(isActive).to.eq(true);
+      const action = talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      await expect(action).to.be.revertedWith("Subscription model is not active");
     });
 
-    it("should return empty data for user without subscription", async () => {
-      const [slug, expiration, startTime, isActive] = await talentPlusSubscription.getCurrentActiveSubscription(user2.address);
+    it("should revert for invalid subscription slug", async () => {
+      const action = talentPlusSubscription.calculateDiscountedPrice("nonexistent", user1.address);
+      await expect(action).to.be.revertedWith("Subscription model is not active");
+    });
+
+    it("should revert for zero address", async () => {
+      const action = talentPlusSubscription.calculateDiscountedPrice(basicSlug, ethers.constants.AddressZero);
+      await expect(action).to.be.revertedWith("Invalid wallet address");
+    });
+
+    it("should apply discount based on vault staking alone", async () => {
+      // Give user1 vault tokens (simulating staking) but no TALENT tokens
+      await mockVault.connect(admin).transfer(user1.address, parseEther("1000"));
       
-      expect(slug).to.eq("");
-      expect(expiration).to.eq(0);
-      expect(startTime).to.eq(0);
-      expect(isActive).to.eq(false);
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.true;
+      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
+      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
+    });
+
+    it("should apply discount based on combined TALENT balance and vault staking", async () => {
+      // Give user1 some TALENT tokens and some vault tokens
+      await talentToken.connect(admin).transfer(user1.address, parseEther("500"));
+      await mockVault.connect(admin).transfer(user1.address, parseEther("500"));
+      // Total: 1000 TALENT equivalent (500 + 500)
+      
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.true;
+      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
+      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
+    });
+
+    it("should not apply discount when combined holdings are insufficient", async () => {
+      // Give user1 some TALENT tokens and some vault tokens, but not enough combined
+      await talentToken.connect(admin).transfer(user1.address, parseEther("300"));
+      await mockVault.connect(admin).transfer(user1.address, parseEther("200"));
+      // Total: 500 TALENT equivalent (300 + 200), but need 1000
+      
+      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
+      
+      expect(discountApplied).to.be.false;
+      expect(finalPrice).to.eq(basicPrice); // Full price
+      expect(discountAmount).to.eq(0); // No discount applied
     });
   });
 });

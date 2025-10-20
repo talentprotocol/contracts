@@ -1,79 +1,218 @@
-# Custom Subscriptions Script
+# Subscription Management Scripts
 
-This script allows you to create custom subscriptions for multiple users by reading wallet addresses and expiration times from a JSON file.
+This directory contains scripts for managing TalentPlus subscription models.
 
-## Usage
+## Scripts
 
+### 1. `manageSubscriptions.ts` - Production Script
+
+This script manages subscriptions on the production contract at `0xE9feF6DDc821Fddc6Fc9AD775e23014Bc17d996E`.
+
+**What it does:**
+- Disables all current subscription models
+- Adds a new yearly subscription model with:
+  - Duration: 1 year (365 days)
+  - Price: 0.0001 ETH
+  - Discount: 100% for holders of 100k+ TALENT tokens
+  - Users with 100k+ TALENT get 100% discount (pay 0 ETH)
+  - Users with <100k TALENT pay full price (0.0001 ETH)
+
+**Usage:**
 ```bash
-npx hardhat run scripts/talent_plus/createCustomSubscriptions.ts --network <network_name> <contract_address> <json_file_path>
+npx hardhat run scripts/talent_plus/manageSubscriptions.ts --network <network_name>
 ```
 
-### Parameters
+**Requirements:**
+- The admin address must be a trusted signer in the TalentPlusSubscription contract
+- The contract must be deployed and accessible
 
-- `<network_name>`: The Hardhat network to deploy to (e.g., `localhost`, `mainnet`, `testnet`)
-- `<contract_address>`: The address of the deployed TalentPlusSubscription contract
-- `<json_file_path>`: Path to the JSON file containing subscription data
+### 2. `manageSubscriptionsTest.ts` - Test Script
 
-### Example
+This script is designed for testing purposes. It:
+- Deploys a new TalentPlusSubscription contract on hardhat network
+- Adds initial subscription models for testing
+- Performs the same subscription management as the production script
 
+**Usage:**
 ```bash
-npx hardhat run scripts/talent_plus/createCustomSubscriptions.ts --network localhost 0x1234567890123456789012345678901234567890 sample_subscriptions.json
+npx hardhat run scripts/talent_plus/manageSubscriptionsTest.ts --network hardhat
 ```
 
-## JSON File Format
+### 3. `updateTalentPlusSubscription.ts` - Update Subscription Contract Address
 
-The JSON file must contain an array of objects with the following structure:
+This script updates the TalentPlusSubscription contract address in the TalentPlus contract. This is useful when:
+- Deploying a new version of the TalentPlusSubscription contract
+- Switching between different subscription contract implementations
+- Updating contract addresses after redeployment
 
-```json
-[
-  {
-    "wallet": "0x1234567890123456789012345678901234567890",
-    "expirationTime": 1735689600
-  },
-  {
-    "wallet": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-    "expirationTime": 1735776000
-  }
-]
+**What it does:**
+- Validates the current TalentPlus contract and new subscription address
+- Verifies that the admin is the owner of the TalentPlus contract
+- Checks that the new subscription contract exists and is valid
+- Updates the subscription address using the `updateTalentPlusSubscription()` function
+- Verifies the update was successful
+
+**Usage:**
+```bash
+# Update the constants in the script file with the appropriate addresses
+# Then run the script
+npx hardhat run scripts/talent_plus/updateTalentPlusSubscription.ts --network <network_name>
 ```
 
-### Field Descriptions
+**Configuration:**
+Update the following constants in the script file:
+- `TALENT_PLUS_ADDRESS_MAINNET`: Address of the TalentPlus contract on mainnet
+- `TALENT_PLUS_ADDRESS_TESTNET`: Address of the TalentPlus contract on testnet
+- `NEW_SUBSCRIPTION_ADDRESS_MAINNET`: New TalentPlusSubscription contract address for mainnet
+- `NEW_SUBSCRIPTION_ADDRESS_TESTNET`: New TalentPlusSubscription contract address for testnet
 
-- `wallet`: Ethereum wallet address (must be valid address format)
-- `expirationTime`: Unix timestamp (seconds since epoch) - must be in the future
+**Requirements:**
+- The admin address must be the owner of the TalentPlus contract
+- The new subscription contract must be deployed and accessible
+- Both addresses must be valid Ethereum addresses
 
-## Features
+## Configuration
 
-- **Batch Processing**: Processes subscriptions in batches of 10 to avoid gas limit issues
-- **Validation**: Validates wallet addresses and expiration times before processing
-- **Error Handling**: Continues processing even if some subscriptions fail
-- **Progress Tracking**: Shows detailed progress for each subscription
-- **Failure Reporting**: Saves failed subscriptions to a JSON file for review
-- **Duplicate Handling**: Warns if a user already has an active subscription and replaces it
+### Yearly Subscription Model Configuration
 
-## Prerequisites
+The yearly subscription model is configured with the following parameters:
 
-1. **Trusted Signer**: The admin account must be added as a trusted signer in the TalentPlusSubscription contract
-2. **Contract Deployment**: The TalentPlusSubscription contract must be deployed
-3. **Network Configuration**: Hardhat network must be properly configured
+```typescript
+const YEARLY_SUBSCRIPTION_CONFIG = {
+  slug: "yearly",
+  durationInSeconds: 365 * 24 * 60 * 60, // 1 year in seconds
+  priceInEth: ethers.utils.parseEther("0.0001"), // 0.0001 ETH
+  discountPercentage: 100, // 100% discount
+  talentRequiredForDiscount: ethers.utils.parseEther("100000") // 100k TALENT
+};
+```
 
-## Sample Data
+### Network-Specific Addresses
 
-A sample JSON file (`sample_subscriptions.json`) is included for testing purposes.
+The scripts use different addresses based on the network:
+
+- **TALENT Token Address:**
+  - Mainnet: `0x9a33406165f562E16C3abD82fd1185482E01b49a`
+  - Testnet: `0x9a33406165f562E16C3abD82fd1185482E01b49a`
+
+- **Vault Address:**
+  - Mainnet: `0x23Ff3256A29847d7EF760943bd6679b565CbdE5a`
+  - Testnet: `0x23Ff3256A29847d7EF760943bd6679b565CbdE5a`
+
+## How It Works
+
+### Step 1: Deactivate Existing Models
+The script first retrieves all existing subscription models and deactivates them by calling `deactivateSubscriptionModel()` for each active model.
+
+### Step 2: Add New Yearly Model
+The script adds a new subscription model with the slug "yearly" using `addSubscriptionModel()` with the configured parameters.
+
+### Step 3: Verify Changes
+The script verifies that:
+- The new model was added successfully
+- The model details match the configuration
+- The model is active
+
+### Step 4: Test Price Calculations
+The script tests the price calculation functionality for different scenarios:
+- Wallet with TALENT holdings (should get 100% discount)
+- Wallet without TALENT holdings (should pay full price)
+
+## Security Considerations
+
+- Only trusted signers can modify subscription models
+- The admin address must be added as a trusted signer before running the script
+- All transactions are logged with their hash for audit purposes
 
 ## Error Handling
 
-The script will:
-- Validate all data before processing
-- Continue processing even if individual subscriptions fail
-- Save failed subscriptions to a timestamped JSON file
-- Provide detailed error messages for each failure
+The scripts include comprehensive error handling:
+- Validates admin permissions before execution
+- Handles network-specific issues gracefully
+- Provides detailed error messages and suggestions
+- Continues execution even if some operations fail
 
 ## Output
 
-The script provides:
-- Real-time progress updates
-- Success/failure counts
-- Transaction hashes for successful operations
-- Detailed failure report if any subscriptions fail
-- Summary statistics at the end
+The scripts provide detailed output including:
+- Current subscription models
+- Deactivation status for each model
+- New model creation confirmation
+- Verification of changes
+- Price calculation tests
+- Summary of all changes made
+
+## Example Output
+
+### Subscription Management Script Output
+```
+📊 SUBSCRIPTION MANAGEMENT SUMMARY
+============================================================
+Network: mainnet
+Contract: 0xE9feF6DDc821Fddc6Fc9AD775e23014Bc17d996E
+Admin: 0x...
+Total Models Before: 3
+Total Models After: 4
+Models Deactivated: 3
+New Model Added: yearly
+============================================================
+
+✅ Subscription management completed successfully!
+
+📝 Summary of Changes:
+- Deactivated 3 existing subscription models
+- Added new "yearly" subscription model
+- Duration: 1 year (365 days)
+- Price: 0.0001 ETH
+- Discount: 100% for holders of 100000.0 TALENT
+- Users with 100k+ TALENT get 100% discount (pay 0 ETH)
+- Users with <100k TALENT pay full price (0.0001 ETH)
+```
+
+### Update Subscription Address Script Output
+```
+🔄 Updating TalentPlusSubscription address on mainnet
+👤 Admin: 0x...
+🔗 Connecting to TalentPlus contract at: 0x...
+📋 Current TalentPlusSubscription address: 0x...
+🔍 Verifying new subscription contract at: 0x...
+✅ New subscription contract verified
+
+📝 Update Summary:
+============================================================
+Network: mainnet
+TalentPlus Contract: 0x...
+Current Subscription: 0x...
+New Subscription: 0x...
+Admin: 0x...
+============================================================
+
+⛽ Estimating gas...
+✅ Gas estimate: 45000
+🚀 Updating TalentPlusSubscription address...
+📤 Transaction submitted: 0x...
+⏳ Waiting for confirmation...
+✅ Transaction confirmed in block: 12345678
+⛽ Gas used: 42000
+
+🔍 Verifying the update...
+✅ Update verified successfully!
+
+🎉 Update Summary:
+============================================================
+Network: mainnet
+TalentPlus Contract: 0x...
+Previous Subscription: 0x...
+New Subscription: 0x...
+Transaction Hash: 0x...
+Block Number: 12345678
+============================================================
+
+📝 Next Steps:
+1. Verify the update on block explorer
+2. Test the new subscription functionality
+3. Update any frontend configurations if needed
+4. Consider updating trusted signers if the new subscription contract has different requirements
+
+✅ TalentPlusSubscription address update completed successfully!
+```

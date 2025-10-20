@@ -167,12 +167,16 @@ export async function deployTalentVault(
 }
 
 export async function deployTalentPlusSubscription(
-  initialOwner: string
+  initialOwner: string,
+  talentTokenAddress: string,
+  vaultAddress: string
 ): Promise<TalentPlusSubscription> {
   const talentPlusSubscriptionContract = await ethers.getContractFactory("TalentPlusSubscription");
 
   const deployedTalentPlusSubscription = await talentPlusSubscriptionContract.deploy(
-    initialOwner
+    initialOwner,
+    talentTokenAddress,
+    vaultAddress
   );
   await deployedTalentPlusSubscription.deployed();
 
@@ -180,18 +184,14 @@ export async function deployTalentPlusSubscription(
 }
 
 export async function deployTalentPlus(
-  trustedSigner: string,
   talentPlusSubscription: string,
-  feeReceiver: string,
-  talentTokenAddress: string
+  feeReceiver: string
 ): Promise<TalentPlus> {
   const talentPlusContract = await ethers.getContractFactory("TalentPlus");
 
   const deployedTalentPlus = await talentPlusContract.deploy(
-    trustedSigner,
     talentPlusSubscription,
-    feeReceiver,
-    talentTokenAddress
+    feeReceiver
   );
   await deployedTalentPlus.deployed();
 

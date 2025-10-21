@@ -942,4 +942,69 @@ describe("TalentVault", () => {
       });
     });
   });
+
+  describe("Lock Period Bypass Vulnerability", async () => {
+    it("Should prevent lock period bypass via redeem()", async () => {
+      // Setup: User1 deposits tokens and gets locked shares
+      const depositAmount = ethers.utils.parseEther("1000");
+      await talentToken.transfer(user1.address, depositAmount);
+      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+      await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+      const user1Shares = await talentVault.balanceOf(user1.address);
+      const user1Meta = await talentVault.userBalanceMeta(user1.address);
+      
+      // Verify user1 is in lock period
+      const lockEndTime = Number(user1Meta.lastDepositAt) + (30 * 24 * 3600);
+      const now = Math.floor(Date.now() / 1000);
+      const isLocked = now < lockEndTime;
+      
+      expect(isLocked).to.be.true;
+
+      // User1 approves user2 (attacker) to spend their shares
+      await talentVault.connect(user1).approve(user2.address, user1Shares);
+
+      // Test: Attempted bypass should fail
+      await expect(
+        talentVault.connect(user2).redeem(user1Shares, user2.address, user1.address)
+      ).to.be.revertedWith("CantWithdrawWithinTheLockPeriod");
+
+      // Verify user1's shares are still there
+      const user1SharesAfter = await talentVault.balanceOf(user1.address);
+      expect(user1SharesAfter).to.equal(user1Shares);
+    });
+
+    it("Should prevent lock period bypass via withdraw()", async () => {
+      // Setup: User1 deposits tokens and gets locked shares
+      const depositAmount = ethers.utils.parseEther("500");
+      await talentToken.transfer(user1.address, depositAmount);
+      await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+      await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+      const user1Shares = await talentVault.balanceOf(user1.address);
+      const user1Meta = await talentVault.userBalanceMeta(user1.address);
+      
+      // Verify user1 is in lock period
+      const lockEndTime = Number(user1Meta.lastDepositAt) + (30 * 24 * 3600);
+      const now = Math.floor(Date.now() / 1000);
+      const isLocked = now < lockEndTime;
+      
+      expect(isLocked).to.be.true;
+
+      // User1 approves user3 (attacker) to spend their shares
+      await talentVault.connect(user1).approve(user3.address, user1Shares);
+
+      // Convert shares to assets (1:1 ratio in this vault)
+      const assetsToWithdraw = user1Shares;
+      
+      // Test: Attempted bypass should fail
+      await expect(
+        talentVault.connect(user3).withdraw(assetsToWithdraw, user3.address, user1.address)
+      ).to.be.revertedWith("CantWithdrawWithinTheLockPeriod");
+
+      // Verify user1's shares are still there
+      const user1SharesAfter = await talentVault.balanceOf(user1.address);
+      expect(user1SharesAfter).to.equal(user1Shares);
+    });
+  });
 });

@@ -13,6 +13,7 @@ import PassportWalletRegistry from "../../artifacts/contracts/passport/PassportW
 import TalentTGEUnlockTimestamp from "../../artifacts/contracts/talent/TalentTGEUnlockTimestamp.sol/TalentTGEUnlockTimestamp.json";
 import TalentVault from "../../artifacts/contracts/talent/TalentVault.sol/TalentVault.json";
 import TalentVaultV2 from "../../artifacts/contracts/talent/TalentVaultV2.sol/TalentVaultV2.json";
+import TalentVaultV3 from "../../artifacts/contracts/talent/TalentVaultV3.sol/TalentVaultV3.json";
 import BaseAPY from "../../artifacts/contracts/talent/vault-options/BaseAPY.sol/BaseAPY.json";
 import MultiSendETH from "../../artifacts/contracts/utils/MultiSendETH.sol/MultiSendETH.json";
 
@@ -32,6 +33,7 @@ export {
   TalentTGEUnlockTimestamp,
   TalentVault,
   TalentVaultV2,
+  TalentVaultV3,
   BaseAPY,
   MultiSendETH,
 };

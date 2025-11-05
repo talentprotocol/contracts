@@ -346,9 +346,9 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
         uint256 assets,
         uint256 shares
     ) internal virtual override {
-        UserBalanceMeta storage receiverUserBalanceMeta = userBalanceMeta[receiver];
+        UserBalanceMeta storage ownerUserBalanceMeta = userBalanceMeta[owner];
 
-        if (receiverUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {
+        if (ownerUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {
             revert CantWithdrawWithinTheLockPeriod();
         }
 

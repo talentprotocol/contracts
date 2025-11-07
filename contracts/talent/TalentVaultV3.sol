@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -89,14 +89,12 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Create a new Talent Vault V3 contract
     /// @param _token The token that will be deposited into the contract
     /// @param _yieldSource The wallet paying for the yield
-    constructor(
-        IERC20 _token,
-        address _yieldSource
-    ) ERC4626(_token) ERC20("TalentVaultV3", "sTALENT3") Ownable(msg.sender) {
-        if (
-            address(_token) == address(0) ||
-            address(_yieldSource) == address(0)
-        ) {
+    constructor(IERC20 _token, address _yieldSource)
+        ERC4626(_token)
+        ERC20("TalentVaultV3", "sTALENT3")
+        Ownable(msg.sender)
+    {
+        if (address(_token) == address(0) || address(_yieldSource) == address(0)) {
             revert InvalidAddress();
         }
 
@@ -195,6 +193,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Get the maximum deposit amount for an address
     /// @param receiver The address to get the maximum deposit amount for
+    /// @return The maximum deposit amount for the address
     function maxDeposit(address receiver) public view virtual override returns (uint256) {
         if (maxDepositLimitFlags[receiver]) {
             return maxDeposits[receiver];
@@ -205,6 +204,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Get the maximum deposit amount for an address
     /// @param receiver The address to get the maximum deposit amount for
+    /// @return The maximum deposit amount for the address
     function maxMint(address receiver) public view virtual override returns (uint256) {
         return maxDeposit(receiver);
     }
@@ -212,8 +212,9 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Deposit tokens into the contract
     /// @param assets The amount of tokens to deposit
     /// @param receiver The address to deposit the tokens for
+    /// @return The number of tokens deposited
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
-        if (assets <= 0) {
+        if (assets == 0) {
             revert InvalidDepositAmount();
         }
 
@@ -237,6 +238,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Deposit tokens into the contract
     /// @param shares The amount of shares to deposit
     /// @param receiver The address to deposit the shares for
+    /// @return The number of tokens deposited
     function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
         return deposit(shares, receiver);
     }
@@ -245,7 +247,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     ///         the deposit meta data including minting any rewards
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
-        if (balanceOf(account) <= 0) {
+        if (balanceOf(account) == 0) {
             UserBalanceMeta storage balanceMeta = userBalanceMeta[account];
             balanceMeta.lastRewardCalculation = block.timestamp;
             return;
@@ -267,19 +269,20 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /// @notice This reverts because TalentVault is non-transferable
-    /// @dev reverts with TalentVaultNonTansferable
+    /// @dev reverts with TalentVaultNonTransferable
     function transferFrom(address, address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
         revert TalentVaultNonTransferable();
     }
 
     /// @notice Calculate the accrued rewards for an address
     /// @param user The address to calculate the accrued rewards for
+    /// @return The amount of accrued rewards for the user
     function calculateRewards(address user) public view returns (uint256) {
-        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
-
         if (!yieldRewardsFlag) {
             return 0;
         }
+
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
         uint256 userBalance = balanceOf(user);
 
@@ -294,9 +297,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
         uint256 timeElapsed;
 
         if (block.timestamp > endTime) {
-            timeElapsed = endTime > balanceMeta.lastRewardCalculation
-                ? endTime - balanceMeta.lastRewardCalculation
-                : 0;
+            timeElapsed = endTime > balanceMeta.lastRewardCalculation ? endTime - balanceMeta.lastRewardCalculation : 0;
         } else {
             timeElapsed = block.timestamp - balanceMeta.lastRewardCalculation;
         }
@@ -339,13 +340,11 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @param owner The address of the owner
     /// @param assets The amount of tokens to withdraw
     /// @param shares The amount of shares to withdraw
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override {
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+    {
         UserBalanceMeta storage ownerUserBalanceMeta = userBalanceMeta[owner];
 
         if (ownerUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {

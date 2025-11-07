@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -89,14 +89,12 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Create a new Talent Vault V3 contract
     /// @param _token The token that will be deposited into the contract
     /// @param _yieldSource The wallet paying for the yield
-    constructor(
-        IERC20 _token,
-        address _yieldSource
-    ) ERC4626(_token) ERC20("TalentVaultV3", "sTALENT3") Ownable(msg.sender) {
-        if (
-            address(_token) == address(0) ||
-            address(_yieldSource) == address(0)
-        ) {
+    constructor(IERC20 _token, address _yieldSource)
+        ERC4626(_token)
+        ERC20("TalentVaultV3", "sTALENT3")
+        Ownable(msg.sender)
+    {
+        if (address(_token) == address(0) || address(_yieldSource) == address(0)) {
             revert InvalidAddress();
         }
 
@@ -294,9 +292,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
         uint256 timeElapsed;
 
         if (block.timestamp > endTime) {
-            timeElapsed = endTime > balanceMeta.lastRewardCalculation
-                ? endTime - balanceMeta.lastRewardCalculation
-                : 0;
+            timeElapsed = endTime > balanceMeta.lastRewardCalculation ? endTime - balanceMeta.lastRewardCalculation : 0;
         } else {
             timeElapsed = block.timestamp - balanceMeta.lastRewardCalculation;
         }
@@ -339,13 +335,11 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @param owner The address of the owner
     /// @param assets The amount of tokens to withdraw
     /// @param shares The amount of shares to withdraw
-    function _withdraw(
-        address caller,
-        address receiver,
-        address owner,
-        uint256 assets,
-        uint256 shares
-    ) internal virtual override {
+    function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares)
+        internal
+        virtual
+        override
+    {
         UserBalanceMeta storage ownerUserBalanceMeta = userBalanceMeta[owner];
 
         if (ownerUserBalanceMeta.lastDepositAt + lockPeriod > block.timestamp) {

@@ -214,7 +214,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @param receiver The address to deposit the tokens for
     /// @return The number of tokens deposited
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
-        if (assets <= 0) {
+        if (assets == 0) {
             revert InvalidDepositAmount();
         }
 
@@ -247,7 +247,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     ///         the deposit meta data including minting any rewards
     /// @param account The address of the user to refresh
     function refreshForAddress(address account) public {
-        if (balanceOf(account) <= 0) {
+        if (balanceOf(account) == 0) {
             UserBalanceMeta storage balanceMeta = userBalanceMeta[account];
             balanceMeta.lastRewardCalculation = block.timestamp;
             return;

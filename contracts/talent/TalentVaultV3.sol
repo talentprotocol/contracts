@@ -278,11 +278,11 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @param user The address to calculate the accrued rewards for
     /// @return The amount of accrued rewards for the user
     function calculateRewards(address user) public view returns (uint256) {
-        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
-
         if (!yieldRewardsFlag) {
             return 0;
         }
+
+        UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 
         uint256 userBalance = balanceOf(user);
 

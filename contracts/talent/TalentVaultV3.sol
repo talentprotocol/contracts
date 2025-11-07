@@ -193,6 +193,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Get the maximum deposit amount for an address
     /// @param receiver The address to get the maximum deposit amount for
+    /// @return The maximum deposit amount for the address
     function maxDeposit(address receiver) public view virtual override returns (uint256) {
         if (maxDepositLimitFlags[receiver]) {
             return maxDeposits[receiver];
@@ -203,6 +204,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
 
     /// @notice Get the maximum deposit amount for an address
     /// @param receiver The address to get the maximum deposit amount for
+    /// @return The maximum deposit amount for the address
     function maxMint(address receiver) public view virtual override returns (uint256) {
         return maxDeposit(receiver);
     }
@@ -210,6 +212,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Deposit tokens into the contract
     /// @param assets The amount of tokens to deposit
     /// @param receiver The address to deposit the tokens for
+    /// @return The number of tokens deposited
     function deposit(uint256 assets, address receiver) public virtual override returns (uint256) {
         if (assets <= 0) {
             revert InvalidDepositAmount();
@@ -235,6 +238,7 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     /// @notice Deposit tokens into the contract
     /// @param shares The amount of shares to deposit
     /// @param receiver The address to deposit the shares for
+    /// @return The number of tokens deposited
     function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
         return deposit(shares, receiver);
     }
@@ -265,13 +269,14 @@ contract TalentVaultV3 is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /// @notice This reverts because TalentVault is non-transferable
-    /// @dev reverts with TalentVaultNonTansferable
+    /// @dev reverts with TalentVaultNonTransferable
     function transferFrom(address, address, uint256) public virtual override(ERC20, IERC20) returns (bool) {
         revert TalentVaultNonTransferable();
     }
 
     /// @notice Calculate the accrued rewards for an address
     /// @param user The address to calculate the accrued rewards for
+    /// @return The amount of accrued rewards for the user
     function calculateRewards(address user) public view returns (uint256) {
         UserBalanceMeta storage balanceMeta = userBalanceMeta[user];
 

@@ -29,7 +29,7 @@
     "solidity-docgen": "^0.5.16",
     "ts-node": "^10.8.2",
     "typechain": "^8.1.1",
-    "typescript": "^5.0.4",
+    "typescript": "^5.4.5",
     "viem": "^2.11.0"
   },
   "devDependencies": {

@@ -38,7 +38,7 @@ describe("TalentPlusSubscription", () => {
     talentPlusSubscription = (await deployContract(admin, Artifacts.TalentPlusSubscription, [
       admin.address,
       talentToken.address,
-      mockVault.address,
+      [mockVault.address],
     ])) as TalentPlusSubscription;
     
     // Add trusted signer
@@ -117,7 +117,7 @@ describe("TalentPlusSubscription", () => {
       // Verify the subscription model was created correctly
       const model = await talentPlusSubscription.getSubscriptionModel(basicSlug);
       expect(model.durationInSeconds).to.eq(basicDuration);
-      expect(model.priceInEth).to.eq(basicPrice);
+      expect(model.price).to.eq(basicPrice);
       expect(model.discountPercentage).to.eq(10);
       expect(model.talentRequiredForDiscount).to.eq(parseEther("1000"));
       expect(model.active).to.eq(true);
@@ -165,7 +165,7 @@ describe("TalentPlusSubscription", () => {
 
       const model = await talentPlusSubscription.getSubscriptionModel(basicSlug);
       expect(model.durationInSeconds).to.eq(newDuration);
-      expect(model.priceInEth).to.eq(newPrice);
+      expect(model.price).to.eq(newPrice);
       expect(model.discountPercentage).to.eq(15);
       expect(model.talentRequiredForDiscount).to.eq(parseEther("2000"));
       expect(model.active).to.eq(true);
@@ -254,23 +254,41 @@ describe("TalentPlusSubscription", () => {
       // Add basic subscription
       await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
-      // Upgrade to premium (higher duration)
+      const initialExpiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      
+      // Switch to premium (different subscription type - preserves remaining time + adds new duration)
       const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
-      const event = await findEvent(tx, "UserSubscriptionReplaced");
+      const event = await findEvent(tx, "UserSubscriptionExtended");
       expect(event).to.exist;
 
       expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, premiumSlug)).to.eq(true);
       expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, basicSlug)).to.eq(false);
+      
+      // New expiration should be greater than initial (remaining time + new duration)
+      const newExpiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      expect(newExpiration).to.be.gt(initialExpiration);
     });
 
-    it("should not allow downgrading active subscription", async () => {
+    it("should allow switching subscription types (preserves remaining time)", async () => {
       // Add premium subscription
       await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
-      // Try to downgrade to basic (lower duration)
-      const action = talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
-      await expect(action).to.be.revertedWith("Cannot downgrade an active subscription");
+      const initialExpiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      
+      // Switch to basic (different subscription type - preserves remaining time + adds new duration)
+      const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
+      
+      const event = await findEvent(tx, "UserSubscriptionExtended");
+      expect(event).to.exist;
+      
+      // Should now have basic subscription
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, basicSlug)).to.eq(true);
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, premiumSlug)).to.eq(false);
+      
+      // New expiration should be greater than initial (remaining time + new duration)
+      const newExpiration = await talentPlusSubscription.getSubscriptionExpiration(user1.address);
+      expect(newExpiration).to.be.gt(initialExpiration);
     });
 
     it("should extend subscription when same model is added", async () => {
@@ -298,11 +316,13 @@ describe("TalentPlusSubscription", () => {
       await ethers.provider.send("evm_setNextBlockTimestamp", [expirationTime.toNumber() + 1]);
       await ethers.provider.send("evm_mine", []);
       
-      // Should be able to add any subscription now
+      // Should be able to add any subscription now (subscription has expired, so it's a new subscription)
       const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, premiumSlug, trustedSigner.address, 0);
       
-      const event = await findEvent(tx, "UserSubscriptionReplaced");
+      const event = await findEvent(tx, "UserSubscriptionAdded");
       expect(event).to.exist;
+      
+      expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, premiumSlug)).to.eq(true);
     });
   });
 
@@ -371,7 +391,7 @@ describe("TalentPlusSubscription", () => {
       // First add a basic subscription
       await talentPlusSubscription.connect(trustedSigner).addUserSubscription(user1.address, basicSlug, trustedSigner.address, 0);
       
-      // Then replace with premium subscription with custom expiration
+      // Then replace with custom subscription with custom expiration
       const customExpiration = Math.floor(Date.now() / 1000) + 120 * 24 * 60 * 60; // 120 days from now
       
       const tx = await talentPlusSubscription.connect(trustedSigner).addUserSubscriptionWithExpiration(
@@ -379,7 +399,7 @@ describe("TalentPlusSubscription", () => {
         customExpiration
       );
       
-      const event = await findEvent(tx, "UserSubscriptionReplaced");
+      const event = await findEvent(tx, "UserSubscriptionExtended");
       expect(event).to.exist;
 
       expect(await talentPlusSubscription.hasActiveSubscriptionForModel(user1.address, "custom")).to.eq(true);

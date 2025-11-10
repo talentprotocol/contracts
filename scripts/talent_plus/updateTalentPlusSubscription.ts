@@ -2,12 +2,10 @@ import { ethers, network } from "hardhat";
 import type { TalentPlus } from "../../typechain-types";
 
 // Network-specific addresses
-const TALENT_PLUS_ADDRESS_MAINNET = "0xC693F5692A543DEC564f21c2Afa6a5f98f250ae4"; // TODO: Set actual mainnet address
-const TALENT_PLUS_ADDRESS_TESTNET = "0x0000000000000000000000000000000000000000"; // TODO: Set actual testnet address
+const TALENT_PLUS_ADDRESS_MAINNET = "0x594d2b089CF372cACB02716c1Ee4522319aCdABB"; // TODO: Set actual mainnet address
 
 // New subscription addresses to update to
-const NEW_SUBSCRIPTION_ADDRESS_MAINNET = "0xb7853f5bB059Df22B427C176c063198c6Bab0A15"; // TODO: Set actual mainnet address
-const NEW_SUBSCRIPTION_ADDRESS_TESTNET = "0x0000000000000000000000000000000000000000"; // TODO: Set actual testnet address
+const NEW_SUBSCRIPTION_ADDRESS_MAINNET = "0xc73AdcFf2210CbE77243425033A52827d13aDe3a"; // TODO: Set actual mainnet address
 
 /**
  * Script to update the TalentPlusSubscription address in the TalentPlus contract

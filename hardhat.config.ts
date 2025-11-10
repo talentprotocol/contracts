@@ -23,6 +23,36 @@ task("accounts", "Prints the list of accounts", async (args, hre) => {
   }
 });
 
+task("verify-talent-plus-subscription", "Verify TalentPlusSubscription contract")
+  .addParam("address", "Contract address")
+  .addParam("owner", "Owner address")
+  .addParam("token", "TALENT token address")
+  .addParam("vaults", "Comma-separated vault addresses")
+  .setAction(async (taskArgs, hre) => {
+    const vaultAddresses = taskArgs.vaults.split(",").map((addr: string) => addr.trim());
+    
+    console.log("Verifying contract...");
+    console.log(`Address: ${taskArgs.address}`);
+    console.log(`Owner: ${taskArgs.owner}`);
+    console.log(`Token: ${taskArgs.token}`);
+    console.log(`Vaults: ${vaultAddresses.join(", ")}`);
+
+    try {
+      await hre.run("verify:verify", {
+        address: taskArgs.address,
+        constructorArguments: [taskArgs.owner, taskArgs.token, vaultAddresses],
+      });
+      console.log("✅ Contract verified successfully!");
+    } catch (error: any) {
+      if (error.message.includes("Already Verified") || error.message.includes("already verified")) {
+        console.log("✅ Contract already verified!");
+      } else {
+        console.error("❌ Verification failed:", error.message);
+        throw error;
+      }
+    }
+  });
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",

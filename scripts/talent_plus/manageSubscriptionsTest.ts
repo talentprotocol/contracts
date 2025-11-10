@@ -33,16 +33,19 @@ async function main() {
     ? VAULT_ADDRESS_MAINNET
     : VAULT_ADDRESS_TESTNET;
 
+  // Convert single vault address to array for compatibility
+  const vaultAddresses = [vaultAddress];
+
   console.log("Configuration:");
   console.log(`- TALENT Token: ${talentTokenAddress}`);
-  console.log(`- Vault Address: ${vaultAddress}`);
+  console.log(`- Vault Addresses: ${vaultAddresses.join(", ")}`);
 
   // For testing purposes, deploy a new contract if we're on hardhat
   let talentPlusSubscription: TalentPlusSubscription;
   
   if (network.name === "hardhat") {
     console.log("\n📦 Deploying TalentPlusSubscription for testing...");
-    talentPlusSubscription = await deployTalentPlusSubscription(admin.address, talentTokenAddress, vaultAddress);
+    talentPlusSubscription = await deployTalentPlusSubscription(admin.address, talentTokenAddress, vaultAddresses);
     console.log(`✅ TalentPlusSubscription deployed at: ${talentPlusSubscription.address}`);
     
     // Add some initial subscription models for testing

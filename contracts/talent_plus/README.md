@@ -4,7 +4,7 @@ This directory contains the core smart contracts for the TalentPlus subscription
 
 ## Overview
 
-The TalentPlus system enables anyone to purchase subscriptions for users using ETH payments, with flexible subscription models, TALENT token-based discounts (including vault staking), and administrative capabilities for custom subscription management. Users can purchase subscriptions for any wallet address, enabling gift subscriptions and corporate subscription management.
+The TalentPlus system enables anyone to purchase subscriptions for users using USDC (ERC20) payments, with flexible subscription models, TALENT token-based discounts (including vault staking), and administrative capabilities for custom subscription management. Users can purchase subscriptions for any wallet address, enabling gift subscriptions and corporate subscription management.
 
 ## Contracts
 
@@ -25,12 +25,12 @@ The core subscription management contract that handles subscription models and u
 #### Main Functions
 
 **Subscription Model Management:**
-- `addSubscriptionModel(string subscriptionSlug, uint256 durationInSeconds, uint256 priceInEth, uint256 discountPercentage, uint256 talentRequiredForDiscount)`
-- `updateSubscriptionModel(string subscriptionSlug, uint256 durationInSeconds, uint256 priceInEth, uint256 discountPercentage, uint256 talentRequiredForDiscount)`
+- `addSubscriptionModel(string subscriptionSlug, uint256 durationInSeconds, uint256 price, uint256 discountPercentage, uint256 talentRequiredForDiscount)` - Price in USDC (6 decimals)
+- `updateSubscriptionModel(string subscriptionSlug, uint256 durationInSeconds, uint256 price, uint256 discountPercentage, uint256 talentRequiredForDiscount)` - Price in USDC (6 decimals)
 - `deactivateSubscriptionModel(string subscriptionSlug)`
 
 **User Subscription Management:**
-- `addUserSubscription(address wallet, string subscriptionSlug, address payer, uint256 pricePaid)` - Standard subscription with model-based duration. `payer` is who paid, `pricePaid` is the ETH amount paid.
+- `addUserSubscription(address wallet, string subscriptionSlug, address payer, uint256 pricePaid)` - Standard subscription with model-based duration. `payer` is who paid, `pricePaid` is the USDC amount paid.
 - `addUserSubscriptionWithExpiration(address wallet, uint256 expirationTime)` - Custom expiration time (sets slug as "custom"). For these admin-set subscriptions, `payer` is `msg.sender` and `pricePaid` is `0` in the emitted events.
 
 **Query Functions:**
@@ -53,7 +53,9 @@ The core subscription management contract that handles subscription models and u
 struct SubscriptionModel {
     string subscriptionSlug;
     uint256 durationInSeconds;
-    uint256 priceInTalent;
+    uint256 price; // Price in USDC (6 decimals)
+    uint256 discountPercentage;
+    uint256 talentRequiredForDiscount;
     bool active;
 }
 
@@ -66,45 +68,51 @@ struct UserActiveSubscription {
 
 ### 2. TalentPlus.sol
 
-The payment and subscription creation contract that handles ETH payments and integrates with TalentPlusSubscription. Anyone can call the subscription functions.
+The payment and subscription creation contract that handles USDC (ERC20) payments and integrates with TalentPlusSubscription. Anyone can call the subscription functions.
 
 #### Key Features
 
-- **ETH Payment Integration**: Handles native ETH payments for subscriptions
+- **USDC Payment Integration**: Handles ERC20 USDC payments for subscriptions
 - **TALENT-Based Discounts**: Automatically applies discounts based on TALENT token holdings and vault staking
 - **Direct Access**: Anyone can create subscriptions by calling the subscribe function
 - **Dynamic Pricing**: Fetches subscription costs and applies discounts from TalentPlusSubscription contract
 - **Gift Subscriptions**: Anyone can purchase subscriptions for any wallet address
 - **Administrative Control**: Owner-managed contract settings
 - **Integration**: Seamless integration with TalentPlusSubscription
+- **SafeERC20**: Uses OpenZeppelin's SafeERC20 for secure token transfers
 
 #### Main Functions
 
 **Core Subscription:**
-- `subscribe(address wallet, string subscriptionSlug)` - Main subscription function (anyone can purchase for any wallet, requires ETH payment)
+- `subscribe(address wallet, string subscriptionSlug, uint256 tokenAmount)` - Main subscription function (anyone can purchase for any wallet, requires USDC payment). User must approve the contract to spend USDC first.
 
 **Administrative:**
 - `setEnabled(bool _enabled)` - Enable/disable contract
 - `setDisabled()` - Disable contract
-- `updateReceiver(address _feeReceiver)` - Update ETH fee receiver address
+- `updateReceiver(address _feeReceiver)` - Update fee receiver address
 - `updateTalentPlusSubscription(address _talentPlusSubscriptionAddress)` - Update subscription contract address
+
+#### Payment Token
+
+- **USDC Address (Base)**: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- **Decimals**: 6
+- Users must approve the TalentPlus contract to spend USDC before subscribing
 
 #### Events
 
 ```solidity
-event SubscriptionCreated(address indexed payer, address indexed recipient, string subscriptionSlug, uint256 finalPrice, bool discountApplied);
+event SubscriptionCreated(address indexed payer, address indexed recipient, string subscriptionSlug, uint256 pricePaid, bool discountApplied);
 ```
 
 TalentPlusSubscription also emits enriched subscription events capturing the payer and amount paid:
 
 ```solidity
 event UserSubscriptionAdded(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
-event UserSubscriptionReplaced(address indexed wallet, string indexed oldSlug, string indexed newSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
 event UserSubscriptionExtended(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
 ```
 
 Notes:
-- For purchases through `TalentPlus.subscribe`, `payer` is the caller and `pricePaid` is the final ETH price after any discount.
+- For purchases through `TalentPlus.subscribe`, `payer` is the caller and `pricePaid` is the final USDC price after any discount.
 - For `addUserSubscriptionWithExpiration`, `payer = msg.sender` and `pricePaid = 0`.
 
 ## Integration Flow
@@ -116,19 +124,22 @@ sequenceDiagram
     participant User
     participant TalentPlus
     participant TalentPlusSubscription
+    participant USDC_Token
     participant TALENT_Token
     participant FeeReceiver
 
-    User->>TalentPlus: subscribe(wallet, slug) + ETH
+    User->>USDC_Token: approve(TalentPlus, amount)
+    User->>TalentPlus: subscribe(wallet, slug, tokenAmount)
     TalentPlus->>TalentPlusSubscription: getSubscriptionModel(slug)
     TalentPlusSubscription-->>TalentPlus: (duration, price, discount%, talentRequired, active)
     TalentPlus->>TalentPlusSubscription: calculateDiscountedPrice(slug, wallet)
     TalentPlusSubscription->>TALENT_Token: balanceOf(wallet)
     TALENT_Token-->>TalentPlusSubscription: balance
     TalentPlusSubscription-->>TalentPlus: (finalPrice, discountApplied)
-    TalentPlus->>TalentPlus: verify msg.value >= finalPrice
-    TalentPlus->>FeeReceiver: transfer ETH
-    TalentPlus->>TalentPlusSubscription: addUserSubscription(wallet, slug)
+    TalentPlus->>TalentPlus: verify tokenAmount >= finalPrice
+    TalentPlus->>USDC_Token: safeTransferFrom(user, feeReceiver, finalPrice)
+    TalentPlus->>USDC_Token: safeTransfer(user, excess) [if any]
+    TalentPlus->>TalentPlusSubscription: addUserSubscription(wallet, slug, user, finalPrice)
     TalentPlusSubscription-->>TalentPlus: success
     TalentPlus->>TalentPlus: emit SubscriptionCreated(user, wallet, slug, finalPrice, discountApplied)
 ```
@@ -173,22 +184,28 @@ sequenceDiagram
 ### Basic Subscription Purchase
 
 ```solidity
+// First, user must approve USDC spending
+usdc.approve(talentPlusAddress, parseUnits("1000", 6)); // Approve up to 1000 USDC
+
 // User purchases subscription for themselves (full price)
-talentPlus.subscribe(userWallet, "premium", { value: parseEther("100") });
+// Price: 100 USDC = 100 * 10^6 = 100000000
+talentPlus.subscribe(userWallet, "premium", parseUnits("100", 6));
 
 // User purchases subscription as a gift for another user (with discount)
 // Recipient has 5000 TALENT tokens, so gets 20% discount on premium subscription
-talentPlus.subscribe(recipientWallet, "premium", { value: parseEther("80") }); // 100 - 20% = 80 ETH
+// Discounted price: 80 USDC = 80 * 10^6 = 80000000
+talentPlus.subscribe(recipientWallet, "premium", parseUnits("80", 6)); // 100 - 20% = 80 USDC
 ```
 
 ### Discount System Management (Admin)
 
 ```solidity
 // Admin creates subscription model with discount
+// Price in USDC (6 decimals): 100 USDC = 100 * 10^6 = 100000000
 talentPlusSubscription.addSubscriptionModel(
     "premium",           // subscription slug
     90 * 24 * 60 * 60,   // 90 days duration
-    parseEther("100"),   // 100 ETH base price
+    parseUnits("100", 6), // 100 USDC base price
     20,                  // 20% discount
     parseEther("5000")   // 5000 TALENT tokens required for discount
 );
@@ -197,13 +214,14 @@ talentPlusSubscription.addSubscriptionModel(
 talentPlusSubscription.updateSubscriptionModel(
     "premium",
     90 * 24 * 60 * 60,
-    parseEther("100"),
+    parseUnits("100", 6), // 100 USDC
     25,                  // Updated to 25% discount
     parseEther("10000")  // Updated to 10000 TALENT tokens required
 );
 
 // Check discounted price for a specific wallet
 (uint256 finalPrice, bool discountApplied) = talentPlusSubscription.calculateDiscountedPrice("premium", userWallet);
+// Returns price in USDC (6 decimals)
 ```
 
 ### Custom Subscription Creation (Admin)
@@ -220,10 +238,13 @@ talentPlusSubscription.addUserSubscriptionWithExpiration(
 
 ```solidity
 // Add new subscription model
+// Price in USDC (6 decimals): 500 USDC = 500 * 10^6 = 500000000
 talentPlusSubscription.addSubscriptionModel(
     "enterprise",
     365 * 24 * 60 * 60, // 1 year
-    ethers.utils.parseEther("500") // 500 TALENT
+    parseUnits("500", 6), // 500 USDC
+    0,                  // No discount
+    parseEther("0")     // No TALENT required
 );
 ```
 
@@ -254,12 +275,11 @@ talentPlusSubscription.addSubscriptionModel(
 ### TalentPlusSubscription Events
 
 ```solidity
-event SubscriptionModelAdded(string indexed subscriptionSlug, uint256 durationInSeconds, uint256 priceInTalent);
-event SubscriptionModelUpdated(string indexed subscriptionSlug, uint256 durationInSeconds, uint256 priceInTalent);
-event SubscriptionModelDeactivated(string indexed subscriptionSlug);
-event UserSubscriptionAdded(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime);
-event UserSubscriptionReplaced(address indexed wallet, string indexed oldSlug, string indexed newSlug, uint256 expirationTime, uint256 startTime);
-event UserSubscriptionExtended(address indexed wallet, string indexed subscriptionSlug, uint256 expirationTime, uint256 startTime);
+event SubscriptionModelAdded(string subscriptionSlug, uint256 durationInSeconds, uint256 price, uint256 discountPercentage, uint256 talentRequiredForDiscount);
+event SubscriptionModelUpdated(string subscriptionSlug, uint256 durationInSeconds, uint256 price, uint256 discountPercentage, uint256 talentRequiredForDiscount);
+event SubscriptionModelDeactivated(string subscriptionSlug);
+event UserSubscriptionAdded(address indexed wallet, string subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
+event UserSubscriptionExtended(address indexed wallet, string subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
 event TrustedSignerAdded(address indexed signer);
 event TrustedSignerRemoved(address indexed signer);
 ```
@@ -267,7 +287,7 @@ event TrustedSignerRemoved(address indexed signer);
 ### TalentPlus Events
 
 ```solidity
-event SubscriptionCreated(address indexed user, string subscriptionSlug);
+event SubscriptionCreated(address indexed payer, address indexed recipient, string subscriptionSlug, uint256 pricePaid, bool discountApplied);
 ```
 
 ## Deployment
@@ -329,8 +349,27 @@ The TalentPlus system integrates with the Talent Vault contract to provide enhan
 
 ## Dependencies
 
-- **OpenZeppelin Contracts**: `Ownable`, `ReentrancyGuard`, `IERC20`
+- **OpenZeppelin Contracts**: `Ownable`, `ReentrancyGuard`, `IERC20`, `SafeERC20`
 - **Solidity**: `^0.8.24`
+
+## Payment Token Configuration
+
+### USDC Token (Base Network)
+- **Address**: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- **Decimals**: 6
+- **Symbol**: USDC
+
+### Price Format
+All prices in the system are stored in USDC units with 6 decimals:
+- $1 USDC = `1000000` (1 * 10^6)
+- $20 USDC = `20000000` (20 * 10^6)
+- $100 USDC = `100000000` (100 * 10^6)
+
+### User Approval Required
+Before subscribing, users must approve the TalentPlus contract to spend USDC:
+```solidity
+usdc.approve(talentPlusAddress, amount);
+```
 
 ## Network Configuration
 
@@ -338,3 +377,4 @@ The contracts support both mainnet and testnet deployments with network-specific
 - TALENT token addresses
 - Vault contract addresses
 - Fee receiver addresses
+- Payment token addresses (USDC)

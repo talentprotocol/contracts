@@ -42,8 +42,6 @@ describe("TalentPlus", () => {
     // Deploy TalentPlusSubscription
     talentPlusSubscription = (await deployContract(admin, Artifacts.TalentPlusSubscription, [
       admin.address,
-      talentToken.address,
-      [mockVault.address],
     ])) as TalentPlusSubscription;
     
     // Deploy TalentPlus with payment token, TALENT token, and initial vault addresses
@@ -107,8 +105,6 @@ describe("TalentPlus", () => {
     it("should allow owner to update TalentPlusSubscription address", async () => {
       const newSubscription = (await deployContract(admin, Artifacts.TalentPlusSubscription, [
         admin.address,
-        talentToken.address,
-        [mockVault.address],
       ])) as TalentPlusSubscription;
       
       await talentPlus.connect(admin).updateTalentPlusSubscription(newSubscription.address);
@@ -403,6 +399,28 @@ describe("TalentPlus", () => {
       const [premiumPrice, premiumDiscount, premiumAmount] = await talentPlus.calculateDiscountedPrice(premiumSlug, user1.address);
       expect(premiumPrice).to.eq(parseEther("100"));
       expect(premiumDiscount).to.be.false;
+    });
+
+    it("should handle price 0 with 100% discount correctly", async () => {
+      const freeSlug = "free";
+      
+      // Add a subscription model with price 0 and 100% discount
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(
+        freeSlug,
+        30 * 24 * 60 * 60, // 30 days
+        0, // Price is 0
+        100, // 100% discount
+        parseEther("1000") // 1000 TALENT required
+      );
+      
+      // Give user1 enough TALENT tokens for discount
+      await talentToken.connect(admin).transfer(user1.address, parseEther("1000"));
+      
+      const [finalPrice, discountApplied, discountAmount] = await talentPlus.calculateDiscountedPrice(freeSlug, user1.address);
+      
+      expect(finalPrice).to.eq(0); // Final price is 0
+      expect(discountApplied).to.be.true; // Discount is applied
+      expect(discountAmount).to.eq(0); // Discount amount is 0 (since base price is 0)
     });
 
     it("should revert for inactive subscription model", async () => {

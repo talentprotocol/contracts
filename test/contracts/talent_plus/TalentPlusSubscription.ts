@@ -37,8 +37,6 @@ describe("TalentPlusSubscription", () => {
     
     talentPlusSubscription = (await deployContract(admin, Artifacts.TalentPlusSubscription, [
       admin.address,
-      talentToken.address,
-      [mockVault.address],
     ])) as TalentPlusSubscription;
     
     // Add trusted signer
@@ -207,6 +205,66 @@ describe("TalentPlusSubscription", () => {
       // Check that we can access the array length
       const slugsCount = await talentPlusSubscription.getTotalModels();
       expect(slugsCount).to.eq(2);
+    });
+
+    it("should allow price to be 0 when discount is 100%", async () => {
+      const freeSlug = "free";
+      const zeroPrice = 0;
+      
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(
+        freeSlug,
+        basicDuration,
+        zeroPrice,
+        100, // 100% discount
+        parseEther("1000")
+      );
+      
+      const model = await talentPlusSubscription.getSubscriptionModel(freeSlug);
+      expect(model.price).to.eq(0);
+      expect(model.discountPercentage).to.eq(100);
+      expect(model.active).to.eq(true);
+    });
+
+    it("should not allow price to be 0 when discount is not 100%", async () => {
+      const action = talentPlusSubscription.connect(admin).addSubscriptionModel(
+        "invalid",
+        basicDuration,
+        0, // Zero price
+        50, // 50% discount (not 100%)
+        parseEther("1000")
+      );
+      
+      await expect(action).to.be.revertedWith("Price must be greater than 0 unless discount is 100%");
+    });
+
+    it("should allow updating price to 0 when discount is 100%", async () => {
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
+      
+      await talentPlusSubscription.connect(admin).updateSubscriptionModel(
+        basicSlug,
+        basicDuration,
+        0, // Zero price
+        100, // 100% discount
+        parseEther("1000")
+      );
+      
+      const model = await talentPlusSubscription.getSubscriptionModel(basicSlug);
+      expect(model.price).to.eq(0);
+      expect(model.discountPercentage).to.eq(100);
+    });
+
+    it("should not allow updating price to 0 when discount is not 100%", async () => {
+      await talentPlusSubscription.connect(admin).addSubscriptionModel(basicSlug, basicDuration, basicPrice, 10, parseEther("1000"));
+      
+      const action = talentPlusSubscription.connect(admin).updateSubscriptionModel(
+        basicSlug,
+        basicDuration,
+        0, // Zero price
+        50, // 50% discount (not 100%)
+        parseEther("1000")
+      );
+      
+      await expect(action).to.be.revertedWith("Price must be greater than 0 unless discount is 100%");
     });
   });
 
@@ -428,124 +486,4 @@ describe("TalentPlusSubscription", () => {
     });
   });
 
-  describe("Discount Functionality", () => {
-    const basicSlug = "basic";
-    const basicDuration = 30 * 24 * 60 * 60; // 30 days in seconds
-    const basicPrice = ethers.utils.parseEther("50");
-
-    beforeEach(async () => {
-      // Add subscription model with discount
-      await talentPlusSubscription.connect(admin).addSubscriptionModel(
-        basicSlug,
-        basicDuration,
-        basicPrice,
-        20, // 20% discount
-        parseEther("1000") // 1000 TALENT tokens required for discount
-      );
-    });
-
-    it("should calculate correct discounted price for eligible wallet", async () => {
-      // Give user1 enough TALENT tokens for discount
-      await talentToken.connect(admin).transfer(user1.address, parseEther("1000"));
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.true;
-      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
-      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
-    });
-
-    it("should not apply discount for wallet with insufficient TALENT", async () => {
-      // Give user1 less TALENT tokens than required
-      await talentToken.connect(admin).transfer(user1.address, parseEther("500"));
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.false;
-      expect(finalPrice).to.eq(basicPrice); // Full price
-      expect(discountAmount).to.eq(0); // No discount applied
-    });
-
-    it("should not apply discount for wallet with zero TALENT", async () => {
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user2.address);
-      
-      expect(discountApplied).to.be.false;
-      expect(finalPrice).to.eq(basicPrice); // Full price
-      expect(discountAmount).to.eq(0); // No discount applied
-    });
-
-    it("should handle 100% discount correctly", async () => {
-      // Update subscription model to have 100% discount
-      await talentPlusSubscription.connect(admin).updateSubscriptionModel(
-        basicSlug,
-        basicDuration,
-        basicPrice,
-        100, // 100% discount
-        parseEther("1000")
-      );
-      
-      // Give user1 enough TALENT tokens
-      await talentToken.connect(admin).transfer(user1.address, parseEther("1000"));
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.true;
-      expect(finalPrice).to.eq(0); // Free subscription
-      expect(discountAmount).to.eq(basicPrice); // Full discount = full price
-    });
-
-    it("should revert for inactive subscription model", async () => {
-      await talentPlusSubscription.connect(admin).deactivateSubscriptionModel(basicSlug);
-      
-      const action = talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      await expect(action).to.be.revertedWith("Subscription model is not active");
-    });
-
-    it("should revert for invalid subscription slug", async () => {
-      const action = talentPlusSubscription.calculateDiscountedPrice("nonexistent", user1.address);
-      await expect(action).to.be.revertedWith("Subscription model is not active");
-    });
-
-    it("should revert for zero address", async () => {
-      const action = talentPlusSubscription.calculateDiscountedPrice(basicSlug, ethers.constants.AddressZero);
-      await expect(action).to.be.revertedWith("Invalid wallet address");
-    });
-
-    it("should apply discount based on vault staking alone", async () => {
-      // Give user1 vault tokens (simulating staking) but no TALENT tokens
-      await mockVault.connect(admin).transfer(user1.address, parseEther("1000"));
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.true;
-      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
-      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
-    });
-
-    it("should apply discount based on combined TALENT balance and vault staking", async () => {
-      // Give user1 some TALENT tokens and some vault tokens
-      await talentToken.connect(admin).transfer(user1.address, parseEther("500"));
-      await mockVault.connect(admin).transfer(user1.address, parseEther("500"));
-      // Total: 1000 TALENT equivalent (500 + 500)
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.true;
-      expect(finalPrice).to.eq(parseEther("40")); // 50 ETH - 20% = 40 ETH
-      expect(discountAmount).to.eq(parseEther("10")); // 20% discount = 10 ETH
-    });
-
-    it("should not apply discount when combined holdings are insufficient", async () => {
-      // Give user1 some TALENT tokens and some vault tokens, but not enough combined
-      await talentToken.connect(admin).transfer(user1.address, parseEther("300"));
-      await mockVault.connect(admin).transfer(user1.address, parseEther("200"));
-      // Total: 500 TALENT equivalent (300 + 200), but need 1000
-      
-      const [finalPrice, discountApplied, discountAmount] = await talentPlusSubscription.calculateDiscountedPrice(basicSlug, user1.address);
-      
-      expect(discountApplied).to.be.false;
-      expect(finalPrice).to.eq(basicPrice); // Full price
-      expect(discountAmount).to.eq(0); // No discount applied
-    });
-  });
 });

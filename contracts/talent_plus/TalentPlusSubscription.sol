@@ -3,19 +3,8 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-// Interface for the vault contract to get staked amounts
-interface IVault {
-    function balanceOf(address account) external view returns (uint256);
-}
 
 contract TalentPlusSubscription is Ownable, ReentrancyGuard {
-
-    // TALENT token address for balance checking
-    IERC20 public immutable TALENT_TOKEN;
-    // Array of vault addresses to check staked amounts
-    address[] public vaultAddresses;
 
     // Mapping to store trusted signers
     mapping(address => bool) public trustedSigners;
@@ -57,18 +46,9 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     event UserSubscriptionExtended(address indexed wallet, string subscriptionSlug, uint256 expirationTime, uint256 startTime, address payer, uint256 pricePaid);
     event TrustedSignerAdded(address indexed signer);
     event TrustedSignerRemoved(address indexed signer);
-    event VaultAddressAdded(address indexed vaultAddress);
-    event VaultAddressRemoved(address indexed vaultAddress);
 
-    constructor(address initialOwner, address talentTokenAddress, address[] memory initialVaultAddresses) Ownable(initialOwner) {
+    constructor(address initialOwner) Ownable(initialOwner) {
         trustedSigners[initialOwner] = true;
-        TALENT_TOKEN = IERC20(talentTokenAddress);
-        
-        // Add initial vault addresses
-        for (uint256 i = 0; i < initialVaultAddresses.length; i++) {
-            require(initialVaultAddresses[i] != address(0), "Invalid vault address");
-            vaultAddresses.push(initialVaultAddresses[i]);
-        }
     }
 
     /**
@@ -106,77 +86,6 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Adds a vault address to the list of vaults to check for staked amounts
-     * @param vaultAddress The vault address to add
-     * @dev Can only be called by the owner or trusted signers
-     */
-    function addVaultAddress(address vaultAddress) external {
-        require(owner() == msg.sender || trustedSigners[msg.sender], "Only owner or trusted signers can add vault addresses");
-        require(vaultAddress != address(0), "Invalid vault address");
-        
-        // Check if vault address already exists
-        for (uint256 i = 0; i < vaultAddresses.length; i++) {
-            require(vaultAddresses[i] != vaultAddress, "Vault address already exists");
-        }
-        
-        vaultAddresses.push(vaultAddress);
-        emit VaultAddressAdded(vaultAddress);
-    }
-
-    /**
-     * @notice Removes a vault address from the list of vaults
-     * @param vaultAddress The vault address to remove
-     * @dev Can only be called by the owner or trusted signers
-     */
-    function removeVaultAddress(address vaultAddress) external {
-        require(owner() == msg.sender || trustedSigners[msg.sender], "Only owner or trusted signers can remove vault addresses");
-        
-        bool found = false;
-        for (uint256 i = 0; i < vaultAddresses.length; i++) {
-            if (vaultAddresses[i] == vaultAddress) {
-                // Move the last element to the position of the element to delete
-                vaultAddresses[i] = vaultAddresses[vaultAddresses.length - 1];
-                // Remove the last element
-                vaultAddresses.pop();
-                found = true;
-                break;
-            }
-        }
-        
-        require(found, "Vault address not found");
-        emit VaultAddressRemoved(vaultAddress);
-    }
-
-    /**
-     * @notice Gets all vault addresses
-     * @return An array of all vault addresses
-     */
-    function getVaultAddresses() external view returns (address[] memory) {
-        return vaultAddresses;
-    }
-
-    /**
-     * @notice Gets the total number of vault addresses
-     * @return The number of vault addresses
-     */
-    function getVaultAddressCount() external view returns (uint256) {
-        return vaultAddresses.length;
-    }
-
-    /**
-     * @notice Helper function to calculate total staked amount across all vaults
-     * @param wallet The wallet address to check
-     * @return totalStaked The total amount staked across all vaults
-     */
-    function _getTotalVaultStaked(address wallet) internal view returns (uint256 totalStaked) {
-        totalStaked = 0;
-        for (uint256 i = 0; i < vaultAddresses.length; i++) {
-            totalStaked += IVault(vaultAddresses[i]).balanceOf(wallet);
-        }
-        return totalStaked;
-    }
-
-    /**
      * @notice Adds a new subscription model
      * @param subscriptionSlug The subscription slug string for the subscription model
      * @param durationInSeconds The duration of the subscription in seconds
@@ -195,7 +104,7 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
         require(owner() == msg.sender || trustedSigners[msg.sender], "Only owner or trusted signers can add subscription models");
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         require(durationInSeconds > 0, "Duration must be greater than 0");
-        require(price > 0, "Price must be greater than 0");
+        require(price > 0 || discountPercentage == 100, "Price must be greater than 0 unless discount is 100%");
         require(discountPercentage <= 100, "Discount percentage cannot exceed 100%");
         require(!subscriptionModels[subscriptionSlug].active, "Subscription model already exists");
         
@@ -234,7 +143,7 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
         require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
         require(subscriptionModels[subscriptionSlug].active, "Subscription model does not exist");
         require(durationInSeconds > 0, "Duration must be greater than 0");
-        require(price > 0, "Price must be greater than 0");
+        require(price > 0 || discountPercentage == 100, "Price must be greater than 0 unless discount is 100%");
         require(discountPercentage <= 100, "Discount percentage cannot exceed 100%");
 
         subscriptionModels[subscriptionSlug].durationInSeconds = durationInSeconds;
@@ -437,60 +346,6 @@ contract TalentPlusSubscription is Ownable, ReentrancyGuard {
         
         SubscriptionModel memory model = subscriptionModels[subscriptionSlug];
         return (model.durationInSeconds, model.price, model.discountPercentage, model.talentRequiredForDiscount, model.active);
-    }
-
-    /**
-     * @notice Calculates the discounted price for a subscription based on TALENT holdings (balance + vault staking across all vaults)
-     * @param subscriptionSlug The subscription slug
-     * @param wallet The wallet address to check TALENT balance and vault staking for
-     * @return finalPrice The final price after applying discount (if applicable)
-     * @return discountApplied Whether a discount was applied
-     * @return discountAmount The amount of discount applied (0 if no discount)
-     */
-    function calculateDiscountedPrice(string memory subscriptionSlug, address wallet) external view returns (uint256 finalPrice, bool discountApplied, uint256 discountAmount) {
-        require(bytes(subscriptionSlug).length > 0, "Subscription slug cannot be empty");
-        require(wallet != address(0), "Invalid wallet address");
-        
-        SubscriptionModel memory model = subscriptionModels[subscriptionSlug];
-        require(model.active, "Subscription model is not active");
-        
-        uint256 talentBalance = TALENT_TOKEN.balanceOf(wallet);
-        uint256 vaultStaked = _getTotalVaultStaked(wallet);
-        uint256 totalTalentHoldings = talentBalance + vaultStaked;
-        
-        // Check if wallet qualifies for discount (TALENT balance + vault staking)
-        if (totalTalentHoldings >= model.talentRequiredForDiscount && model.discountPercentage > 0) {
-            discountAmount = (model.price * model.discountPercentage) / 100;
-            finalPrice = model.price - discountAmount;
-            discountApplied = true;
-        } else {
-            finalPrice = model.price;
-            discountApplied = false;
-            discountAmount = 0;
-        }
-        
-        return (finalPrice, discountApplied, discountAmount);
-    }
-
-    /**
-     * @notice Gets the total TALENT holdings for a user (balance + vault staking across all vaults)
-     * @param wallet The wallet address to check TALENT holdings for
-     * @return totalTalentHoldings The total TALENT holdings (balance + vault staked across all vaults)
-     * @return talentBalance The TALENT token balance in the wallet
-     * @return vaultStaked The TALENT tokens staked across all vaults
-     */
-    function getUserTalentHoldings(address wallet) external view returns (
-        uint256 totalTalentHoldings,
-        uint256 talentBalance,
-        uint256 vaultStaked
-    ) {
-        require(wallet != address(0), "Invalid wallet address");
-        
-        talentBalance = TALENT_TOKEN.balanceOf(wallet);
-        vaultStaked = _getTotalVaultStaked(wallet);
-        totalTalentHoldings = talentBalance + vaultStaked;
-        
-        return (totalTalentHoldings, talentBalance, vaultStaked);
     }
 
     /**

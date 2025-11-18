@@ -46,7 +46,7 @@ async function main() {
 
   // Step 1: Deploy TalentPlusSubscription
   console.log("\n📦 Deploying TalentPlusSubscription...");
-  const talentPlusSubscription = await deployTalentPlusSubscription(admin.address, talentTokenAddress, vaultAddresses);
+  const talentPlusSubscription = await deployTalentPlusSubscription(admin.address);
   console.log(`✅ TalentPlusSubscription deployed at: ${talentPlusSubscription.address}`);
 
   // Step 2: Deploy TalentPlus
@@ -140,8 +140,8 @@ async function main() {
 
   console.log("\n🔍 Contract Verification Commands:");
   console.log("=" .repeat(80));
-  console.log(`# Verify TalentPlusSubscription (using custom task):`);
-  console.log(`npx hardhat verify-talent-plus-subscription --network ${network.name} --address ${talentPlusSubscription.address} --owner ${admin.address} --token ${talentTokenAddress} --vaults ${vaultAddresses.join(",")}`);
+  console.log(`# Verify TalentPlusSubscription:`);
+  console.log(`npx hardhat verify --network ${network.name} ${talentPlusSubscription.address} ${admin.address}`);
   console.log("");
   console.log(`# Verify TalentPlus:`);
   console.log(`npx hardhat verify --network ${network.name} ${talentPlus.address} ${talentPlusSubscription.address} ${feeReceiver} ${USDC_ADDRESS} ${talentTokenAddress} "[${vaultAddresses.join(",")}]"`);

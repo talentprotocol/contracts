@@ -167,16 +167,12 @@ export async function deployTalentVault(
 }
 
 export async function deployTalentPlusSubscription(
-  initialOwner: string,
-  talentTokenAddress: string,
-  vaultAddresses: string[]
+  initialOwner: string
 ): Promise<TalentPlusSubscription> {
   const talentPlusSubscriptionContract = await ethers.getContractFactory("TalentPlusSubscription");
 
   const deployedTalentPlusSubscription = await talentPlusSubscriptionContract.deploy(
-    initialOwner,
-    talentTokenAddress,
-    vaultAddresses
+    initialOwner
   );
   await deployedTalentPlusSubscription.deployed();
 

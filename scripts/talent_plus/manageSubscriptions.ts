@@ -2,22 +2,22 @@ import { ethers, network } from "hardhat";
 import { TalentPlusSubscription } from "../../typechain-types";
 
 // Configuration
-const SUBSCRIPTION_CONTRACT_ADDRESS = "0xD10cdad7FC037cDd54618F26Df65b718795e8430";
+const SUBSCRIPTION_CONTRACT_ADDRESS = "0x899BB212C0a132826E08810ac4D621cf02d61be0";
 
 // Subscription model configurations
 const MONTHLY_SUBSCRIPTION_CONFIG = {
   slug: "monthly",
   durationInSeconds: 30 * 24 * 60 * 60, // 30 days in seconds
-  price: ethers.utils.parseUnits("9.99", 6), // 9.99 USDC (6 decimals)
-  discountPercentage: 100, // 100% discount
+  price: ethers.utils.parseUnits("9.9", 6), // 9.9 USDC (6 decimals)
+  discountPercentage: 50, // 50% discount
   talentRequiredForDiscount: ethers.utils.parseEther("100000") // 100k TALENT
 };
 
 const YEARLY_SUBSCRIPTION_CONFIG = {
   slug: "yearly",
   durationInSeconds: 365 * 24 * 60 * 60, // 1 year in seconds
-  price: ethers.utils.parseUnits("99.99", 6), // 99.99 USDC (6 decimals)
-  discountPercentage: 100, // 100% discount
+  price: ethers.utils.parseUnits("99.9", 6), // 99.9 USDC (6 decimals)
+  discountPercentage: 50, // 50% discount
   talentRequiredForDiscount: ethers.utils.parseEther("100000") // 100k TALENT
 };
 

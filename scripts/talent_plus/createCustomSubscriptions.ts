@@ -13,8 +13,8 @@ interface CustomSubscription {
 const BATCH_SIZE = 10; // Process subscriptions in batches to avoid gas limits
 
 // Contract and file configuration
-const CONTRACT_ADDRESS = "0xb7853f5bB059Df22B427C176c063198c6Bab0A15";
-const JSON_FILE_PATH = "scripts/talent_plus/sample_subscriptions.json";
+const CONTRACT_ADDRESS = "0x899BB212C0a132826E08810ac4D621cf02d61be0";
+const JSON_FILE_PATH = "scripts/talent_plus/migrate_subscriptions.json";
 
 async function main() {
   console.log(`Creating custom subscriptions on ${network.name}`);

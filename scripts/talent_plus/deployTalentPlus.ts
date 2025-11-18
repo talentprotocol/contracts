@@ -54,10 +54,14 @@ async function main() {
   const talentPlus = await deployTalentPlus(
     talentPlusSubscription.address,
     feeReceiver,
-    USDC_ADDRESS
+    USDC_ADDRESS,
+    talentTokenAddress,
+    vaultAddresses
   );
   console.log(`✅ TalentPlus deployed at: ${talentPlus.address}`);
   console.log(`   Payment Token (USDC): ${USDC_ADDRESS}`);
+  console.log(`   TALENT Token: ${talentTokenAddress}`);
+  console.log(`   Vault Addresses: ${vaultAddresses.join(", ")}`);
 
   // Step 3: Setup trusted signers
   console.log("\n🔐 Setting up trusted signers...");
@@ -140,7 +144,7 @@ async function main() {
   console.log(`npx hardhat verify-talent-plus-subscription --network ${network.name} --address ${talentPlusSubscription.address} --owner ${admin.address} --token ${talentTokenAddress} --vaults ${vaultAddresses.join(",")}`);
   console.log("");
   console.log(`# Verify TalentPlus:`);
-  console.log(`npx hardhat verify --network ${network.name} ${talentPlus.address} ${talentPlusSubscription.address} ${feeReceiver} ${USDC_ADDRESS}`);
+  console.log(`npx hardhat verify --network ${network.name} ${talentPlus.address} ${talentPlusSubscription.address} ${feeReceiver} ${USDC_ADDRESS} ${talentTokenAddress} "[${vaultAddresses.join(",")}]"`);
   console.log("=" .repeat(80));
 
   console.log("\n✅ Deployment completed successfully!");

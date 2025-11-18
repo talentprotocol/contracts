@@ -186,14 +186,18 @@ export async function deployTalentPlusSubscription(
 export async function deployTalentPlus(
   talentPlusSubscription: string,
   feeReceiver: string,
-  paymentToken: string
+  paymentToken: string,
+  talentToken: string,
+  initialVaultAddresses: string[] = []
 ): Promise<TalentPlus> {
   const talentPlusContract = await ethers.getContractFactory("TalentPlus");
 
   const deployedTalentPlus = await talentPlusContract.deploy(
     talentPlusSubscription,
     feeReceiver,
-    paymentToken
+    paymentToken,
+    talentToken,
+    initialVaultAddresses
   );
   await deployedTalentPlus.deployed();
 

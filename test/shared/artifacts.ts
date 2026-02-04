@@ -15,6 +15,7 @@ import TalentVault from "../../artifacts/contracts/talent/TalentVault.sol/Talent
 import TalentVaultV2 from "../../artifacts/contracts/talent/TalentVaultV2.sol/TalentVaultV2.json";
 import BaseAPY from "../../artifacts/contracts/talent/vault-options/BaseAPY.sol/BaseAPY.json";
 import MultiSendETH from "../../artifacts/contracts/utils/MultiSendETH.sol/MultiSendETH.json";
+import FixedBuilderScore from "../../artifacts/contracts/passport/FixedBuilderScore.sol/FixedBuilderScore.json";
 
 export {
   PassportRegistry,
@@ -34,4 +35,5 @@ export {
   TalentVaultV2,
   BaseAPY,
   MultiSendETH,
+  FixedBuilderScore,
 };

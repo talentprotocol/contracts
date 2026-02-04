@@ -9,6 +9,7 @@ import {
   PassportRegistry,
   PassportBuilderScore,
   PassportWalletRegistry,
+  FixedBuilderScore,
 } from "../../../typechain-types";
 import { Artifacts } from "../../shared";
 import { ensureTimestamp } from "../../shared/utils";
@@ -939,6 +940,130 @@ describe("TalentVault", () => {
         await talentVault.setLockPeriod(10);
 
         expect(await talentVault.lockPeriod()).to.equal(10 * 24 * 60 * 60);
+      });
+    });
+  });
+
+  describe("FixedBuilderScore", async () => {
+    let fixedBuilderScore: FixedBuilderScore;
+
+    beforeEach(async () => {
+      fixedBuilderScore = (await deployContract(admin, Artifacts.FixedBuilderScore, [
+        60,
+        admin.address,
+      ])) as FixedBuilderScore;
+    });
+
+    describe("Deployment", async () => {
+      it("Should set the correct owner", async () => {
+        expect(await fixedBuilderScore.owner()).to.equal(admin.address);
+      });
+
+      it("Should set the correct initial fixed score", async () => {
+        expect(await fixedBuilderScore.fixedScore()).to.equal(60);
+      });
+    });
+
+    describe("#getScore", async () => {
+      it("returns the fixed score for any passport ID", async () => {
+        expect(await fixedBuilderScore.getScore(1)).to.equal(60);
+        expect(await fixedBuilderScore.getScore(999)).to.equal(60);
+        expect(await fixedBuilderScore.getScore(0)).to.equal(60);
+      });
+    });
+
+    describe("#setFixedScore", async () => {
+      context("when called by the owner", async () => {
+        it("updates the fixed score", async () => {
+          await fixedBuilderScore.setFixedScore(80);
+          expect(await fixedBuilderScore.fixedScore()).to.equal(80);
+        });
+
+        it("emits FixedScoreUpdated event", async () => {
+          await expect(fixedBuilderScore.setFixedScore(80))
+            .to.emit(fixedBuilderScore, "FixedScoreUpdated")
+            .withArgs(60, 80);
+        });
+      });
+
+      context("when called by a non-owner", async () => {
+        it("reverts", async () => {
+          await expect(fixedBuilderScore.connect(user1).setFixedScore(80)).to.be.revertedWith(
+            `OwnableUnauthorizedAccount("${user1.address}")`
+          );
+        });
+      });
+    });
+
+    describe("TalentVault with FixedBuilderScore", async () => {
+      beforeEach(async () => {
+        // Swap PassportBuilderScore for FixedBuilderScore in TalentVault
+        await talentVault.setPassportBuilderScore(fixedBuilderScore.address);
+      });
+
+      it("uses the fixed score for yield calculation", async () => {
+        expect(await talentVault.passportBuilderScore()).to.equal(fixedBuilderScore.address);
+      });
+
+      context("when fixed score is >= 60 (bonus tier)", async () => {
+        it("calculates rewards at 10% APY", async () => {
+          await fixedBuilderScore.setFixedScore(60);
+
+          const depositAmount = ethers.utils.parseEther("1000");
+          await talentToken.transfer(user1.address, depositAmount);
+          await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+          await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+          // Simulate time passing
+          ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
+
+          await talentVault.connect(user1).refresh();
+
+          // 10% yield over 90 days (yieldAccrualDeadline)
+          const expectedRewards = yieldBasePerDay.mul(2).mul(90);
+          const userBalance = await talentVault.balanceOf(user1.address);
+          expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
+        });
+      });
+
+      context("when fixed score is < 60 (base tier)", async () => {
+        it("calculates rewards at 5% APY", async () => {
+          await fixedBuilderScore.setFixedScore(59);
+
+          const depositAmount = ethers.utils.parseEther("1000");
+          await talentToken.transfer(user1.address, depositAmount);
+          await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+          await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+          // Simulate time passing
+          ensureTimestamp(currentDateEpochSeconds + 31536000); // 1 year ahead
+
+          await talentVault.connect(user1).refresh();
+
+          // 5% yield over 90 days (yieldAccrualDeadline)
+          const expectedRewards = yieldBasePerDay.mul(90);
+          const userBalance = await talentVault.balanceOf(user1.address);
+          expect(userBalance).to.be.closeTo(depositAmount.add(expectedRewards), ethers.utils.parseEther("0.1"));
+        });
+      });
+
+      context("when admin changes fixed score", async () => {
+        it("affects future yield calculations for all users", async () => {
+          // Start with score 0 (base rate)
+          await fixedBuilderScore.setFixedScore(0);
+
+          const depositAmount = ethers.utils.parseEther("1000");
+          await talentToken.transfer(user1.address, depositAmount);
+          await talentToken.connect(user1).approve(talentVault.address, depositAmount);
+          await talentVault.connect(user1).deposit(depositAmount, user1.address);
+
+          // Change to bonus tier
+          await fixedBuilderScore.setFixedScore(60);
+
+          // All users now get the bonus rate
+          const yieldRate = await talentVault.getYieldRateForScore(user1.address);
+          expect(yieldRate).to.equal(10_00); // 10%
+        });
       });
     });
   });

@@ -10,6 +10,8 @@ import type {
   PassportWalletRegistry,
   TalentTGEUnlockTimestamp,
   TalentVault,
+  TalentPlus,
+  TalentPlusSubscription,
 } from "../../typechain-types";
 
 export async function deployPassport(owner: string): Promise<PassportRegistry> {
@@ -162,4 +164,38 @@ export async function deployTalentVault(
   await deployedTalentVault.deployed();
 
   return deployedTalentVault as TalentVault;
+}
+
+export async function deployTalentPlusSubscription(
+  initialOwner: string
+): Promise<TalentPlusSubscription> {
+  const talentPlusSubscriptionContract = await ethers.getContractFactory("TalentPlusSubscription");
+
+  const deployedTalentPlusSubscription = await talentPlusSubscriptionContract.deploy(
+    initialOwner
+  );
+  await deployedTalentPlusSubscription.deployed();
+
+  return deployedTalentPlusSubscription as TalentPlusSubscription;
+}
+
+export async function deployTalentPlus(
+  talentPlusSubscription: string,
+  feeReceiver: string,
+  paymentToken: string,
+  talentToken: string,
+  initialVaultAddresses: string[] = []
+): Promise<TalentPlus> {
+  const talentPlusContract = await ethers.getContractFactory("TalentPlus");
+
+  const deployedTalentPlus = await talentPlusContract.deploy(
+    talentPlusSubscription,
+    feeReceiver,
+    paymentToken,
+    talentToken,
+    initialVaultAddresses
+  );
+  await deployedTalentPlus.deployed();
+
+  return deployedTalentPlus as TalentPlus;
 }
